@@ -1,0 +1,16 @@
+{
+  "name": "AFRICA PHONE - Gestion des Ventes",
+  "short_name": "Africa Phone",
+  "start_url": "/vente/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#006064",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/logo-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    }
+  ]
+}

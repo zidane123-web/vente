@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connexion - AFRICA PHONE</title>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Link to the manifest -->
+<link rel="manifest" href="manifest.json">
+<!-- Set the theme color (should match the one in your manifest) -->
+<meta name="theme-color" content="#006064">
+
+  <style>
+    /* ======= Reset & Base ======= */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; font-family: 'Roboto', sans-serif; }
+    body {
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #333;
+    }
+    
+    /* ======= Conteneur de Login ======= */
+    .login-container {
+      background: #ffffff;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 400px;
+      text-align: center;
+      animation: slideIn 0.8s ease-out;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* ======= Titres & Texte ======= */
+    .login-container h1 { font-size: 28px; color: #333; margin-bottom: 10px; }
+    .login-container p { font-size: 16px; color: #666; margin-bottom: 30px; }
+    
+    /* ======= Groupes d'Input ======= */
+    .input-group {
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .input-group input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-size: 16px;
+      outline: none;
+      transition: border 0.3s ease;
+      background: #ffffff;
+      color: #333;
+    }
+    .input-group input:focus { border: 2px solid #00bcd4; }
+    .input-group .icon {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: #ccc;
+      transition: color 0.3s ease;
+    }
+    .input-group input:focus + .icon { color: #00bcd4; }
+    
+    /* ======= Bouton de Connexion avec Spinner ======= */
+    .btn-login {
+      position: relative;
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: bold;
+      background: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .btn-login:hover { transform: translateY(-2px); }
+    .btn-login:active { transform: scale(0.98); }
+    .btn-login.shake { animation: shake 0.5s ease-in-out; }
+    @keyframes shake {
+      0% { transform: translateX(0); }
+      20% { transform: translateX(-5px); }
+      40% { transform: translateX(5px); }
+      60% { transform: translateX(-5px); }
+      80% { transform: translateX(5px); }
+      100% { transform: translateX(0); }
+    }
+    .btn-login .button-text {
+      display: inline-block;
+      transition: opacity 0.3s ease;
+      color: #333;
+    }
+    .btn-login .button-spinner {
+      display: none;
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0,0,0,0.3);
+      border-top: 3px solid rgba(0,0,0,0.7);
+      border-radius: 50%;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    /* ======= Message d'Erreur ======= */
+    .error-message {
+      font-size: 14px;
+      margin-top: 15px;
+      color: #ff3b30;
+      animation: bounceIn 0.6s ease-out forwards;
+      opacity: 0;
+    }
+    @keyframes bounceIn {
+      0% { transform: translateY(20px); opacity: 0; }
+      60% { transform: translateY(-5px); opacity: 1; }
+      100% { transform: translateY(0); }
+    }
+    
+    /* ======= Améliorations UX Mobile ======= */
+    input { font-size: 18px; padding: 14px; }
+  </style>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<div class="login-container">
+  <h1>🔐 AFRICA PHONE</h1>
+  <p>Accès réservé aux employés autorisés</p>
+  
+  <form id="loginForm">
+    <!-- Ici, on demande uniquement le mot de passe, l'email sera défini via la base de Custom Claims côté backend -->
+    <div class="input-group">
+      <input type="email" id="email" placeholder="Adresse email" required>
+      <span class="icon"><i data-lucide="mail"></i></span>
+    </div>
+    <div class="input-group">
+      <input type="password" id="password" placeholder="Mot de passe" required>
+      <span class="icon"><i data-lucide="lock"></i></span>
+    </div>
+    <button type="submit" class="btn-login" id="loginButton">
+      <span class="button-text">Se Connecter</span>
+      <span class="button-spinner" id="buttonSpinner"></span>
+    </button>
+    <p class="error-message" id="errorMessage">Mot de passe ou email incorrect !</p>
+  </form>
+</div>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js')
+        .then(registration => {
+          console.log('Service Worker registered with scope:', registration.scope);
+        })
+        .catch(error => {
+          console.error('Service Worker registration failed:', error);
+        });
+    });
+  }
+</script>
+
+<script>
+  // --- Configuration Firebase ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyB44wUN_WitWSIjoUKtWXI6z6SuQx41_fg",
+    authDomain: "africaphone1-accfb.firebaseapp.com",
+    projectId: "africaphone1-accfb",
+    storageBucket: "africaphone1-accfb.firebasestorage.app",
+    messagingSenderId: "747416222232",
+    appId: "1:747416222232:web:36cb8a93f3c8342ad3e16d",
+    measurementId: "G-LFT6C3Q9D9"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+
+  document.getElementById('loginForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const loginButton = document.getElementById("loginButton");
+    const buttonText = document.querySelector("#loginButton .button-text");
+    const buttonSpinner = document.getElementById("buttonSpinner");
+    const errorMessage = document.getElementById("errorMessage");
+
+    errorMessage.style.display = "none";
+    buttonText.style.opacity = "0";
+    buttonSpinner.style.display = "block";
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        // Après connexion, récupérer les custom claims pour déterminer le rôle
+        return firebase.auth().currentUser.getIdTokenResult();
+      })
+      .then((idTokenResult) => {
+        // Exemple : Vérifier si l'utilisateur est "admin" ou "employe"
+        const role = idTokenResult.claims.role || "employe";
+        // Vous pouvez ensuite rediriger ou adapter l'interface en fonction du rôle
+        console.log("Rôle récupéré via custom claims :", role);
+        window.location.href = 'index.html';
+      })
+      .catch((error) => {
+        buttonText.style.opacity = "1";
+        buttonSpinner.style.display = "none";
+        errorMessage.style.display = "block";
+        loginButton.classList.add("shake");
+        setTimeout(() => loginButton.classList.remove("shake"), 500);
+        console.error("Erreur de connexion :", error);
+      });
+  });
+
+  window.addEventListener('load', () => {
+    lucide.createIcons();
+  });
+
+  
+</script>
+
+
+</body>
+</html>
