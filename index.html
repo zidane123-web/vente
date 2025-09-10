@@ -1639,7 +1639,11 @@ async function populateUserFilters() {
             sale.items.forEach(item => {
                 const itemName = item.produit || 'Article inconnu';
                 const displayItemName = itemName.length > 35 ? itemName.substring(0, 32) + '...' : itemName;
-                itemListHTML += `<p class="item-line">${item.quantite} x ${displayItemName} - ${parseFloat(item.prix || 0).toLocaleString('fr-FR')} FCFA</p>`;
+                const garantieText = item.dureeGarantie && item.dureeGarantie !== 'Aucune'
+                    ? `<br><small style="color: #006064;">Garantie : ${item.dureeGarantie}</small>`
+                    : ''; // N'affiche rien si pas de garantie
+
+                itemListHTML += `<p class="item-line">${item.quantite} x ${displayItemName} - ${parseFloat(item.prix || 0).toLocaleString('fr-FR')} FCFA${garantieText}</p>`;
             });
         } else {
             itemListHTML = '<p class="item-line" style="color: #888;">Aucun article</p>';
@@ -1967,18 +1971,23 @@ function generateInvoicePDF(sale) {
         const tableColumn = ["Désignation", "P.U.", "Qté", "Montant"];
         const tableRows = [];
 
-        sale.items.forEach(item => {
-            const pu = cleanNumber(item.prix);
-            const total = cleanNumber(item.total);
-            
-            const itemData = [
-                item.produit || "Article inconnu",
-                fmt(pu),
-                item.quantite || "0",
-                `${fmt(total)} FCFA`
-            ];
-            tableRows.push(itemData);
-        });
+        sale.items.forEach(item => {
+            const pu = cleanNumber(item.prix);
+            const total = cleanNumber(item.total);
+
+            let designation = item.produit || "Article inconnu";
+            if (item.dureeGarantie && item.dureeGarantie !== "Aucune") {
+                designation += `\n(Garantie : ${item.dureeGarantie})`;
+            }
+
+            const itemData = [
+                designation,
+                fmt(pu),
+                item.quantite || "0",
+                `${fmt(total)} FCFA`
+            ];
+            tableRows.push(itemData);
+        });
 
         doc.autoTable({
             head: [tableColumn],
@@ -8489,11 +8498,12 @@ function addOrIncrementItem(prod) {
       return;
     }
     currentItems.push({
-      produit  : prod.name,
-      prix     : prod.price,
-      quantite : 1,
-      total    : prod.price,
-      category : prod.category
+      produit:       prod.name,
+      prix:          prod.price,
+      quantite:      1,
+      total:         prod.price,
+      category:      prod.category,
+      dureeGarantie: prod.dureeGarantie || 'Aucune' // Ajoute "Aucune" si la garantie n'est pas définie
     });
   }
 
