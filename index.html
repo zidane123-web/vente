@@ -39,6 +39,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
 <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 
 <!-- Set the theme color (should match the one in your manifest) -->
 <meta name="theme-color" content="#006064">
@@ -888,6 +889,26 @@
 
 .product-card .history-btn:hover i{
   color:#fff;
+}
+
+/* Mode Ordonnancement - poignée de déplacement */
+.product-card .drag-handle {
+  display: none; /* Caché par défaut */
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+  color: #888;
+  cursor: grab;
+}
+
+#stock-category.ordering-active .product-card .drag-handle {
+  display: block; /* Devient visible en mode ordonnancement */
+}
+
+/* On décale l'icône du produit pour laisser de la place à la poignée */
+#stock-category.ordering-active .product-icon {
+  margin-left: 20px;
 }
 
 /* Écran Démarrer la journée */
@@ -2143,10 +2164,18 @@ function generateInvoicePDF(sale) {
         
       </div>
       <div id="stock-category" style="display: none;">
-        <button class="btn-modern secondary" onclick="backToStockHome()">
-          <i data-lucide="arrow-left"></i> Retour
-        </button>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+          <button class="btn-modern secondary" style="flex-shrink: 0;" onclick="backToStockHome()">
+            <i data-lucide="arrow-left"></i> Retour
+          </button>
+          
+          <button id="btnOrderAccessories" class="btn-modern" style="display: none;" onclick="toggleOrderingMode()">
+            <i data-lucide="move"></i> Ordonner
+          </button>
+        </div>
+
         <input type="text" id="search-category" placeholder="Rechercher..." style="width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: var(--border-radius);" oninput="filterStockCategory()">
+        
         <div id="category-container" class="cards-container"></div>
       </div>
     </section>
@@ -8439,6 +8468,7 @@ if (!navigator.onLine) {
 let currentArticleId = null; // Variable pour garder l'ID de l'article sélectionné
 let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
+let sortableInstance = null; // Pour gérer l'instance de tri
 
 /* --- MÀJ DU FOOTER PANIER ---------------------------------- */
 function updateCartFooter () {
@@ -9418,12 +9448,28 @@ function confirmerAjoutFournisseur(fournisseurName) {
     function showStockCategory(category) {
       currentStockCategory = category;
       document.getElementById("stock-home").style.display = "none";
-      document.getElementById("stock-category").style.display = "block";
-      const searchInput = document.getElementById("search-category");
-      if (!searchInput) {
-        console.error('L\'élément avec l\'id "search-category" n\'a pas été trouvé.');
-        return;
+      
+      const categoryView = document.getElementById("stock-category");
+      categoryView.style.display = "block";
+      
+      // NOUVEAU : Gérer la visibilité du bouton "Ordonner"
+      const btnOrder = document.getElementById("btnOrderAccessories");
+      if (category === 'accessoires') {
+        btnOrder.style.display = 'flex'; // On affiche le bouton pour les accessoires
+      } else {
+        btnOrder.style.display = 'none'; // On le cache pour les téléphones
       }
+
+      // Si on quitte le mode ordonnancement en changeant de catégorie, on le réinitialise
+      if (sortableInstance) {
+        sortableInstance.destroy();
+        sortableInstance = null;
+        categoryView.classList.remove('ordering-active');
+        btnOrder.innerHTML = '<i data-lucide="move"></i> Ordonner';
+        lucide.createIcons();
+      }
+      
+      const searchInput = document.getElementById("search-category");
       searchInput.placeholder = category === "telephones" ? "Rechercher un téléphone..." : "Rechercher un accessoire...";
       searchInput.value = "";
       filterStockCategory();
@@ -9433,35 +9479,43 @@ function confirmerAjoutFournisseur(fournisseurName) {
       document.getElementById("stock-home").style.display = "block";
     }
     function filterStockCategory() {
-    const searchTerm = document
-        .getElementById("search-category")
-        .value.toLowerCase();
+        const searchTerm = document
+            .getElementById("search-category")
+            .value.toLowerCase();
 
-    getAllStockFirestore().then(stocks => {
-        /* -- filtrage + tri perso -- */
-        const filtered = stocks
-            .filter(p =>
-                p.category === currentStockCategory &&
-                p.name.toLowerCase().includes(searchTerm))
-            .sort((a, b) => {
-                const ordre = { tecno: 1, infinix: 2, itel: 3, redmi: 4 };
-                const rA = ordre[a.name.split(" ")[0].toLowerCase()] || 5;
-                const rB = ordre[b.name.split(" ")[0].toLowerCase()] || 5;
-                return rA !== rB ? rA - rB : a.name.localeCompare(b.name);
-            });
+        getAllStockFirestore().then(stocks => {
+            
+            let filtered;
+            // MODIFIÉ : On applique le tri par position pour les accessoires
+            if (currentStockCategory === 'accessoires') {
+                filtered = stocks
+                    .filter(p => p.category === 'accessoires' && p.name.toLowerCase().includes(searchTerm))
+                    .sort((a, b) => (a.position || 999) - (b.position || 999)); // Tri par position !
+            } else { // Tri par marque pour les téléphones
+                filtered = stocks
+                    .filter(p => p.category === 'telephones' && p.name.toLowerCase().includes(searchTerm))
+                    .sort((a, b) => {
+                        const ordre = { tecno: 1, infinix: 2, itel: 3, redmi: 4 };
+                        const rA = ordre[a.name.split(" ")[0].toLowerCase()] || 5;
+                        const rB = ordre[b.name.split(" ")[0].toLowerCase()] || 5;
+                        return rA !== rB ? rA - rB : a.name.localeCompare(b.name);
+                    });
+            }
 
-        /* -- construction DOM -- */
-        const cont = document.getElementById("category-container");
-        cont.innerHTML = "";
-        if (filtered.length === 0) {
-            cont.innerHTML = "<p>Aucun produit trouvé.</p>";
-            return;
-        }
+            const cont = document.getElementById("category-container");
+            cont.innerHTML = "";
+            if (filtered.length === 0) {
+                cont.innerHTML = "<p>Aucun produit trouvé.</p>";
+                return;
+            }
 
-        filtered.forEach(prod => {
-            const card = document.createElement("div");
-            card.className = "product-card";
-            card.innerHTML = `
+            filtered.forEach(prod => {
+                const card = document.createElement("div");
+                card.className = "product-card";
+                // MODIFIÉ : On ajoute l'ID du produit et la poignée de déplacement
+                card.setAttribute('data-id', prod.id); 
+                card.innerHTML = `
+                <div class="drag-handle"><i data-lucide="grip-vertical"></i></div>
                 <button class="history-btn"
                         onclick="voirHistoriqueStock('${prod.id}', event)"
                         title="Historique">
@@ -9475,21 +9529,19 @@ function confirmerAjoutFournisseur(fournisseurName) {
                 </div>
               `;
 
-            // =========================================================
-            // === LA LIGNE MAGIQUE À AJOUTER EST ICI ===
-            // =========================================================
-            card.onclick = function() {
-                showArticleDetail(prod.id);
-            };
-            // =========================================================
+                card.onclick = function() {
+                    // Empêche le clic si on est en mode ordonnancement
+                    if (sortableInstance) return; 
+                    showArticleDetail(prod.id);
+                };
+                
+                cont.appendChild(card);
+            });
 
-            cont.appendChild(card);
-        });
-
-        lucide.createIcons();
-    })
-    .catch(err => console.error("filterStockCategory :", err.message));
-}
+            lucide.createIcons();
+        })
+        .catch(err => console.error("filterStockCategory :", err.message));
+    }
 
     // Importation du stock depuis un fichier TXT
     function importStockFile(event) {
@@ -11494,6 +11546,62 @@ async function creerDettesDeVente(saleId, saleData) {
     // On exécute toutes les créations de dettes en une seule fois
     await batch.commit();
     console.log("Traitement des dettes de consignation terminé.");
+}
+// NOUVELLE FONCTION : Pour activer/désactiver le mode ordonnancement
+function toggleOrderingMode() {
+  const container = document.getElementById('category-container');
+  const view = document.getElementById('stock-category');
+  const btn = document.getElementById('btnOrderAccessories');
+
+  if (sortableInstance) { // Si on est déjà en mode tri -> on sauvegarde
+    saveAccessoryOrder(); // On sauvegarde d'abord
+
+    sortableInstance.destroy();
+    sortableInstance = null;
+    view.classList.remove('ordering-active');
+    btn.innerHTML = '<i data-lucide="move"></i> Ordonner';
+    lucide.createIcons();
+  } else { // Sinon -> on active le mode tri
+    view.classList.add('ordering-active');
+    btn.innerHTML = '<i data-lucide="save"></i> Enregistrer l\'ordre';
+    lucide.createIcons();
+
+    sortableInstance = new Sortable(container, {
+      handle: '.drag-handle', // On ne peut déplacer qu'en cliquant sur la poignée
+      animation: 150,
+    });
+  }
+}
+
+// NOUVELLE FONCTION : Pour sauvegarder le nouvel ordre dans Firestore
+async function saveAccessoryOrder() {
+  if (!sortableInstance) return;
+  showSaleLoader(); // Affiche le spinner
+
+  try {
+    const batch = dbFirestore.batch();
+    const cards = document.querySelectorAll('#category-container .product-card');
+
+    cards.forEach((card, index) => {
+      const docId = card.getAttribute('data-id');
+      if (docId) {
+        const docRef = dbFirestore.collection('stock').doc(docId);
+        batch.update(docRef, { position: index }); // L'index devient la nouvelle position
+      }
+    });
+
+    await batch.commit();
+    showToast("Nouvel ordre des accessoires enregistré !");
+
+    // On rafraîchit la vue pour refléter le nouvel ordre permanent
+    filterStockCategory(); 
+
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde de l'ordre : ", error);
+    showToast("Une erreur est survenue.", "error");
+  } finally {
+    hideSaleLoader(); // Cache le spinner
+  }
 }
 </script>
 <script src="livraison.js"></script>
