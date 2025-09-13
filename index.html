@@ -8891,7 +8891,7 @@ function continuerDepuisPanier() {
 document.getElementById('exportInventoryBtn')
     .addEventListener('click', async () => {
       
-      // --- NOUVEAU : Demander la date à l'utilisateur ---
+      // --- Demander la date à l'utilisateur ---
       const dateInput = prompt(
         "Pour quelle date souhaitez-vous générer l'inventaire ? (AAAA-MM-JJ)",
         new Date().toISOString().slice(0, 10) // Propose la date du jour par défaut
@@ -8913,48 +8913,55 @@ document.getElementById('exportInventoryBtn')
       try {
         showToast(`Préparation de l'inventaire pour le ${reportDate.toLocaleDateString('fr-FR')}...`);
 
-        // Utilise la date saisie pour définir la période de vérification des mouvements
         const startOfDay = new Date(reportDate.getFullYear(), reportDate.getMonth(), reportDate.getDate());
         const startOfDayTimestamp = firebase.firestore.Timestamp.fromDate(startOfDay);
 
-        // --- Le reste de la logique reste identique mais utilise la bonne date ---
-        const stockSnapshot = await dbFirestore.collection("stock")
-            .where("category", "==", "telephones")
-            .get();
+        // MODIFIÉ : On récupère tout le stock, sans filtrer par catégorie ici
+        const stockSnapshot = await dbFirestore.collection("stock").get();
 
-        let allPhones = [];
+        let allStockItems = [];
         stockSnapshot.forEach(doc => {
-            allPhones.push({ id: doc.id, ...doc.data() });
+            allStockItems.push({ id: doc.id, ...doc.data() });
         });
 
-        const inventoryItems = [];
-        const checkMovementPromises = allPhones.map(async (phone) => {
-            if (phone.stock >= 1) {
-                inventoryItems.push(phone);
-            } else if (phone.stock === 0) {
-                const historySnapshot = await dbFirestore.collection("stock").doc(phone.id)
+        const inventoryPhones = [];
+        const inventoryAccessories = []; // NOUVEAU : Liste pour les accessoires
+
+        const checkMovementPromises = allStockItems.map(async (item) => {
+            let shouldInclude = false;
+            if (item.stock >= 1) {
+                shouldInclude = true;
+            } else if (item.stock === 0) {
+                const historySnapshot = await dbFirestore.collection("stock").doc(item.id)
                     .collection("history")
                     .where("timestamp", ">=", startOfDayTimestamp)
                     .limit(1)
                     .get();
-
                 if (!historySnapshot.empty) {
-                    inventoryItems.push(phone);
+                    shouldInclude = true;
+                }
+            }
+            if (shouldInclude) {
+                // NOUVEAU : On sépare les articles dans les bonnes listes
+                if (item.category === 'telephones') {
+                    inventoryPhones.push(item);
+                } else if (item.category === 'accessoires') {
+                    inventoryAccessories.push(item);
                 }
             }
         });
 
         await Promise.all(checkMovementPromises);
 
-        if (inventoryItems.length === 0) {
-            alert(`Aucun téléphone en stock ou avec un mouvement le ${reportDate.toLocaleDateString('fr-FR')} à exporter.`);
+        if (inventoryPhones.length === 0 && inventoryAccessories.length === 0) {
+            alert(`Aucun article en stock ou avec un mouvement le ${reportDate.toLocaleDateString('fr-FR')} à exporter.`);
             return;
         }
 
-        // --- Tri personnalisé (inchangé) ---
+        // --- Tri pour les téléphones (inchangé) ---
         const brandOrder = { 'tecno': 1, 'infinix': 2, 'itel': 3, 'redmi': 4, 'samsung': 5 };
         const getBrand = (name) => (name ? name.split(' ')[0].toLowerCase() : '');
-        inventoryItems.sort((a, b) => {
+        inventoryPhones.sort((a, b) => {
             const brandA = getBrand(a.name), brandB = getBrand(b.name);
             const orderA = brandOrder[brandA] || 999, orderB = brandOrder[brandB] || 999;
             if (orderA !== orderB) return orderA - orderB;
@@ -8962,37 +8969,76 @@ document.getElementById('exportInventoryBtn')
             return a.name.localeCompare(b.name);
         });
 
-        // --- Génération du PDF (avec la date dans le titre) ---
+        // NOUVEAU : Tri alphabétique pour les accessoires
+        inventoryAccessories.sort((a, b) => a.name.localeCompare(b.name));
+
+        // --- Génération du PDF ---
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const tableColumn = ["Produit", "Stock Actuel", "Quantité Comptée"];
-        const tableRows = [];
-        let totalStock = 0;
+        let yPos = 40; // Position de départ pour le premier tableau
 
-        inventoryItems.forEach(item => {
-            tableRows.push([item.name, item.stock, ""]);
-            totalStock += (item.stock || 0);
-        });
+        // --- SECTION TÉLÉPHONES ---
+        if (inventoryPhones.length > 0) {
+            const phoneRows = [];
+            let totalStockPhones = 0;
 
-        doc.setFontSize(18);
-        doc.text(`Fiche d'Inventaire des Téléphones - ${reportDate.toLocaleDateString('fr-FR')}`, 14, 22);
-        doc.setFontSize(11);
-        doc.setTextColor(100);
-        doc.text(`Rapport généré le: ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
+            inventoryPhones.forEach(item => {
+                phoneRows.push([item.name, item.stock, ""]);
+                totalStockPhones += (item.stock || 0);
+            });
 
-        doc.autoTable({
-            startY: 40,
-            head: [tableColumn],
-            body: tableRows,
-            foot: [['TOTAL', totalStock.toString(), '']],
-            showFoot: 'lastPage',
-            theme: 'grid',
-            headStyles: { fillColor: [0, 96, 100] },
-            footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0] },
-            columnStyles: { 1: { halign: 'center' } }
-        });
+            doc.setFontSize(18);
+            doc.text(`Fiche d'Inventaire des Téléphones - ${reportDate.toLocaleDateString('fr-FR')}`, 14, 22);
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Rapport généré le: ${new Date().toLocaleDateString('fr-FR')}`, 14, 30);
 
-        doc.save(`inventaire_telephones_${dateInput}.pdf`);
+            doc.autoTable({
+                startY: yPos,
+                head: [tableColumn],
+                body: phoneRows,
+                foot: [['TOTAL TÉLÉPHONES', totalStockPhones.toString(), '']],
+                showFoot: 'lastPage',
+                theme: 'grid',
+                headStyles: { fillColor: [0, 96, 100] },
+                footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0] },
+                columnStyles: { 1: { halign: 'center' } }
+            });
+            
+            yPos = doc.lastAutoTable.finalY + 30; // NOUVEAU : On met à jour la position pour le prochain tableau
+        }
+
+        // --- NOUVEAU : SECTION ACCESSOIRES ---
+        if (inventoryAccessories.length > 0) {
+            const accessoryRows = [];
+            let totalStockAccessories = 0;
+
+            inventoryAccessories.forEach(item => {
+                accessoryRows.push([item.name, item.stock, ""]);
+                totalStockAccessories += (item.stock || 0);
+            });
+            
+            // On ajoute un titre pour cette nouvelle section
+            doc.setFontSize(16);
+            doc.text(`Fiche d'Inventaire des Accessoires`, 14, yPos);
+            yPos += 15;
+
+            doc.autoTable({
+                startY: yPos,
+                head: [tableColumn],
+                body: accessoryRows,
+                foot: [['TOTAL ACCESSOIRES', totalStockAccessories.toString(), '']],
+                showFoot: 'lastPage',
+                theme: 'grid',
+                headStyles: { fillColor: [0, 77, 64] }, // Couleur légèrement différente pour distinguer
+                footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240], textColor: [0, 0, 0] },
+                columnStyles: { 1: { halign: 'center' } }
+            });
+        }
+        
+        // --- Sauvegarde finale ---
+        doc.save(`inventaire_complet_${dateInput}.pdf`);
         showToast("Exportation de la fiche d'inventaire terminée.");
 
       } catch (err) {
@@ -9000,7 +9046,6 @@ document.getElementById('exportInventoryBtn')
           alert('Impossible d\'exporter la fiche d\'inventaire : ' + err.message);
       }
     });
-
 
     // Export PDF (Format JSON)
     function exporterPDF() {
