@@ -9240,14 +9240,15 @@ function continuerDepuisPanier() {
           } else {
             articlesText = "Aucun article.";
           }
-          let detailHTML = 
-            `<p><strong>Date :</strong> ${sale.dateVente}</p>
+          let detailHTML = `
+            <p><strong>Date :</strong> ${sale.dateVente}</p>
             <p><strong>Heure :</strong> ${sale.heureVente}</p>
             <p><strong>Client :</strong> ${sale.clientNom} (${sale.clientNumero})</p>
             <p><strong>Vendeur :</strong> ${sale.vendeur}</p>
             <p><strong>Articles :</strong><br>${articlesText}</p>
             <p><strong>Total Général :</strong> ${sale.overallTotal}</p>
             <p><strong>Observations :</strong> ${sale.observationsVendeur || "Aucune"}</p>
+          `;
           if (Array.isArray(sale.paymentsDetails) && sale.paymentsDetails.length) {
             detailHTML += "<p><strong>Encaissements :</strong><br>";
             sale.paymentsDetails.forEach(paiement => {
@@ -9264,8 +9265,6 @@ function continuerDepuisPanier() {
             const netEncaisse = fmt(parseFloat(sale.paymentsNetEncaisse) || parseFloat(sale.overallTotal) || 0);
             detailHTML += `<em>Total encaisse : ${totalEncaisse} FCFA - Monnaie rendue : ${totalChange} FCFA - Net : ${netEncaisse} FCFA</em></p>`;
           }
-
-`;
           if(sale.isDelivery) {
             let statusEmoji = "🟠 En cours";
             if(sale.deliveryStatus === "réussie") {
@@ -9273,8 +9272,8 @@ function continuerDepuisPanier() {
             } else if(sale.deliveryStatus === "échouée") {
               statusEmoji = "🔴 Échouée";
             }
-            detailHTML += 
-              `<p><strong>Livraison par :</strong> ${sale.livreurNom} (${sale.livreurNumero})</p>
+            detailHTML += `
+              <p><strong>Livraison par :</strong> ${sale.livreurNom} (${sale.livreurNumero})</p>
               <p><strong>Lieu de Livraison :</strong> ${sale.lieuLivraison}</p>
               <p><strong>Statut de Livraison :</strong> ${statusEmoji}</p>`;
           }
