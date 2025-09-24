@@ -1,17 +1,4 @@
-<!--
-  ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-  ┃  MOBILE-FIRST APPLICATION                                ┃
-  ┃  ------------------------------------------------------  ┃
-  ┃  ⚠️ Ce projet est conçu pour un usage mobile :          ┃
-  ┃    • Responsive et tactile avant tout                    ┃
-  ┃    • Écrans petits, interactions optimisées pour le touch┃
-  ┃    • Performance et chargement optimisé réseaux mobiles  ┃
-  ┃    • Pas de dépendance aux fonctionnalités desktop (hover┃
-  ┃      ou survol intensif, grandes résolutions, etc.)      ┃
-  ┃                                                          ┃
-  ┃  Merci de respecter ce paradigme lors de toute modification.┃
-  ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
--->
+
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -165,6 +152,59 @@
       justify-content: space-between;
       margin-top: 15px;
     }
+    .vente-payments-block {
+      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .vente-payments-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .vente-payments-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .vente-payment-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+    .vente-payment-row select,
+    .vente-payment-row input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: var(--border-radius);
+      background: #fff;
+    }
+    .vente-payment-remove {
+      min-width: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .vente-payments-summary {
+      font-size: 14px;
+      line-height: 1.5;
+      background: #f8f9fb;
+      padding: 10px;
+      border-radius: var(--border-radius);
+    }
+    .vente-payments-summary p {
+      margin: 0;
+    }
+    .vente-payment-warning {
+      color: #c0392b;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
     /* Barre de progression fluide */
     .progress-container {
       position: relative;
@@ -1053,7 +1093,7 @@
   <div id="saleLoader">
     <div class="loader-content">
       <div class="spinner" style="width:40px; height:40px; border: 6px solid #f3f3f3; border-top: 6px solid var(--primary-color);"></div>
-      <p>Enregistrement de la vente...</p>
+      <p>Enregistrement de la vente...</p>;
     </div>
   </div>
 
@@ -1145,15 +1185,41 @@
             <select id="vendeurSelect">
               <!-- Options générées via Firestore -->
             </select>
-            <!-- ====== NOUVEAU : choix du compte ====== -->
-            <label for="compteSelectVente">Compte de trésorerie <span style="color:red;">*</span></label>
-            <select id="compteSelectVente" required>
-              <option value="" disabled selected>— Choisissez un compte —</option>
-              <!-- Les options sont ensuite injectées dynamiquement -->
-            </select>
+                        <!-- ====== Section : Encaissements détaillés ====== -->
 
+            <div class="vente-payments-block">
 
-            <label for="photoFacture">Photo de la facture</label>
+              <div class="vente-payments-header">
+
+                <span>Encaissements</span>
+
+                <button type="button" class="btn-modern secondary" onclick="ajouterLignePaiementVente()">
+
+                  <i data-lucide="plus-circle"></i> Ajouter un encaissement
+
+                </button>
+
+              </div>
+
+              <div id="ventePaymentsContainer" class="vente-payments-container"></div>
+
+              <div class="vente-payments-summary">
+
+                <p>Montant a encaisser : <strong id="vente-summary-total-due">0 FCFA</strong></p>
+
+                <p>Total encaisse : <strong id="vente-summary-total-paid">0 FCFA</strong></p>
+
+                <p>Monnaie rendue : <strong id="vente-summary-total-change">0 FCFA</strong></p>
+
+                <p>Net encaisse : <strong id="vente-summary-net">0 FCFA</strong></p>
+
+                <p id="vente-payment-warning" class="vente-payment-warning"></p>
+
+              </div>
+
+            </div>
+
+<label for="photoFacture">Photo de la facture</label>
             <input type="file" accept="image/*" capture="camera" id="photoFacture" />
             <label for="observationsVendeur">Observations</label>
             <textarea id="observationsVendeur" placeholder="Observations (facultatif)"></textarea>
@@ -4452,6 +4518,9 @@ async function generateSupplierCreditPDF() {
             <div class="amount" id="treso-daily-profit">XOF 0</div>
         </div>
         </div>
+        <button id="btnCloseDay" class="btn" onclick="closeDayAndPrint()" style="width: 100%; margin-top: 10px;">
+          <i data-lucide="moon-star"></i> Cloturer la journée & imprimer
+        </button>
 
   <script>
     // Appel initial pour mettre à jour l'affichage des totaux et du solde
@@ -7633,26 +7702,27 @@ async function enregistrerModificationClient() {
       const progress = ((index + 1) / steps.length) * 100;
       document.getElementById("progressBar").style.width = progress + "%";
       document.getElementById("progressText").innerText = `Étape ${index + 1} / ${steps.length}`;
+      if (index === 2) {
+        ensureVentePaymentsInitialized();
+        rafraichirResumePaiementVente();
+      }
       if(index === steps.length - 1) {
         generateRecap();
       }
     }
     function nextStep() {
-  // Si on est à l’étape 3 (index = 2) : on exige un compte
   if (currentStep === 2) {
-    const compte = document.getElementById("compteSelectVente").value;
-    if (!compte) {
-      alert("Veuillez sélectionner un compte de trésorerie avant de continuer.");
-      return; // on reste sur l’étape
+    if (!validateVentePayments(true)) {
+      return;
     }
   }
 
-  // votre code existant
   if (currentStep < steps.length - 1) {
     currentStep++;
     showStep(currentStep);
   }
 }
+
     function prevStep() {
       if(currentStep > 0) {
         currentStep--;
@@ -7668,8 +7738,270 @@ async function enregistrerModificationClient() {
       html += "<br><strong>Client :</strong> " + document.getElementById("clientNom").value + " (" + document.getElementById("clientNumero").value + ")<br>";
       html += "<strong>Vendeur :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
       html += "<strong>Total :</strong> " + currentItems.reduce((acc, item) => acc + parseFloat(item.total), 0).toFixed(2);
+      const recapPaiements = ventePayments
+        .map(p => {
+          const compteId = p.compteId || '';
+          const montantEncaisse = parseFloat(p.montantEncaisse) || 0;
+          const monnaieRendue = parseFloat(p.monnaieRendue) || 0;
+          if (!compteId && montantEncaisse === 0 && monnaieRendue === 0) {
+            return null;
+          }
+          if (!compteId) {
+            return null;
+          }
+          const compteInfo = Array.isArray(comptesCache) ? comptesCache.find(c => c.id === compteId) || {} : {};
+          return {
+            compteNom: compteInfo.nom || compteId,
+            montantEncaisse,
+            monnaieRendue
+          };
+        })
+        .filter(Boolean);
+      if (recapPaiements.length > 0) {
+        const statsPaiements = rafraichirResumePaiementVente();
+        html += "<br><strong>Encaissements :</strong><br>";
+        recapPaiements.forEach(p => {
+          html += `- ${p.compteNom} : ${fmt(p.montantEncaisse)} FCFA` + (p.monnaieRendue > 0 ? ` (monnaie rendue ${fmt(p.monnaieRendue)} FCFA)` : '') + '<br>';
+        });
+        html += `<em>Total encaisse : ${fmt(statsPaiements.totalEncaisse)} FCFA - Monnaie rendue : ${fmt(statsPaiements.totalChange)} FCFA - Net : ${fmt(statsPaiements.net)} FCFA</em><br>`;
+      }
       recap.innerHTML = html;
     }
+
+
+let ventePayments = [];
+let ventePaymentAutoId = 0;
+
+function resetVentePayments() {
+  ventePayments = [];
+  ventePaymentAutoId = 0;
+  ensureVentePaymentsInitialized();
+  rafraichirResumePaiementVente();
+}
+
+function ensureVentePaymentsInitialized() {
+  const container = document.getElementById('ventePaymentsContainer');
+  if (!container) {
+    return;
+  }
+
+  if (ventePayments.length === 0) {
+    ajouterLignePaiementVente();
+  } else if (!container.childElementCount) {
+    renderVentePayments();
+  }
+
+  rafraichirResumePaiementVente();
+}
+
+function getCurrentSaleTotal() {
+  return currentItems.reduce((sum, item) => sum + (parseFloat(item.total) || 0), 0);
+}
+
+function ajouterLignePaiementVente(initialData) {
+  const payload = initialData || {};
+  ventePayments.push({
+    id: ++ventePaymentAutoId,
+    compteId: payload.compteId || '',
+    montantEncaisse: payload.montantEncaisse || '',
+    monnaieRendue: payload.monnaieRendue || ''
+  });
+  renderVentePayments();
+  rafraichirResumePaiementVente();
+}
+
+function renderVentePayments() {
+  const container = document.getElementById('ventePaymentsContainer');
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = '';
+
+  ventePayments.forEach(payment => {
+    const row = document.createElement('div');
+    row.className = 'vente-payment-row';
+    row.dataset.paymentId = payment.id;
+
+    const compteSelect = document.createElement('select');
+    compteSelect.id = `compteSelectVente-${payment.id}`;
+    compteSelect.className = 'vente-payment-account';
+    compteSelect.addEventListener('change', event => {
+      onVentePaymentFieldChange(payment.id, 'compteId', event.target.value);
+    });
+    row.appendChild(compteSelect);
+
+    const amountInput = document.createElement('input');
+    amountInput.type = 'number';
+    amountInput.min = '0';
+    amountInput.step = '100';
+    amountInput.placeholder = 'Montant encaissé';
+    amountInput.value = payment.montantEncaisse || '';
+    amountInput.addEventListener('input', event => {
+      onVentePaymentFieldChange(payment.id, 'montantEncaisse', event.target.value);
+    });
+    row.appendChild(amountInput);
+
+    const changeInput = document.createElement('input');
+    changeInput.type = 'number';
+    changeInput.min = '0';
+    changeInput.step = '100';
+    changeInput.placeholder = 'Monnaie rendue';
+    changeInput.value = payment.monnaieRendue || '';
+    changeInput.addEventListener('input', event => {
+      onVentePaymentFieldChange(payment.id, 'monnaieRendue', event.target.value);
+    });
+    row.appendChild(changeInput);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'vente-payment-remove btn-modern secondary';
+    removeBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+    removeBtn.addEventListener('click', () => supprimerLignePaiementVente(payment.id));
+    row.appendChild(removeBtn);
+
+    container.appendChild(row);
+  });
+
+  remplirTousSelectComptes();
+  ventePayments.forEach(payment => {
+    const selectEl = document.getElementById(`compteSelectVente-${payment.id}`);
+    if (selectEl) {
+      selectEl.value = payment.compteId || '';
+    }
+  });
+
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+}
+
+function onVentePaymentFieldChange(paymentId, field, value) {
+  const payment = ventePayments.find(p => p.id === paymentId);
+  if (!payment) {
+    return;
+  }
+
+  payment[field] = value;
+  rafraichirResumePaiementVente();
+}
+
+function supprimerLignePaiementVente(paymentId) {
+  if (ventePayments.length <= 1) {
+    const unique = ventePayments[0];
+    if (unique) {
+      unique.compteId = '';
+      unique.montantEncaisse = '';
+      unique.monnaieRendue = '';
+    }
+    renderVentePayments();
+    rafraichirResumePaiementVente();
+    return;
+  }
+
+  ventePayments = ventePayments.filter(p => p.id !== paymentId);
+  renderVentePayments();
+  rafraichirResumePaiementVente();
+}
+
+function analyserPaiementsVente() {
+  const due = getCurrentSaleTotal();
+  let totalEncaisse = 0;
+  let totalChange = 0;
+  let message = '';
+  let valid = true;
+  let hasPositiveEncaisse = false;
+
+  for (const payment of ventePayments) {
+    if (!valid) {
+      break;
+    }
+    const encaisse = parseFloat(payment.montantEncaisse) || 0;
+    const change = parseFloat(payment.monnaieRendue) || 0;
+
+    if (encaisse < 0 || change < 0) {
+      valid = false;
+      message = 'Les montants encaissés ou rendus ne peuvent pas être négatifs.';
+      break;
+    }
+
+    if (change > 0 && encaisse === 0) {
+      valid = false;
+      message = 'Impossible de rendre de la monnaie sans encaissement sur ce compte.';
+      break;
+    }
+
+    if ((encaisse > 0 || change > 0) && !payment.compteId) {
+      valid = false;
+      message = 'Sélectionnez un compte de trésorerie pour chaque encaissement.';
+      break;
+    }
+
+    if (change > encaisse + 0.0001) {
+      valid = false;
+      message = 'La monnaie rendue ne peut pas dépasser le montant encaissé pour un compte.';
+      break;
+    }
+
+    if (encaisse > 0) {
+      hasPositiveEncaisse = true;
+    }
+
+    totalEncaisse += encaisse;
+    totalChange += change;
+  }
+
+  const net = totalEncaisse - totalChange;
+
+  if (valid) {
+    if (due > 0 && !hasPositiveEncaisse) {
+      valid = false;
+      message = 'Renseignez au moins un montant encaissé.';
+    } else if (Math.abs(net - due) > 0.5) {
+      valid = false;
+      message = `Le net encaissé (${fmt(net)} FCFA) doit être égal au total de la vente (${fmt(due)} FCFA).`;
+    }
+  }
+
+  return { valid, message, due, totalEncaisse, totalChange, net };
+}
+
+function rafraichirResumePaiementVente() {
+  const totalDueEl = document.getElementById('vente-summary-total-due');
+  if (!totalDueEl) {
+    return analyserPaiementsVente();
+  }
+
+  const stats = analyserPaiementsVente();
+  const totalPaidEl = document.getElementById('vente-summary-total-paid');
+  const totalChangeEl = document.getElementById('vente-summary-total-change');
+  const netEl = document.getElementById('vente-summary-net');
+  const warningEl = document.getElementById('vente-payment-warning');
+
+  totalDueEl.textContent = `${fmt(stats.due)} FCFA`;
+  if (totalPaidEl) {
+    totalPaidEl.textContent = `${fmt(stats.totalEncaisse)} FCFA`;
+  }
+  if (totalChangeEl) {
+    totalChangeEl.textContent = `${fmt(stats.totalChange)} FCFA`;
+  }
+  if (netEl) {
+    netEl.textContent = `${fmt(stats.net)} FCFA`;
+  }
+  if (warningEl) {
+    warningEl.textContent = stats.valid ? '' : stats.message;
+  }
+
+  return stats;
+}
+
+function validateVentePayments(showAlert = true) {
+  const stats = rafraichirResumePaiementVente();
+  if (!stats.valid && showAlert) {
+    alert(stats.message || 'Veuillez vérifier le détail des encaissements.');
+  }
+  return stats.valid;
+}
 
     // Compression d'image
     function compressImage(file, maxWidth, maxHeight, quality, callback) {
@@ -8453,6 +8785,9 @@ function updateCartFooter () {
   qtyEl.textContent   = q;
   totalEl.textContent = tt.toLocaleString() + ' FCFA';
   btn.disabled        = (q === 0);
+  if (typeof rafraichirResumePaiementVente === 'function') {
+    rafraichirResumePaiementVente();
+  }
 }
 
 
@@ -8676,6 +9011,9 @@ function continuerDepuisPanier() {
       hideSaleLoader();
       return;
     }
+    if (!validateVentePayments(true)) {
+      return;
+    }
   showSaleLoader();
     
     const now = new Date();
@@ -8710,6 +9048,49 @@ function continuerDepuisPanier() {
     // On attend que tous les calculs de profit soient terminés
     await Promise.all(profitCalculations);
 
+    const paiementStats = rafraichirResumePaiementVente();
+    if (!paiementStats || !paiementStats.valid) {
+        hideSaleLoader();
+        alert(paiementStats && paiementStats.message ? paiementStats.message : 'Veuillez vérifier le détail des encaissements.');
+        return;
+    }
+
+    const paiementDetails = ventePayments
+        .map(paiement => {
+            const compteId = paiement.compteId || '';
+            const montantEncaisse = parseFloat(paiement.montantEncaisse) || 0;
+            const monnaieRendue = parseFloat(paiement.monnaieRendue) || 0;
+            if (!compteId && montantEncaisse === 0 && monnaieRendue === 0) {
+                return null;
+            }
+            if (!compteId) {
+                return null;
+            }
+            const compteInfo = Array.isArray(comptesCache) ? comptesCache.find(c => c.id === compteId) || {} : {};
+            return {
+                compteId,
+                compteNom: compteInfo.nom || compteId,
+                montantEncaisse,
+                monnaieRendue,
+                netEncaisse: montantEncaisse - monnaieRendue
+            };
+        })
+        .filter(Boolean);
+
+    if (paiementDetails.length === 0) {
+        hideSaleLoader();
+        alert('Ajoutez au moins un encaissement valide pour finaliser la vente.');
+        return;
+    }
+
+    const paiementsPositifs = paiementDetails.filter(p => p.netEncaisse > 0);
+    let principalCompteId = null;
+    if (paiementsPositifs.length > 0) {
+        principalCompteId = paiementsPositifs.reduce((best, current) => current.netEncaisse > best.netEncaisse ? current : best).compteId;
+    } else {
+        principalCompteId = paiementDetails[0].compteId;
+    }
+
     const vente = {
         dateVente,
         heureVente,
@@ -8725,27 +9106,45 @@ function continuerDepuisPanier() {
         deliveryStatus: isDelivery ? "en cours" : null,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         enregistreParUid: user.uid,
-        enregistreParNom: user.displayName || user.email
+        enregistreParNom: user.displayName || user.email,
+        paymentsDetails: paiementDetails,
+        paymentsTotalEncaisse: paiementStats.totalEncaisse,
+        paymentsTotalChange: paiementStats.totalChange,
+        paymentsNetEncaisse: paiementStats.net,
+        principalCompteId,
+        compteId: principalCompteId
     };
-
-    const compteId = document.getElementById("compteSelectVente").value;
 
     try {
         // Étape 1 : Enregistrer la vente et récupérer son nouvel ID
-        const newSaleId = await addSaleFirestore({ ...vente, compteId });
+        const newSaleId = await addSaleFirestore(vente);
 
         // Étape 2 : Mettre à jour le stock
         await updateStockAfterSaleFirestore(currentItems);
 
         // Étape 3 : Enregistrer le mouvement de trésorerie pour la vente
-        await enregistrerMouvementTresorerie({
-            compteId: compteId,
-            type: 'vente',
-            sens: 'in',
-            montant: +overallTotal,
-            description: `Vente ${clientNom}`,
-            refId: newSaleId
-        });
+        for (const paiement of paiementDetails) {
+            if (paiement.montantEncaisse > 0) {
+                await enregistrerMouvementTresorerie({
+                    compteId: paiement.compteId,
+                    type: 'vente',
+                    sens: 'in',
+                    montant: paiement.montantEncaisse,
+                    description: `Vente ${clientNom} - encaissement`,
+                    refId: newSaleId
+                });
+            }
+            if (paiement.monnaieRendue > 0) {
+                await enregistrerMouvementTresorerie({
+                    compteId: paiement.compteId,
+                    type: 'vente_change',
+                    sens: 'out',
+                    montant: paiement.monnaieRendue,
+                    description: `Monnaie rendue vente ${clientNom}`,
+                    refId: newSaleId
+                });
+            }
+        }
 
         // --- ÉTAPE LA PLUS IMPORTANTE ---
         // Étape 4 : On lance la création des dettes de dépôt pour cette vente
@@ -8759,6 +9158,7 @@ function continuerDepuisPanier() {
         alert(isDelivery ? "Livraison validée !" : "Vente validée !");
 
         // Réinitialisation du formulaire et redirection
+        resetVentePayments();
         currentItems = [];
         window.location.hash = 'historique';
         
@@ -8847,7 +9247,25 @@ function continuerDepuisPanier() {
             <p><strong>Vendeur :</strong> ${sale.vendeur}</p>
             <p><strong>Articles :</strong><br>${articlesText}</p>
             <p><strong>Total Général :</strong> ${sale.overallTotal}</p>
-            <p><strong>Observations :</strong> ${sale.observationsVendeur || "Aucune"}</p>`;
+            <p><strong>Observations :</strong> ${sale.observationsVendeur || "Aucune"}</p>
+          if (Array.isArray(sale.paymentsDetails) && sale.paymentsDetails.length) {
+            detailHTML += "<p><strong>Encaissements :</strong><br>";
+            sale.paymentsDetails.forEach(paiement => {
+              const compteLabel = paiement.compteNom || paiement.compteId || 'Compte';
+              const monnaie = parseFloat(paiement.monnaieRendue) || 0;
+              detailHTML += `- ${compteLabel} : ${fmt(parseFloat(paiement.montantEncaisse) || 0)} FCFA`;
+              if (monnaie > 0) {
+                detailHTML += ` (monnaie rendue ${fmt(monnaie)} FCFA)`;
+              }
+              detailHTML += '<br>';
+            });
+            const totalEncaisse = fmt(parseFloat(sale.paymentsTotalEncaisse) || 0);
+            const totalChange = fmt(parseFloat(sale.paymentsTotalChange) || 0);
+            const netEncaisse = fmt(parseFloat(sale.paymentsNetEncaisse) || parseFloat(sale.overallTotal) || 0);
+            detailHTML += `<em>Total encaisse : ${totalEncaisse} FCFA - Monnaie rendue : ${totalChange} FCFA - Net : ${netEncaisse} FCFA</em></p>`;
+          }
+
+`;
           if(sale.isDelivery) {
             let statusEmoji = "🟠 En cours";
             if(sale.deliveryStatus === "réussie") {
@@ -10302,6 +10720,11 @@ function fmt(x){
 
 
 function exportDailyReportPDF() {
+  const exportOptions = window.__exportDailyReportOptions || {};
+  window.__exportDailyReportOptions = undefined;
+  const autoPrintReport = !!exportOptions.autoPrint;
+  const fileNamePrefix = exportOptions.fileNamePrefix || 'Rapport_';
+  const afterGenerateCallback = typeof exportOptions.onAfterGenerate === 'function' ? exportOptions.onAfterGenerate : null;
 
   /* ── 1) Choix de la date et de l'option de profit ─────────────────── */
   const saisie = prompt(
@@ -10512,7 +10935,7 @@ function exportDailyReportPDF() {
         });
 
   /* ── 11) GÉNÉRATION PDF ─────────────────────────────────── */
-  Promise.all([ventesP, depensesP, injectionP, approP, papaSupplyP, snapshotP, stockPhonesP, papaBalanceP, openingStockP, achatsPhonesP])
+  return Promise.all([ventesP, depensesP, injectionP, approP, papaSupplyP, snapshotP, stockPhonesP, papaBalanceP, openingStockP, achatsPhonesP])
     .then(([ventes, deps, injection, appro, papaApport, soldeInitial, valeurStockPhones, dettePapa, openingStock, achatsPhones]) => {
       // ... (calcul des totaux, inchangé)
       const totalEntrees = ventes.ca;
@@ -10598,12 +11021,281 @@ function exportDailyReportPDF() {
       autoTable.call(doc, { startY: y + 10, body: [["Solde initial", fmt(soldeInitial) + " FCFA"], ["Entrées", fmt(totalEntrees) + " FCFA"], ["Injection", fmt(totalInjection) + " FCFA"], ["Dépenses", "-" + fmt(totalDepenses) + " FCFA"], ["Approvisionnement", "-" + fmt(totalAppro) + " FCFA"], ["Profit", fmt(totalProfit) + " FCFA"], ["Solde final", fmt(soldeFinal) + " FCFA"], ["Dette Papa", fmt(dettePapa) + " FCFA"], ["Stock téléphones", fmt(closingVal) + " FCFA"], ["Valeur business", fmt(valeurBusiness) + " FCFA"],], theme: "grid", headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: "bold" }, columnStyles: { 0: { fontStyle: "bold" } }, styles: { fontSize: 10 } });
 
 
-      doc.save(`Rapport_${saisie}.pdf`);
+      const fileName = `${fileNamePrefix}${saisie}.pdf`;
+      if (autoPrintReport) {
+        try {
+          doc.autoPrint();
+          const blobUrl = doc.output('bloburl');
+          window.open(blobUrl);
+        } catch (printErr) {
+          console.warn("Impossible de lancer l'impression automatique du rapport :", printErr);
+        }
+      }
+      doc.save(fileName);
+      if (afterGenerateCallback) {
+        try {
+          afterGenerateCallback({
+            fileName,
+            dateString: saisie,
+            totals: {
+              soldeInitial,
+              totalEntrees,
+              totalInjection,
+              totalDepenses,
+              totalAppro,
+              soldeFinal,
+              closingStockValue: closingVal,
+              valeurBusiness
+            }
+          });
+        } catch (callbackError) {
+          console.warn("Callback post-génération du rapport journalier en erreur :", callbackError);
+        }
+      }
     })
     .catch(err => {
       console.error("Erreur lors de la génération du PDF:", err);
-      alert("Erreur lors de la génération du PDF : " + err.message)
+      alert("Erreur lors de la génération du PDF : " + err.message);
+      throw err;
     });
+}
+
+
+const exportDailyReportPDFOriginal = exportDailyReportPDF;
+
+function exportDailyReportPDFForDate(dateString, options = {}) {
+  if (!dateString) {
+    return Promise.reject(new Error('La date du rapport est requise.'));
+  }
+
+  const {
+    includeProfitDetail = true,
+    autoPrint = false,
+    fileNamePrefix = 'Rapport_',
+    onAfterGenerate = null
+  } = options;
+
+  const originalPrompt = window.prompt;
+  const originalConfirm = window.confirm;
+
+  window.__exportDailyReportOptions = {
+    autoPrint,
+    fileNamePrefix,
+    onAfterGenerate
+  };
+
+  window.prompt = () => dateString;
+  window.confirm = () => includeProfitDetail;
+
+  let promise;
+  try {
+    promise = exportDailyReportPDFOriginal();
+  } finally {
+    window.prompt = originalPrompt;
+    window.confirm = originalConfirm;
+  }
+
+  if (promise && typeof promise.then === 'function') {
+    return promise;
+  }
+  return Promise.resolve();
+}
+
+let closeDayInProgress = false;
+
+async function finalizeTresorerieForDate(dateString) {
+  const trimmedDate = (dateString || '').trim();
+  const parsedDate = new Date(trimmedDate + 'T00:00:00');
+  if (isNaN(parsedDate.getTime())) {
+    throw new Error('Date de clôture invalide.');
+  }
+
+  const nextDate = new Date(parsedDate);
+  nextDate.setDate(parsedDate.getDate() + 1);
+  const nextDateString = nextDate.toISOString().slice(0, 10);
+
+  const comptesSnapshot = await dbFirestore
+    .collection('tresorerie')
+    .doc('balance')
+    .collection('comptesTresorerie')
+    .get();
+
+  const compteRefs = comptesSnapshot.docs.map(doc => doc.ref);
+
+  const result = await dbFirestore.runTransaction(async tx => {
+    const snapshotsCol = dbFirestore.collection('tresorerieSnapshots');
+    const todayRef = snapshotsCol.doc(trimmedDate);
+    const tomorrowRef = snapshotsCol.doc(nextDateString);
+
+    const todaySnapPromise = tx.get(todayRef);
+    const tomorrowSnapPromise = tx.get(tomorrowRef);
+    const compteSnapPromises = compteRefs.map(ref => tx.get(ref));
+
+    const todaySnap = await todaySnapPromise;
+    const tomorrowSnap = await tomorrowSnapPromise;
+    const compteSnaps = await Promise.all(compteSnapPromises);
+
+    const serializeAccounts = () => {
+      const acc = {};
+      compteRefs.forEach((ref, index) => {
+        const snap = compteSnaps[index];
+        const data = snap && snap.exists ? snap.data() || {} : {};
+        const solde = Number(data.solde) || 0;
+        acc[ref.id] = {
+          nom: data.nom || ref.id,
+          solde
+        };
+      });
+      return acc;
+    };
+
+    const closingAccounts = serializeAccounts();
+    const closingBalanceGlobal = Object.values(closingAccounts)
+      .reduce((sum, info) => sum + (Number(info.solde) || 0), 0);
+
+    const closingCaisse = closingAccounts.caisse ? Number(closingAccounts.caisse.solde) || 0 : 0;
+    const closingMomo = closingAccounts.momo ? Number(closingAccounts.momo.solde) || 0 : 0;
+    const closingBanque = closingAccounts.banque ? Number(closingAccounts.banque.solde) || 0 : 0;
+
+    const user = firebase.auth && firebase.auth().currentUser ? firebase.auth().currentUser : null;
+    const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp;
+
+    const existingTodayData = todaySnap.exists ? todaySnap.data() || {} : {};
+    const openingFallback = {};
+    if (typeof existingTodayData.openingBalanceGlobal !== 'number') {
+      openingFallback.openingBalanceGlobal = closingBalanceGlobal;
+    }
+    if (typeof existingTodayData.openingCaisse !== 'number') {
+      openingFallback.openingCaisse = closingCaisse;
+    }
+    if (typeof existingTodayData.openingMomo !== 'number') {
+      openingFallback.openingMomo = closingMomo;
+    }
+    if (typeof existingTodayData.openingBanque !== 'number') {
+      openingFallback.openingBanque = closingBanque;
+    }
+    if (!existingTodayData.openingByAccount) {
+      openingFallback.openingByAccount = closingAccounts;
+    }
+
+    const todayPayload = Object.assign({}, openingFallback, {
+      dateString: trimmedDate,
+      closingBalanceGlobal,
+      closingCaisse,
+      closingMomo,
+      closingBanque,
+      closingByAccount: closingAccounts,
+      closedAt: serverTimestamp(),
+      closedBy: user ? user.uid : null
+    });
+
+    if (!todaySnap.exists) {
+      todayPayload.createdAt = serverTimestamp();
+    }
+
+    const openingAccountsForTomorrow = JSON.parse(JSON.stringify(closingAccounts));
+    const tomorrowPayload = {
+      dateString: nextDateString,
+      openingBalanceGlobal: closingBalanceGlobal,
+      openingCaisse: closingCaisse,
+      openingMomo: closingMomo,
+      openingBanque: closingBanque,
+      openingByAccount: openingAccountsForTomorrow,
+      openingPreparedFrom: trimmedDate,
+      openingPreparedAt: serverTimestamp()
+    };
+
+    if (!tomorrowSnap.exists) {
+      tomorrowPayload.createdAt = serverTimestamp();
+    }
+
+    tx.set(todayRef, todayPayload, { merge: true });
+    tx.set(tomorrowRef, tomorrowPayload, { merge: true });
+
+    return {
+      dateString: trimmedDate,
+      nextDateString,
+      closingBalanceGlobal,
+      closingAccounts
+    };
+  });
+
+  return result;
+}
+
+async function closeDayAndPrint() {
+  if (closeDayInProgress) {
+    return;
+  }
+
+  const filterInput = document.getElementById('treso-date-filter');
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const targetDateString = filterInput && filterInput.value ? filterInput.value : todayIso;
+  const parsedDate = new Date(targetDateString + 'T00:00:00');
+
+  if (isNaN(parsedDate.getTime())) {
+    alert('Date de clôture invalide.');
+    return;
+  }
+
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (parsedDate > todayStart) {
+    alert('Impossible de clôturer une journée future.');
+    return;
+  }
+
+  const formattedDate = parsedDate.toLocaleDateString('fr-FR');
+  const confirmClose = confirm(`Cloturer la journée du ${formattedDate} et générer le rapport ?`);
+  if (!confirmClose) {
+    return;
+  }
+
+  const closeButton = document.getElementById('btnCloseDay');
+  let originalHtml = null;
+  if (closeButton) {
+    originalHtml = closeButton.innerHTML;
+    closeButton.disabled = true;
+    closeButton.innerHTML = '<span>Cloture en cours…</span>';
+  }
+
+  closeDayInProgress = true;
+
+  try {
+    const closingInfo = await finalizeTresorerieForDate(targetDateString);
+
+    await exportDailyReportPDFForDate(targetDateString, {
+      includeProfitDetail: true,
+      autoPrint: true,
+      fileNamePrefix: 'Cloture_'
+    });
+
+    if (typeof showToast === 'function') {
+      showToast(`Clôture du ${formattedDate} enregistrée. Solde final : ${fmt(closingInfo.closingBalanceGlobal)} FCFA.`);
+    }
+  } catch (error) {
+    console.error('Erreur lors de la clôture quotidienne :', error);
+    alert('Impossible de clôturer la journée : ' + error.message);
+  } finally {
+    closeDayInProgress = false;
+    if (closeButton) {
+      closeButton.disabled = false;
+      closeButton.innerHTML = originalHtml;
+      if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+      }
+    }
+
+    if (filterInput && !filterInput.value) {
+      filterInput.value = targetDateString;
+    }
+
+    try {
+      updateBalanceDisplay();
+    } catch (refreshError) {
+      console.warn('Actualisation du tableau de trésorerie impossible :', refreshError);
+    }
+  }
 }
 
 
@@ -11164,18 +11856,48 @@ for (const item of saleData.items) {
 }
 
             // --- 3. On inverse l'opération de trésorerie ---
-            const montantVente = parseFloat(saleData.overallTotal) || 0;
-            const compteId = saleData.compteId || 'caisse';
+            const paiementDetails = Array.isArray(saleData.paymentsDetails) ? saleData.paymentsDetails : [];
+            if (paiementDetails.length > 0) {
+                for (const paiement of paiementDetails) {
+                    const compteAnnulation = paiement.compteId || saleData.principalCompteId || 'caisse';
+                    const montantEncaisse = parseFloat(paiement.montantEncaisse) || 0;
+                    const monnaieRendue = parseFloat(paiement.monnaieRendue) || 0;
 
-            // On retire l'argent du compte où il avait été ajouté
-            await enregistrerMouvementTresorerie({
-                compteId: compteId,
-                type: 'annulation_vente',
-                sens: 'out', // C'est une sortie d'argent pour annuler l'entrée
-                montant: montantVente,
-                description: `Annulation Vente ${saleData.clientNom}`,
-                refId: saleId
-            });
+                    if (montantEncaisse > 0) {
+                        await enregistrerMouvementTresorerie({
+                            compteId: compteAnnulation,
+                            type: 'annulation_vente',
+                            sens: 'out',
+                            montant: montantEncaisse,
+                            description: `Annulation Vente ${saleData.clientNom} - retrait encaissement`,
+                            refId: saleId
+                        });
+                    }
+
+                    if (monnaieRendue > 0) {
+                        await enregistrerMouvementTresorerie({
+                            compteId: compteAnnulation,
+                            type: 'annulation_vente_change',
+                            sens: 'in',
+                            montant: monnaieRendue,
+                            description: `Annulation Vente ${saleData.clientNom} - restitution monnaie`,
+                            refId: saleId
+                        });
+                    }
+                }
+            } else {
+                const montantVente = parseFloat(saleData.overallTotal) || 0;
+                const compteId = saleData.compteId || 'caisse';
+
+                await enregistrerMouvementTresorerie({
+                    compteId: compteId,
+                    type: 'annulation_vente',
+                    sens: 'out',
+                    montant: montantVente,
+                    description: `Annulation Vente ${saleData.clientNom}`,
+                    refId: saleId
+                });
+            }
         });
 
         // Si tout s'est bien passé
@@ -11499,3 +12221,4 @@ async function creerDettesDeVente(saleId, saleData) {
 <script src="livraison.js"></script>
 </body>
 </html>
+
