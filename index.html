@@ -1253,13 +1253,13 @@
             </button>
           </div>
         </div>
-        <!-- Ã‰tape 3 : Informations Vendeur -->
+        <!-- Ã‰tape 3 : Canal de vente -->
         <div class="sale-step" id="step3">
-          <h2>Ã‰tape 3 : Informations Vendeur</h2>
+          <h2>Ã‰tape 3 : Canal de vente</h2>
           <form class="vente-form" onsubmit="event.preventDefault();">
-            <label for="vendeurSelect">Vendeur</label>
+            <label for="vendeurSelect">Canal de vente</label>
             <select id="vendeurSelect">
-              <!-- Options gÃ©nÃ©rÃ©es via Firestore -->
+              <!-- Options canal de vente -->
             </select>
                         <!-- ====== Section : Encaissements dÃ©taillÃ©s ====== -->
 
@@ -4413,7 +4413,7 @@ async function generateSupplierCreditPDF() {
                 </li>
                 <li class="menu-list-item" onclick="window.location.hash='vendeurs'">
                     <i data-lucide="users"></i>
-                    <span>Gestion des Vendeurs</span>
+                    <span>Canaux de vente</span>
                 </li>
                 <li class="menu-list-item" onclick="window.location.hash='repertoire-imei'">
                     <i data-lucide="list"></i>
@@ -5058,12 +5058,12 @@ onclick="exportDailyReportPDF()">
         <li><span>Moyenne dÃ©pense :</span> <span id="moyenne-depense">0 FCFA</span></li>
       </ul>
     </div>
-    <!-- Carte Performance Vendeurs -->
+    <!-- Carte Performance par canal -->
     <div class="report-card">
-      <h2>Performance Vendeurs</h2>
+      <h2>Performance par canal</h2>
       <ul>
-        <li><span>CA par vendeur :</span> <span id="ca-par-vendeur">-</span></li>
-        <li><span>Ventes par vendeur :</span> <span id="ventes-par-vendeur">-</span></li>
+        <li><span>CA par canal :</span> <span id="ca-par-vendeur">-</span></li>
+        <li><span>Ventes par canal :</span> <span id="ventes-par-vendeur">-</span></li>
       </ul>
     </div>
     <!-- Carte Indicateurs ClÃ©s -->
@@ -5318,7 +5318,7 @@ onclick="exportDailyReportPDF()">
       document.getElementById("moyenne-depense").textContent = moyenneDepense.toLocaleString() + " FCFA";
     });
 
-    // Mise Ã  jour de la performance des vendeurs
+    // Mise Ã  jour de la performance par canal
     getSalesForTodayFirestore().then(sales => {
       sales = sales.filter(filterByDate);
       const caParVendeur = {};
@@ -5412,11 +5412,11 @@ onclick="exportDailyReportPDF()">
         <!-- Liste des produits -->
       </ol>
     </div>
-    <!-- Profit par Vendeur -->
+    <!-- Profit par canal -->
     <div class="report-card">
-      <h2>Profit par Vendeur</h2>
+      <h2>Profit par canal</h2>
       <ul id="profit-par-vendeur">
-        <!-- Exemple : Vendeur A : 0 FCFA, Vendeur B : 0 FCFA -->
+        <!-- Exemple : Canal A : 0 FCFA, Canal B : 0 FCFA -->
       </ul>
     </div>
     <!-- Ã‰volution du Profit -->
@@ -5558,7 +5558,7 @@ onclick="exportDailyReportPDF()">
         olTop.appendChild(li);
       });
 
-      // Profit par Vendeur
+      // Profit par canal
       const profitParVendeur = {};
       sales.forEach(sale => {
         const vendeur = sale.vendeur || "Inconnu";
@@ -7869,7 +7869,7 @@ async function enregistrerModificationClient() {
         html += "â€¢ " + item.produit + " (Prix : " + item.prix + ", QtÃ© : " + item.quantite + ", Total : " + item.total + ")<br>";
       });
       html += "<br><strong>Client :</strong> " + document.getElementById("clientNom").value + " (" + document.getElementById("clientNumero").value + ")<br>";
-      html += "<strong>Vendeur :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
+      html += "<strong>Canal de vente :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
       html += "<strong>Total :</strong> " + currentItems.reduce((acc, item) => acc + parseFloat(item.total), 0).toFixed(2);
       const recapPaiements = ventePayments
         .map(p => {
@@ -9202,6 +9202,10 @@ function continuerDepuisPanier() {
         return;
       }
       const vendeur = document.getElementById("vendeurSelect").value;
+      if(!vendeur) {
+        alert("Veuillez sélectionner un canal de vente.");
+        return;
+      }
       const photoFile = document.getElementById("photoFacture").files[0];
       const observationsVendeur = document.getElementById("observationsVendeur").value.trim();
       let isDelivery = document.getElementById("isDelivery").checked;
@@ -9434,7 +9438,7 @@ function continuerDepuisPanier() {
         card.className = "vente-card";
         card.innerHTML = `
           <p><strong>${sale.clientNom}</strong> (${sale.clientNumero})</p>
-          <p>Vendeur : ${sale.vendeur}</p>
+          <p>Canal de vente : ${sale.vendeur}</p>
           <p>Articles : ${sale.items ? sale.items.length : 0}</p>
           <p>Total : ${sale.overallTotal}</p>
           <button onclick="ouvrirDetails('${sale.id}')">DÃ©tails</button>
@@ -9465,7 +9469,7 @@ function continuerDepuisPanier() {
             `<p><strong>Date :</strong> ${sale.dateVente}</p>
             <p><strong>Heure :</strong> ${sale.heureVente}</p>
             <p><strong>Client :</strong> ${sale.clientNom} (${sale.clientNumero})</p>
-            <p><strong>Vendeur :</strong> ${sale.vendeur}</p>
+            <p><strong>Canal de vente :</strong> ${sale.vendeur}</p>
             <p><strong>Articles :</strong><br>${articlesText}</p>
             <p><strong>Total GÃ©nÃ©ral :</strong> ${sale.overallTotal}</p>
             <p><strong>Observations :</strong> ${sale.observationsVendeur || "Aucune"}</p>
@@ -10284,68 +10288,48 @@ function confirmerAjoutFournisseur(fournisseurName) {
     });
 }
 
-    // Gestion des Vendeurs via Firestore
+    // Gestion des canaux de vente (liste fixe)
+    const CANAUX_VENTE = [
+      "Boutique",
+      "WhatsApp",
+      "Facebook Marketplace",
+      "Instagram",
+      "CoinAfrique"
+    ];
+
     function chargerVendeurs() {
-      dbFirestore.collection("vendeurs").get()
-        .then(querySnapshot => {
-          const vendeurs = [];
-          querySnapshot.forEach(doc => {
-            vendeurs.push({ id: doc.id, ...doc.data() });
-          });
-          const select = document.getElementById("vendeurSelect");
-          select.innerHTML = "";
-          vendeurs.forEach(v => {
-            const option = document.createElement("option");
-            option.value = v.name;
-            option.textContent = v.name;
-            select.appendChild(option);
-          });
-          const liste = document.getElementById("listeVendeurs");
-          liste.innerHTML = "";
-          vendeurs.forEach(v => {
-            const div = document.createElement("div");
-            div.style.display = "flex";
-            div.style.justifyContent = "space-between";
-            div.style.alignItems = "center";
-            div.style.marginBottom = "5px";
-            div.textContent = v.name;
-            const btn = document.createElement("button");
-            btn.textContent = "Supprimer";
-            btn.style.backgroundColor = "#ff6f00";
-            btn.style.color = "#fff";
-            btn.style.border = "none";
-            btn.style.borderRadius = "4px";
-            btn.style.cursor = "pointer";
-            btn.onclick = function () { supprimerVendeur(v.id); };
-            div.appendChild(btn);
-            liste.appendChild(div);
-          });
-        })
-        .catch(err => console.error("Erreur lors du chargement des vendeurs : " + err.message));
+      const select = document.getElementById("vendeurSelect");
+      if (select) {
+        select.innerHTML = "";
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Sélectionnez un canal";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        select.appendChild(placeholder);
+        CANAUX_VENTE.forEach(canal => {
+          const option = document.createElement("option");
+          option.value = canal;
+          option.textContent = canal;
+          select.appendChild(option);
+        });
+      }
+
+      const liste = document.getElementById("listeVendeurs");
+      if (liste) {
+        liste.innerHTML = "";
+        CANAUX_VENTE.forEach(canal => {
+          const div = document.createElement("div");
+          div.textContent = canal;
+          liste.appendChild(div);
+        });
+      }
     }
     function ajouterVendeur() {
-      const input = document.getElementById("nomVendeur");
-      const nom = input.value.trim();
-      if(nom === "") {
-        alert("Veuillez saisir le nom du vendeur.");
-        return;
-      }
-      dbFirestore.collection("vendeurs").add({
-        name: nom,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(() => {
-        input.value = "";
-        chargerVendeurs();
-      })
-      .catch(err => alert("Erreur lors de l'ajout du vendeur : " + err.message));
+      alert("La liste des canaux de vente est fixe : Boutique, WhatsApp, Facebook Marketplace, Instagram et CoinAfrique.");
     }
     function supprimerVendeur(id) {
-      dbFirestore.collection("vendeurs").doc(id).delete()
-        .then(() => {
-          chargerVendeurs();
-        })
-        .catch(err => alert("Erreur lors de la suppression du vendeur : " + err.message));
+      alert("La liste des canaux de vente est fixe et ne peut pas être modifiée depuis cette interface.");
     }
     window.addEventListener("load", function() {
       chargerVendeurs();
@@ -10532,7 +10516,7 @@ function majCartesTresorerie() {
 
     // Fonctions du Menu Principal
     function ouvrirGestionVendeurs() {
-      alert('Ouvrir la page de gestion des vendeurs.');
+      alert('Ouvrir la page de gestion des canaux de vente.');
     }
 
     // Actualisation de l'heure dans le menu
