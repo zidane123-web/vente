@@ -1,0 +1,14 @@
+# Node dependencies
+node_modules/
+
+# Firebase admin credentials
+africaphone1-accfb-firebase-adminsdk-fbsvc-37efae2abd.json
+
+# Local utility scripts
+apply_employee_restrictions.js
+createEmployees.js
+
+# Environment & system files
+.env
+.DS_Store
+Thumbs.db
