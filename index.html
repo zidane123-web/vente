@@ -8072,21 +8072,9 @@ function analyserPaiementsVente() {
       break;
     }
 
-    if (change > 0 && encaisse === 0) {
-      valid = false;
-      message = 'Impossible de rendre de la monnaie sans encaissement sur ce compte.';
-      break;
-    }
-
     if ((encaisse > 0 || change > 0) && !payment.compteId) {
       valid = false;
       message = 'Sélectionnez un compte de trésorerie pour chaque encaissement.';
-      break;
-    }
-
-    if (change > encaisse + 0.0001) {
-      valid = false;
-      message = 'La monnaie rendue ne peut pas dépasser le montant encaissé pour un compte.';
       break;
     }
 
@@ -9057,6 +9045,7 @@ document.getElementById('searchCartIcon').addEventListener('click', () => {
 
 /* Ajoute un produit ou incrémente sa quantité ------------------ */
 function addOrIncrementItem(prod) {
+  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') || (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
   const idx = currentItems.findIndex(it => it.produit === prod.name);
 
   if (idx > -1) {                               // déj�  présent → on incrémente
@@ -9074,9 +9063,9 @@ function addOrIncrementItem(prod) {
     }
     currentItems.push({
       produit  : prod.name,
-      prix     : prod.price,
+      prix     : isEmployee ? 0 : prod.price,
       quantite : 1,
-      total    : prod.price,
+      total    : isEmployee ? 0 : prod.price,
       category : prod.category
     });
   }
@@ -9103,6 +9092,7 @@ function renderMiniPanier(){
 /* ========== Écran #panier complet ========= */
 function updatePanierPage() {
   const container = document.getElementById("panierContainer");
+  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') || (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
 
   container.innerHTML = currentItems.length
     ? ""
@@ -9111,13 +9101,15 @@ function updatePanierPage() {
   currentItems.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "panier-item";
+    const priceValue = (isEmployee && (!item.prix || Number(item.prix) === 0)) ? '' : item.prix;
+    const pricePlaceholder = isEmployee ? ' placeholder="Montant a saisir"' : '';
     row.innerHTML = `
       <strong>${item.produit}</strong><br>
       Qté :
         <input type="number" min="1" value="${item.quantite}"
                data-idx="${index}" class="inpQt">
       Prix :
-        <input type="number" min="0" step="100" value="${item.prix}"
+        <input type="number" min="0" step="100" value="${priceValue}"${pricePlaceholder}
                data-idx="${index}" class="inpPx">
       Total :
         <span class="ligneTotal">${item.total.toLocaleString()} FCFA</span>
@@ -10412,7 +10404,7 @@ function remplirTousSelectComptes(specificSelectElement = null) {
         comptesCache.forEach(c => { //
             const opt = document.createElement('option'); //
             opt.value = c.id; //
-            opt.textContent = `${c.nom} – ${c.solde.toLocaleString()} XOF`; //
+            opt.textContent = c.nom || c.id; //
             sel.appendChild(opt); //
         });
     });
