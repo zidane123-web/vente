@@ -1697,13 +1697,40 @@ async function populateUserFilters() {
     const salesSelect = document.getElementById("filterSalesByUser");
     const purchaseSelect = document.getElementById("filterPurchasesByUser");
 
+    // Si employé: il ne doit pas pouvoir sélectionner d'autres utilisateurs
+    const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+                       (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+
+    if (isEmployee) {
+        try {
+            const user = firebase.auth().currentUser;
+            if (salesSelect) {
+                // Masquer le select côté UI pour les employés
+                salesSelect.style.setProperty('display', 'none', 'important');
+                // Optionnel: le forcer à la valeur de l'utilisateur courant si besoin
+                if (user && (user.displayName || user.email)) {
+                    salesSelect.innerHTML = '';
+                    const opt = document.createElement('option');
+                    opt.value = user.displayName || user.email;
+                    opt.textContent = opt.value;
+                    opt.selected = true;
+                    salesSelect.appendChild(opt);
+                }
+            }
+        } catch (e) {
+            console.warn('Impossible de configurer le filtre utilisateur pour employé:', e);
+        }
+        // Pour les employés, on ne charge pas la liste complète des utilisateurs
+        return;
+    }
+
+    // Pour admin/patron: remplir les listes normalement
     // Si les menus sont déjà remplis, on ne fait rien.
-    if (salesSelect.options.length > 1 && purchaseSelect.options.length > 1) {
+    if (salesSelect && purchaseSelect && salesSelect.options.length > 1 && purchaseSelect.options.length > 1) {
         return;
     }
 
     try {
-        // On lit la petite collection 'users' (très rapide)
         const usersSnapshot = await dbFirestore.collection("users").orderBy("name").get();
         const userNames = [];
         usersSnapshot.forEach(doc => {
@@ -1713,11 +1740,9 @@ async function populateUserFilters() {
             }
         });
 
-        // Fonction pour ajouter les noms à un menu déroulant
         const addOptions = (selectElement) => {
-            // On s'assure que l'élément select existe avant de le manipuler
-            if (selectElement && selectElement.options.length <= 1) { // On ne remplit que si c'est vide
-               userNames.forEach(name => {
+            if (selectElement && selectElement.options.length <= 1) {
+                userNames.forEach(name => {
                     const option = document.createElement("option");
                     option.value = name;
                     option.textContent = name;
@@ -1726,7 +1751,6 @@ async function populateUserFilters() {
             }
         };
 
-        // On peuple les deux menus
         addOptions(salesSelect);
         addOptions(purchaseSelect);
 
@@ -1906,7 +1930,7 @@ async function preparerAnnulationVente(saleId, event) {
 
       
 async function filterSalesHistory(statusFilter = 'all') {
-        const selectedUser = document.getElementById("filterSalesByUser").value;
+        const selectedUser = (document.getElementById("filterSalesByUser") || {}).value;
         const dateInput = document.getElementById("filterHistoryDate").value;
         if (!dateInput) {
           console.warn("Aucune date sélectionnée");
@@ -1936,10 +1960,20 @@ async function filterSalesHistory(statusFilter = 'all') {
                 .where("timestamp", "<=", endOfDayFirestoreTimestamp)
                 .orderBy("timestamp", "desc");
 
-            // Appliquer le filtre par utilisateur s'il est différent de "Tous"
-if (selectedUser && selectedUser !== 'all') {
-    query = query.where("enregistreParNom", "==", selectedUser);
-}
+            // Appliquer les restrictions d'accès: un employé ne voit que ses ventes
+            const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+                              (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+            if (isEmployee) {
+                const user = firebase.auth().currentUser;
+                if (user && user.uid) {
+                    query = query.where("enregistreParUid", "==", user.uid);
+                }
+            } else {
+                // Admin/Patron: autoriser le filtre par utilisateur si sélectionné
+                if (selectedUser && selectedUser !== 'all') {
+                    query = query.where("enregistreParNom", "==", selectedUser);
+                }
+            }
 
             if (statusFilter === 'successful') {
                 query = query.where("deliveryStatus", "==", "réussie");
