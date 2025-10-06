@@ -61,7 +61,7 @@
   /* CORRECTIF POUR LE SCROLL APRÈS L'AJOUT D'IONIC
   */
   .screen {
-    /* Permet �  chaque écran d'avoir sa propre barre de défilement si le contenu dépasse */
+    /* Permet à chaque écran d'avoir sa propre barre de défilement si le contenu dépasse */
     overflow-y: auto; 
     
     /* On s'assure que l'écran ne dépasse pas de la vue visible.
@@ -72,7 +72,7 @@
     height: calc(100vh - 75px); 
   }
 
-  /* On exclut l'écran de détail de cette règle, car Ionic s'en occupe déj�  */
+  /* On exclut l'écran de détail de cette règle, car Ionic s'en occupe déjà */
   #screen-article-detail {
       height: auto;
       overflow-y: initial;
@@ -704,7 +704,7 @@
 }
 #screen-menu .header,
 #screen-menu .profile-section {
-    /* Garder ces styles car ils sont déj�  bons */
+    /* Garder ces styles car ils sont déjà bons */
     margin-bottom: 20px; /* Légère augmentation pour plus d'espace */
 }
 
@@ -779,11 +779,11 @@
     /* Styles ajoutés pour la liste de suggestions */
 .suggestion-list {
   /* REMPLACEZ 'position: absolute;' par la ligne ci-dessous ou supprimez-la. */
-  /* position: absolute; */ /* Ligne �  commenter ou supprimer */
+  /* position: absolute; */ /* Ligne à commenter ou supprimer */
   position: static; /* NOUVELLE LIGNE: pour la remettre dans le flux */
   background: var(--white);
   border: 1px solid #ccc;
-  /* z-index: 1000; */ /* Ligne �  commenter ou supprimer, car pas nécessaire pour un élément statique */
+  /* z-index: 1000; */ /* Ligne à commenter ou supprimer, car pas nécessaire pour un élément statique */
   max-height: 150px;
   overflow-y: auto;
   width: 100%;
@@ -827,7 +827,7 @@
 
 
   </style>
-  <!-- Styles spécifiques aux suggestions déj�  existants -->
+  <!-- Styles spécifiques aux suggestions déjà existants -->
   <style>
 
 
@@ -844,7 +844,7 @@
   display: none;
 }
 
-/* Styles pour le conteneur du badge �  l'intérieur du segment button */
+/* Styles pour le conteneur du badge à l'intérieur du segment button */
 #screen-approvisionnement-historique ion-segment-button[value="credit"] .credit-badge-container {
     display: flex; /* <-- ASSUREZ-VOUS QUE C'EST TOUJOURS FLEX */
     align-items: center;
@@ -900,7 +900,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 56px;              /* laisse la place �  la bottom-nav-pro (hauteur ~56px) */
+  bottom: 56px;              /* laisse la place à la bottom-nav-pro (hauteur ~56px) */
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -933,9 +933,9 @@
   color: var(--primary-color);
 }
 
-/* Réduire le bouton “Suivant” du panier */
+/* Réduire le bouton "Suivant" du panier */
 #cartFooter .btn-modern {
-  padding: 6px 12px;      /* moins d’espace intérieur */
+  padding: 6px 12px;      /* moins d'espace intérieur */
   font-size: 14px;        /* texte un peu plus petit */
   border-radius: 30px;    /* coins un peu moins arrondis */
   /* si besoin, limiter la largeur max : */
@@ -954,7 +954,7 @@
   color: var(--primary-color);
 }
 #screen-panier .header-icons {
-  margin-left: auto;    /* pousse les icônes tout �  droite */
+  margin-left: auto;    /* pousse les icônes tout à droite */
 }
 #screen-panier .header-icons i {
   font-size: 24px;
@@ -1031,7 +1031,7 @@
 #screen-start-day.active {           /* devient visible quand on ajoute .active */
   display: block;
 }
-/* Cache la bottom-nav quand l’écran #screen-start-day est actif */
+/* Cache la bottom-nav quand l'écran #screen-start-day est actif */
 #screen-start-day.active ~ .bottom-nav-pro {
   display: none;
 }
@@ -1087,7 +1087,7 @@
 .history-card.status-vente-directe { border-left-color: #2196F3; } /* Bleu */
 
 
-/* --- Conteneur de l'icône �  gauche --- */
+/* --- Conteneur de l'icône à gauche --- */
 .history-card .icon-container {
     flex-shrink: 0;
     width: 40px;
@@ -1130,7 +1130,7 @@
     color: #666;
 }
 
-/* --- Bloc montant �  droite --- */
+/* --- Bloc montant à droite --- */
 .history-card .amount-container {
     text-align: right;
     margin-left: 10px;
@@ -1432,7 +1432,7 @@
   </ion-app>
       <style>
       /* ==============================================================
-       STYLES POUR L'HISTORIQUE DES VENTES (Similaire �  Achats)
+       STYLES POUR L'HISTORIQUE DES VENTES (Similaire à Achats)
        ============================================================== */
 
     #screen-historique {
@@ -1543,13 +1543,13 @@
     }
 
 
-    /* Mise en forme du contenu d'un ion-item pour qu'il ressemble �  la capture Zoho */
+    /* Mise en forme du contenu d'un ion-item pour qu'il ressemble à la capture Zoho */
     #ventesContainerList ion-item .main-content-wrapper {
         display: flex;
-        justify-content: space-between; /* Pour pousser le montant �  droite */
+        justify-content: space-between; /* Pour pousser le montant à droite */
         align-items: center; /* Aligner verticalement les blocs principal (avatar, gauche, droite) */
         width: 100%;
-        padding: 12px 16px; /* Applique le padding interne �  ce wrapper, pour le contenu */
+        padding: 12px 16px; /* Applique le padding interne à ce wrapper, pour le contenu */
     }
 
     #ventesContainerList ion-item .avatar-circle {
@@ -1570,7 +1570,7 @@
     #ventesContainerList ion-item .left-info {
         display: flex;
         flex-direction: column;
-        flex-grow: 1; /* Permet �  ce bloc de prendre tout l'espace disponible au centre */
+        flex-grow: 1; /* Permet à ce bloc de prendre tout l'espace disponible au centre */
         overflow: hidden; /* Important pour que l'ellipsis fonctionne */
     }
 
@@ -1620,7 +1620,7 @@
     #ventesContainerList ion-item .right-info {
         display: flex;
         flex-direction: column;
-        align-items: flex-end; /* Aligner le texte �  droite */
+        align-items: flex-end; /* Aligner le texte à droite */
         margin-left: 15px; /* Espace entre la colonne de gauche et le montant */
         flex-shrink: 0; /* Empêche le bloc de droite de rétrécir */
     }
@@ -1656,7 +1656,7 @@
     margin-top: 12px; /* Espace au-dessus */
     padding-top: 8px; /* Espace au-dessus de la ligne */
     border-top: 1px solid #f0f0f0; /* Ligne de séparation discrète */
-    text-align: right; /* Aligner �  droite */
+    text-align: right; /* Aligner à droite */
     font-size: 14px;   /* Police plus grande */
     color: #555;       /* Couleur de base du texte */
 }
@@ -1697,7 +1697,7 @@ async function populateUserFilters() {
     const salesSelect = document.getElementById("filterSalesByUser");
     const purchaseSelect = document.getElementById("filterPurchasesByUser");
 
-    // Si les menus sont déj�  remplis, on ne fait rien.
+    // Si les menus sont déjà remplis, on ne fait rien.
     if (salesSelect.options.length > 1 && purchaseSelect.options.length > 1) {
         return;
     }
@@ -1713,7 +1713,7 @@ async function populateUserFilters() {
             }
         });
 
-        // Fonction pour ajouter les noms �  un menu déroulant
+        // Fonction pour ajouter les noms à un menu déroulant
         const addOptions = (selectElement) => {
             // On s'assure que l'élément select existe avant de le manipuler
             if (selectElement && selectElement.options.length <= 1) { // On ne remplit que si c'est vide
@@ -1880,11 +1880,11 @@ async function populateUserFilters() {
 
 /**
  * Prépare et demande la confirmation pour l'annulation d'une vente.
- * @param {string} saleId - L'ID du document de la vente �  annuler.
+ * @param {string} saleId - L'ID du document de la vente à annuler.
  * @param {Event} event - L'objet d'événement du clic pour pouvoir fermer le slide.
  */
 async function preparerAnnulationVente(saleId, event) {
-    // Empêche le clic de se propager �  l'ion-item principal
+    // Empêche le clic de se propager à l'ion-item principal
     event.stopPropagation();
     
     // Ferme l'élément <ion-item-sliding> pour une meilleure expérience utilisateur
@@ -1897,7 +1897,7 @@ async function preparerAnnulationVente(saleId, event) {
     demanderAnnulation(saleId);
 }
 
-      // Initialisation de la date par défaut et appel automatique du filtrage �  l'ouverture de la page
+      // Initialisation de la date par défaut et appel automatique du filtrage à l'ouverture de la page
       window.addEventListener("load", () => {
         const todayISO = new Date().toISOString().split("T")[0];
         document.getElementById("filterHistoryDate").value = todayISO;
@@ -2078,7 +2078,7 @@ function generateInvoicePDF(sale) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(9);
         doc.text("RB/ABC/24 B 8356", 40, 65);
-        doc.text("N� Ifu: 3202413299289", 40, 78);
+        doc.text("Nà Ifu: 3202413299289", 40, 78);
         doc.text("Ilot: 168, Agori, Abomey-Calavi, Bénin", 40, 91);
         doc.text("E-mail: africaphone24@gmail.com", 40, 104);
         doc.text("+229 54 15 15 22", 40, 117);
@@ -2167,7 +2167,7 @@ function generateInvoicePDF(sale) {
         let footerY = doc.lastAutoTable.finalY + 30; // Marge de 30pt sous le tableau
 
         // --- TOTAL HT ---
-        // On aligne le total �  droite
+        // On aligne le total à droite
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
         const overallTotal = cleanNumber(sale.overallTotal);
@@ -2175,7 +2175,7 @@ function generateInvoicePDF(sale) {
         doc.text(totalText, 555, footerY, { align: 'right' });
 
         // --- Garantie 1 an ---
-        // On aligne cette mention �  gauche, sur la même ligne visuelle que le total
+        // On aligne cette mention à gauche, sur la même ligne visuelle que le total
         doc.setFont("helvetica", "italic");
         doc.setFontSize(9);
         doc.text("Avec Garantie de 1 semaine", 40, footerY);
@@ -2187,8 +2187,8 @@ function generateInvoicePDF(sale) {
         doc.setFont("helvetica", "normal");
         doc.setFontSize(10);
         const totalAmountInWords = numberToWordsFr(overallTotal);
-        const fullText = `Arrêté la présente facture �  la somme de ${totalAmountInWords} FCFA.`;
-        const splitText = doc.splitTextToSize(fullText, 515); // On gère le retour �  la ligne
+        const fullText = `Arrêté la présente facture à la somme de ${totalAmountInWords} FCFA.`;
+        const splitText = doc.splitTextToSize(fullText, 515); // On gère le retour à la ligne
         doc.text(splitText, 40, footerY);
 
         // On se décale vers le bas de la hauteur du texte qu'on vient d'écrire, plus une marge
@@ -2216,14 +2216,14 @@ function generateInvoicePDF(sale) {
 
         // 3. Le contenu des conditions
         const warrantyParagraphs = [
-            "Couverture : La garantie s’applique uniquement aux défauts de fabrication ou problèmes techniques du téléphone.",
-            "Exclusions : Tout dommage causé par l’utilisateur (chute, contact avec l’eau, mauvaise utilisation, etc.) est exclu de la garantie.",
+            "Couverture : La garantie s'applique uniquement aux défauts de fabrication ou problèmes techniques du téléphone.",
+            "Exclusions : Tout dommage causé par l'utilisateur (chute, contact avec l'eau, mauvaise utilisation, etc.) est exclu de la garantie.",
             "Procédure de retour :",
             "a. Le produit doit être examiné pour confirmer le problème.",
             "b. Une réparation sera tentée en priorité.",
             "c. Un remplacement ne sera envisagé que si la réparation est impossible.",
             "Délais : Le temps de réparation varie selon la nature de la panne et la disponibilité des techniciens.",
-            "Conditions de prise en charge : Aucun service de garantie ne sera effectué si le téléphone n’est pas retourné avec son emballage d’origine complet (boîte, accessoires, etc.) et en bon état."
+            "Conditions de prise en charge : Aucun service de garantie ne sera effectué si le téléphone n'est pas retourné avec son emballage d'origine complet (boîte, accessoires, etc.) et en bon état."
         ];
 
         // 4. On dessine les paragraphes
@@ -2391,7 +2391,7 @@ function generateInvoicePDF(sale) {
   /**
    * Fonction pour enregistrer une avance de paiement sur une vente.
    * Elle récupère le document de vente par son ID, vérifie le solde restant,
-   * ajoute le paiement dans la sous-collection "paiements" puis met �  jour le document.
+   * ajoute le paiement dans la sous-collection "paiements" puis met à jour le document.
    */
   function enregistrerAvance() {
     const saleId = document.getElementById("saleId").value.trim();
@@ -2415,9 +2415,9 @@ function generateInvoicePDF(sale) {
         return;
       }
       const saleData = doc.data();
-      // Si la vente est déj�  réglée, on ne peut pas enregistrer d'avance
+      // Si la vente est déjà réglée, on ne peut pas enregistrer d'avance
       if (saleData.status === "complet") {
-        alert("La vente est déj�  réglée en totalité.");
+        alert("La vente est déjà réglée en totalité.");
         return;
       }
       // Calculer le solde restant (en utilisant le champ remainingBalance si présent)
@@ -2436,7 +2436,7 @@ function generateInvoicePDF(sale) {
       };
       saleRef.collection("paiements").add(paiement)
         .then(() => {
-          // Mettre �  jour le document de vente avec le nouveau cumul et recalculer le solde
+          // Mettre à jour le document de vente avec le nouveau cumul et recalculer le solde
           const newPaidAmount = (saleData.paidAmount || 0) + avanceAmount;
           const newRemaining = saleData.totalAmount - newPaidAmount;
           const newStatus = newRemaining <= 0 ? "complet" : "avance partielle";
@@ -2533,7 +2533,7 @@ function generateInvoicePDF(sale) {
         <div class="summary-label">Stock engagé</div>
         <div class="summary-value">0.00</div>
         <div class="summary-value">0.00</div>
-        <div class="summary-label">Disponible �  la vente</div>
+        <div class="summary-label">Disponible à la vente</div>
         <div id="detail-available-for-sale" class="summary-value">...</div>
         <div class="summary-value">...</div>
       </div>
@@ -2726,7 +2726,7 @@ function generateInvoicePDF(sale) {
    */
   function setupArticleTabs() {
     const tabs = document.getElementById('article-tabs');
-    // On vérifie si l'écouteur n'a pas déj�  été attaché pour éviter les doublons
+    // On vérifie si l'écouteur n'a pas déjà été attaché pour éviter les doublons
     if (tabs && !tabs.listenerAttached) {
       tabs.addEventListener('ionChange', (event) => {
         const selectedTab = event.detail.value;
@@ -2750,7 +2750,7 @@ function generateInvoicePDF(sale) {
     switch (tabValue) {
       case 'details':
         document.getElementById('detailsContent').style.display = 'block';
-        // Les détails sont déj�  chargés par loadArticleDetail(), donc rien �  faire de plus.
+        // Les détails sont déjà chargés par loadArticleDetail(), donc rien à faire de plus.
         break;
       case 'transactions':
         document.getElementById('transactionsContent').style.display = 'block';
@@ -2789,7 +2789,7 @@ function generateInvoicePDF(sale) {
 
       salesSnapshot.forEach(doc => {
         const sale = doc.data();
-        // On vérifie si un des articles de la vente correspond �  notre article
+        // On vérifie si un des articles de la vente correspond à notre article
         const relevantItem = sale.items && sale.items.find(item => item.produit === articleName);
         if (relevantItem) {
           transactions.push({
@@ -2830,7 +2830,7 @@ function generateInvoicePDF(sale) {
    */
   function loadArticleStockHistory(articleId) {
     const container = document.getElementById("historyContent");
-    container.innerHTML = "<p>Chargement de l’historique du stock…</p>";
+    container.innerHTML = "<p>Chargement de l'historique du stock…</p>";
 
     dbFirestore.collection("stock").doc(articleId).collection("history")
       .orderBy("timestamp", "desc").limit(50) // On limite aux 50 derniers mouvements
@@ -2955,7 +2955,7 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
     padding-left: 10px;
     padding-right: 10px;
 }
-/* Styles pour le conteneur du badge �  l'intérieur du segment button */
+/* Styles pour le conteneur du badge à l'intérieur du segment button */
 #screen-approvisionnement-historique ion-segment-button[value="credit"] .credit-badge-container {
     display: flex; /* Permet d'aligner le cercle et le texte */
     align-items: center; /* Centre verticalement */
@@ -2976,7 +2976,7 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px; /* Taille de la police pour le chiffre �  l'intérieur */
+    font-size: 12px; /* Taille de la police pour le chiffre à l'intérieur */
     font-weight: bold; /* Gras pour le chiffre */
     margin-right: 4px; /* Espace entre le cercle et le texte "Crédit" */
     /* Ces propriétés assurent que le cercle est bien rond et que le texte est centré */
@@ -3043,7 +3043,7 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
 }
 /* S'assurer que la liste scrollable a un padding-bottom suffisant */
 #approvisionnementHistoryList {
-    /* Si ion-content gère déj�  le padding-bottom, ce n'est pas toujours nécessaire,
+    /* Si ion-content gère déjà le padding-bottom, ce n'est pas toujours nécessaire,
        mais peut servir de sécurité pour le contenu interne de la liste */
     padding-bottom: 80px; /* Un peu plus que le FAB + marge si nécessaire */
 }
@@ -3088,10 +3088,10 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
 }
 
 
-/* Mise en forme du contenu d'un ion-item pour qu'il ressemble �  la capture Zoho */
+/* Mise en forme du contenu d'un ion-item pour qu'il ressemble à la capture Zoho */
 #approvisionnementHistoryList ion-item .main-content-wrapper {
     display: flex;
-    justify-content: space-between; /* Pour pousser le montant �  droite */
+    justify-content: space-between; /* Pour pousser le montant à droite */
     align-items: center; /* Aligner verticalement */
     width: 100%;
 }
@@ -3117,13 +3117,13 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
 #approvisionnementHistoryList ion-item .right-info {
     display: flex;
     flex-direction: column;
-    align-items: flex-end; /* Aligner le texte �  droite */
+    align-items: flex-end; /* Aligner le texte à droite */
     margin-left: 15px; /* Espace entre les deux colonnes */
 }
 
 #approvisionnementHistoryList ion-item .total-amount {
     font-weight: 600; /* Plus léger que 700 */
-    font-size: 18px; /* Correspond �  l'image */
+    font-size: 18px; /* Correspond à l'image */
     color: #333; /* Couleur de texte par défaut */
     margin-bottom: 4px; /* Espace sous le montant */
 }
@@ -3132,6 +3132,9 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
 }
 #approvisionnementHistoryList ion-item.status-credit .total-amount {
     color: #f04141; /* Rouge pour "Due" comme Zoho */
+}
+#approvisionnementHistoryList ion-item.status-depot .total-amount {
+    color: #6c757d;
 }
 
 
@@ -3142,7 +3145,7 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
     font-weight: 500;
 }
 
-/* Floating Action Button (FAB) - inchangé car déj�  plat par Ionic */
+/* Floating Action Button (FAB) - inchangé car déjà plat par Ionic */
 ion-fab-button {
     --background: #2e3748;
     --background-activated: #000;
@@ -3152,7 +3155,7 @@ ion-fab-button {
     margin-top: 12px; /* Espace au-dessus */
     padding-top: 8px; /* Espace au-dessus de la ligne */
     border-top: 1px solid #f0f0f0; /* Ligne de séparation discrète */
-    text-align: right; /* Aligner �  droite */
+    text-align: right; /* Aligner à droite */
     font-size: 14px;   /* Police plus grande */
     color: #555;       /* Couleur de base du texte */
 }
@@ -3164,7 +3167,7 @@ ion-fab-button {
 
     </style>
 <script>
-// La fonction getAvatarColor (qui est déj�  présente dans votre code)
+// La fonction getAvatarColor (qui est déjà présente dans votre code)
 function getAvatarColor(name) {
     const colors = [
         '#3498DB', '#2ECC71', '#E74C3C', '#9B59B6', '#1ABC9C',
@@ -3263,7 +3266,7 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                             <div class="avatar-circle" style="background-color: ${avatarBgColor};"> ${initials} </div>
                             <div class="left-info">
                                 <div class="supplier-name">${supplierName}</div>
-                                <div class="purchase-date">${data.procurements.length} achat(s) �  crédit</div>
+                                <div class="purchase-date">${data.procurements.length} achat(s) à crédit</div>
                             </div>
                             <div class="right-info">
                                 <div class="total-amount" style="color: #f04141;">XOF ${data.totalDue.toLocaleString('fr-FR')}</div>
@@ -3340,24 +3343,39 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                     fraisTransportDisplay = `<p class="item-line">Frais transport: <strong>${fraisTransport.toLocaleString('fr-FR')} FCFA</strong></p>`;
                 }
 
-                let paymentStatusText = 'PAYÉ';
-                let statusClass = 'status-paid';
-                let amountColor = '#3880ff';
+                const remainingAmount = parseFloat(appro.remainingAmount || 0);
+                const isPaid = !!appro.isPaid && remainingAmount <= 0;
+                let paymentStatusText = isPaid ? 'PAYÉ' : 'DUE';
+                let statusClass = isPaid ? 'status-paid' : 'status-credit';
+                let amountColor = isPaid ? '#3880ff' : '#f04141';
                 let remainingAmountDisplay = '';
 
-                if (appro.paymentMethod === 'credit') {
-                    if (parseFloat(appro.remainingAmount || 0) > 0) {
-                        paymentStatusText = 'DUE';
-                        statusClass = 'status-credit';
-                        amountColor = '#f04141';
-                        remainingAmountDisplay = `<div class="purchase-date" style="color: ${amountColor};">Solde: ${parseFloat(appro.remainingAmount || 0).toLocaleString('fr-FR')} FCFA</div>`;
+                if (!isPaid && remainingAmount > 0) {
+                    remainingAmountDisplay = `<div class="purchase-date" style="color: ${amountColor};">Solde: ${remainingAmount.toLocaleString('fr-FR')} FCFA</div>`;
+                } else if (appro.paymentMethod === 'depot') {
+                    paymentStatusText = 'DÉPÔT';
+                    statusClass = 'status-depot';
+                    amountColor = '#6c757d';
+                } else if (isPaid) {
+                    if (Array.isArray(appro.paymentsDetails) && appro.paymentsDetails.length > 0) {
+                        const accountsLabels = [...new Set(appro.paymentsDetails.map(p => {
+                            const compteId = p.compteId || p.account || '';
+                            const compteNom = p.compteNom || getCompteNomById(compteId);
+                            return compteNom || compteId;
+                        }))].filter(Boolean);
+                        if (accountsLabels.length > 0) {
+                            paymentStatusText = accountsLabels.join(' + ');
+                        } else {
+                            paymentStatusText = 'PAYÉ';
+                        }
+                    } else if (appro.paymentMethod === 'credit') {
+                        paymentStatusText = 'RÉGLÉ';
+                    } else if (appro.paymentMethod && appro.paymentMethod !== 'paid') {
+                        paymentStatusText = (appro.paymentMethod || 'payé').toUpperCase();
                     } else {
-                         paymentStatusText = 'RÉGLÉ';
+                        paymentStatusText = 'PAYÉ';
                     }
-                } else if (appro.paymentMethod === 'cash') {
-                    paymentStatusText = 'CASH';
                 }
-
 
                 const supplierName = appro.fournisseur || 'Fournisseur Inconnu';
                 const initials = supplierName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
@@ -3565,7 +3583,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <ion-card class="custom-card">
               <ion-card-content>
                 <span class="card-title" style="color: #6b7280;">Informations sur la dette</span>
-                <p class="card-main-text">Nombre d'achats �  crédit : <span id="detailNumCreditPurchases">0</span></p>
+                <p class="card-main-text">Nombre d'achats à crédit : <span id="detailNumCreditPurchases">0</span></p>
                 <p class="card-sub-text">Dette la plus ancienne : <span id="detailOldestDebtDate">N/A</span></p>
               </ion-card-content>
             </ion-card>
@@ -3899,8 +3917,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     lastPurchaseDateEl.textContent = sortedProcurements.length > 0
-        ? `Dernier achat �  crédit : ${ (sortedProcurements[0].timestamp?.toDate ? sortedProcurements[0].timestamp.toDate() : new Date(sortedProcurements[0].timestamp)).toLocaleDateString('fr-FR')}`
-        : 'Dernier achat �  crédit : N/A';
+        ? `Dernier achat à crédit : ${ (sortedProcurements[0].timestamp?.toDate ? sortedProcurements[0].timestamp.toDate() : new Date(sortedProcurements[0].timestamp)).toLocaleDateString('fr-FR')}`
+        : 'Dernier achat à crédit : N/A';
 
     numCreditPurchasesEl.textContent = (currentDetailedSupplierData.procurements || []).filter(p => p.paymentMethod === 'credit').length;
     
@@ -3936,7 +3954,7 @@ document.addEventListener('DOMContentLoaded', () => {
         .sort((a,b) => ( (a.timestamp?.toDate ? a.timestamp.toDate().getTime() : new Date(a.timestamp).getTime()) || 0) - ( (b.timestamp?.toDate ? b.timestamp.toDate().getTime() : new Date(b.timestamp).getTime()) || 0)); // Oldest first
 
     if (creditProcurementsWithDebt.length === 0) {
-        itemsListContainer.innerHTML = `<ion-item lines="none"><ion-label style="text-align: center;">Aucun achat �  crédit pour ce fournisseur.</ion-label></ion-item>`;
+        itemsListContainer.innerHTML = `<ion-item lines="none"><ion-label style="text-align: center;">Aucun achat à crédit pour ce fournisseur.</ion-label></ion-item>`;
     } else {
         creditProcurementsWithDebt.forEach(appro => {
             sumOfOriginalCreditCosts += parseFloat(appro.totalCost || 0);
@@ -4001,7 +4019,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 ${p.date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}: 
                 <strong>${p.amount.toLocaleString('fr-FR')} FCFA</strong> 
                 (Compte: ${p.account}) 
-                <small>- Appliqué �  l'achat du ${p.procurementDate.toLocaleDateString('fr-FR')}</small>
+                <small>- Appliqué à l'achat du ${p.procurementDate.toLocaleDateString('fr-FR')}</small>
             </li>`;
         });
         paymentsHistoryList.innerHTML = paymentsHtml;
@@ -4087,7 +4105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
         if (procurementsToPay.length === 0 && paymentAmount > 0) {
-            alert("Ce fournisseur n'a aucune dette �  crédit en cours. Paiement non applicable.");
+            alert("Ce fournisseur n'a aucune dette à crédit en cours. Paiement non applicable.");
             hideSaleLoader();
             return;
         }
@@ -4167,7 +4185,35 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("Erreur lors de l'enregistrement du paiement fournisseur :", error);
         alert("Erreur lors de l'enregistrement du paiement : " + error.message);
     } finally {
-        hideSaleLoader(); 
+        currentApproItems = [];
+        updatePanierApprovisionnement();
+
+        const fournisseurField = document.getElementById("fournisseurAppro");
+        if (fournisseurField) {
+            fournisseurField.value = "";
+        }
+
+        const fraisTransportField = document.getElementById("fraisTransportAppro");
+        if (fraisTransportField) {
+            fraisTransportField.value = "";
+        }
+
+        const purchaseTypeSelect = document.getElementById("typeAchatAppro");
+        if (purchaseTypeSelect) {
+            purchaseTypeSelect.value = "normal";
+        }
+
+        const paymentStatusSelect = document.getElementById("purchasePaymentStatus");
+        if (paymentStatusSelect) {
+            paymentStatusSelect.value = 'no';
+        }
+
+        resetApproPayments();
+        handlePurchaseTypeChange();
+        chargerApprovisionnements();
+        updateStockSummary();
+        updateBalanceDisplay();
+        hideSaleLoader();
     }
 }
 
@@ -4209,7 +4255,7 @@ async function generateSupplierCreditPDF() {
     // --- Section Achats Liés ---
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("Achats �  Crédit Liés", 40, yOffset);
+    doc.text("Achats à Crédit Liés", 40, yOffset);
     yOffset += 15;
 
     // Adjusted columns for the "Articles" table
@@ -4249,7 +4295,7 @@ async function generateSupplierCreditPDF() {
     });
 
     if (purchaseRows.length === 0) {
-        purchaseRows.push(["Aucun achat �  crédit enregistré.", "", "", ""]);
+        purchaseRows.push(["Aucun achat à crédit enregistré.", "", "", ""]);
     }
 
     doc.autoTable({
@@ -4273,7 +4319,7 @@ async function generateSupplierCreditPDF() {
     // Total original des achats
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`Total initial des achats �  crédit : ${fmt(totalOriginalCost)} FCFA`, 40, yOffset);
+    doc.text(`Total initial des achats à crédit : ${fmt(totalOriginalCost)} FCFA`, 40, yOffset);
     yOffset += 20;
 
     // --- Section Historique des Paiements ---
@@ -4513,7 +4559,7 @@ async function generateSupplierCreditPDF() {
   </div>
 </section>
 </section>
-    <!-- Nouvel écran dédié �  la recherche d'article -->
+    <!-- Nouvel écran dédié à la recherche d'article -->
     <section id="screen-search-article" class="screen">
       <header style="position: relative; display: flex; align-items: center; padding: 15px;">
         <button class="back-btn" onclick="window.location.hash='vendre'">
@@ -4670,7 +4716,7 @@ async function generateSupplierCreditPDF() {
         </button>
 
   <script>
-    // Appel initial pour mettre �  jour l'affichage des totaux et du solde
+    // Appel initial pour mettre à jour l'affichage des totaux et du solde
     updateBalanceDisplay();
   </script>
 </section>
@@ -4807,7 +4853,7 @@ async function generateSupplierCreditPDF() {
     
     /**
      * Récupère et affiche la somme de toutes les dépenses (type "depense" ou "papa")
-     * pour la journée en cours, puis met �  jour le champ #depenses-today.
+     * pour la journée en cours, puis met à jour le champ #depenses-today.
      */
     function afficherDepensesAujourdhui() {
       const today = new Date();
@@ -4829,7 +4875,7 @@ async function generateSupplierCreditPDF() {
               totalDepenses += parseFloat(data.montant) || 0;
             }
           });
-          // Mise �  jour de l'affichage
+          // Mise à jour de l'affichage
           document.getElementById("depenses-today").textContent = `-XOF ${totalDepenses.toLocaleString()}`;
 
         })
@@ -4842,7 +4888,7 @@ async function generateSupplierCreditPDF() {
      * Récupère l'ensemble des documents de "depenses" et "remboursements",
      * les fusionne, puis affiche un historique récent.
      */
-    // 1️⃣ Fonction d’affichage de chaque lot de documents
+    // 1️⃣ Fonction d'affichage de chaque lot de documents
 function renderDepenses(docs) {
   const container = document.getElementById("recent-depenses");
   docs.forEach(doc => {
@@ -4886,7 +4932,7 @@ function chargerHistoriqueDepensesInitial() {
     .then(snapshot => {
       if (snapshot.empty) {
         loadingDepenses = false;
-        return;                           // rien �  afficher
+        return;                           // rien à afficher
       }
 
       renderDepenses(snapshot.docs);      // affiche le 1ᵉ lot
@@ -4894,7 +4940,7 @@ function chargerHistoriqueDepensesInitial() {
       loadingDepenses = false;
 
       /* Si la liste ne déborde pas encore, on charge automatiquement
-         le lot suivant pour remplir l’écran. */
+         le lot suivant pour remplir l'écran. */
       const c = document.getElementById("recent-depenses");
       if (c.scrollHeight <= c.clientHeight) {
         chargerHistoriqueDepensesSuivant();
@@ -4917,7 +4963,7 @@ function chargerHistoriqueDepensesSuivant() {
         renderDepenses(snapshot.docs);
         lastVisibleDepenses = snapshot.docs[snapshot.docs.length - 1];
       } else {
-        lastVisibleDepenses = null;       // plus d’autres pages
+        lastVisibleDepenses = null;       // plus d'autres pages
       }
       loadingDepenses = false;
     })
@@ -4962,14 +5008,14 @@ function renderDepenses(docs) {
 }
 
     /**
-     * On met �  jour le total des dépenses du jour + l'historique
+     * On met à jour le total des dépenses du jour + l'historique
      * dès que l'écran "#depenses" est affiché.
      */
     window.addEventListener('hashchange', function(){
       if(window.location.hash === '#depenses') {
   afficherDepensesAujourdhui();
   chargerHistoriqueDepensesInitial();
-  // mettre en place l’infinite scroll
+  // mettre en place l'infinite scroll
   const container = document.getElementById("recent-depenses");
   container.addEventListener("scroll", () => {
     if (container.scrollTop + container.clientHeight >= container.scrollHeight - 50) {
@@ -5239,7 +5285,7 @@ onclick="exportDailyReportPDF()">
 <!-- ===== Intégration de Chart.js pour les graphiques ===== -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- ===== Script JavaScript pour mettre �  jour les rapports et le graphique ===== -->
+<!-- ===== Script JavaScript pour mettre à jour les rapports et le graphique ===== -->
 <script>
   function updateRapports() {
     // Récupérer les valeurs des filtres
@@ -5262,7 +5308,7 @@ onclick="exportDailyReportPDF()">
       return true;
     };
 
-    // Mise �  jour du résumé des ventes
+    // Mise à jour du résumé des ventes
     getSalesForTodayFirestore().then(sales => {
       sales = sales.filter(filterByDate);
       const totalVentes = sales.length;
@@ -5275,9 +5321,9 @@ onclick="exportDailyReportPDF()">
       document.getElementById("moyenne-vente").textContent = moyenneVente.toLocaleString() + " FCFA";
       document.getElementById("ventes-repartition").textContent = ventesClassiques + " / " + livraisons;
       
-      // Mise �  jour du graphique des ventes
+      // Mise à jour du graphique des ventes
       updateSalesChart(sales);
-        // Calcul du profit global �  l'intérieur du même bloc
+        // Calcul du profit global à l'intérieur du même bloc
       let totalProfit = 0;
       sales.forEach(sale => {
         totalProfit += parseFloat(sale.totalProfit) || 0;
@@ -5288,7 +5334,7 @@ onclick="exportDailyReportPDF()">
       
     });
 
-    // Mise �  jour de l'analyse des livraisons
+    // Mise à jour de l'analyse des livraisons
     getSalesForTodayFirestore().then(sales => {
       sales = sales.filter(filterByDate);
       const livraisonsSales = sales.filter(sale => sale.isDelivery);
@@ -5302,7 +5348,7 @@ onclick="exportDailyReportPDF()">
       document.getElementById("livraisons-echouees").textContent = echouees;
     });
 
-    // Mise �  jour de la synthèse du stock (indépendante du filtre de date)
+    // Mise à jour de la synthèse du stock (indépendante du filtre de date)
     getAllStockFirestore().then(stocks => {
       const totalTelephones = stocks.filter(s => s.category === "telephones").reduce((sum, s) => sum + s.stock, 0);
       const totalAccessoires = stocks.filter(s => s.category === "accessoires").reduce((sum, s) => sum + s.stock, 0);
@@ -5312,7 +5358,7 @@ onclick="exportDailyReportPDF()">
       document.getElementById("valeur-stock").textContent = valeurStock.toLocaleString() + " FCFA";
     });
 
-    // Mise �  jour du détail des dépenses
+    // Mise à jour du détail des dépenses
     dbFirestore.collection("depenses").get().then(snapshot => {
       let depenseFonctionnelle = 0, depensePapa = 0, transactions = 0;
       snapshot.forEach(doc => {
@@ -5332,7 +5378,7 @@ onclick="exportDailyReportPDF()">
       document.getElementById("moyenne-depense").textContent = moyenneDepense.toLocaleString() + " FCFA";
     });
 
-    // Mise �  jour de la performance par canal
+    // Mise à jour de la performance par canal
     getSalesForTodayFirestore().then(sales => {
       sales = sales.filter(filterByDate);
       const caParVendeur = {};
@@ -5346,13 +5392,13 @@ onclick="exportDailyReportPDF()">
       document.getElementById("ventes-par-vendeur").textContent = JSON.stringify(ventesParVendeur);
     });
 
-    // Mise �  jour des indicateurs clés
+    // Mise à jour des indicateurs clés
     document.getElementById("comparaison-temporelle").textContent = "À implémenter";
     document.getElementById("evolution-stocks").textContent = "À implémenter";
     document.getElementById("kpi-globaux").textContent = "À implémenter";
   }
 
-  // Fonction pour créer ou mettre �  jour le graphique des ventes
+  // Fonction pour créer ou mettre à jour le graphique des ventes
   let salesChart;
   function updateSalesChart(salesData) {
     const ventesParHeure = new Array(24).fill(0);
@@ -5518,7 +5564,7 @@ onclick="exportDailyReportPDF()">
 
 <!-- JavaScript pour l'écran Profit -->
 <script>
-  // Fonction pour mettre �  jour les détails du profit
+  // Fonction pour mettre à jour les détails du profit
   function updateProfitDetails() {
     // Récupère toutes les ventes d'aujourd'hui (vous pouvez adapter ce filtre selon vos besoins)
     getSalesForTodayFirestore().then(sales => {
@@ -5612,7 +5658,7 @@ onclick="exportDailyReportPDF()">
     }).catch(error => console.error("Erreur dans updateProfitDetails :", error));
   }
 
-  // Fonction pour mettre �  jour le graphique d'évolution du profit
+  // Fonction pour mettre à jour le graphique d'évolution du profit
   let profitChart;
   function updateProfitChart(profitParHeure) {
     const labels = profitParHeure.map((_, index) => index + "h");
@@ -5662,7 +5708,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
   return ref.add({
     montant,
     description,
-    type,                     // “depense fonctionnelle”, “papa”, …
+    type,                     // "depense fonctionnelle", "papa", …
     timestamp,
     date        : d.toISOString(),
     dateString  : d.toLocaleDateString("fr-FR")
@@ -5746,17 +5792,29 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
                oninput="updatePanierApprovisionnement()">
                </div>
     
-    <div id="paymentOptionsContainer">
-        <label for="paymentMethodApproBasket">Mode de Paiement <span style="color: #d9534f;">*</span></label>
-        <select id="paymentMethodApproBasket" required onchange="togglePaymentAccount()">
-            <option value="" disabled selected>-- Choisir le mode --</option>
-            <option value="cash">Cash</option>
-            <option value="credit">Crédit</option>
+    <div id="purchasePaymentSection" class="purchase-payment-section">
+        <label for="purchasePaymentStatus">Achat réglé ? <span style="color: #d9534f;">*</span></label>
+        <select id="purchasePaymentStatus" required>
+            <option value="no" selected>Non - enregistrer comme dette</option>
+            <option value="yes">Oui - paiement effectué</option>
         </select>
 
-        <div id="accountSelectionContainer">
-            <label for="compteSelectAppro">Payer depuis le compte <span style="color: #d9534f;">*</span></label>
-            <select id="compteSelectAppro" required></select>
+        <div id="purchasePaymentsBlock" class="vente-payments-block" style="display: none;">
+            <div class="vente-payments-header">
+                <h3>Paiements fournisseur</h3>
+                <button type="button" class="btn-modern secondary" onclick="ajouterLignePaiementAppro()">Ajouter un paiement</button>
+            </div>
+            <div id="purchasePaymentsContainer" class="vente-payments-container"></div>
+            <div class="vente-payments-summary">
+                <p>Total achat : <strong id="purchase-summary-total-due">0 FCFA</strong></p>
+                <p>Total payé : <strong id="purchase-summary-total-paid">0 FCFA</strong></p>
+                <p>Différence : <strong id="purchase-summary-difference">0 FCFA</strong></p>
+            </div>
+            <p id="purchase-payment-warning" class="vente-payment-warning"></p>
+        </div>
+    </div>
+
+    <button class="btn-modern" onclick="finaliserApprovisionnement()" style="margin-top: 20px;">Enregistrer l'Achat</button>
         </div>
     </div>
 
@@ -5769,13 +5827,13 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
     </div>
 </section>
 
-<!-- Styles et JS spécifiques �  la section Approvisionnement -->
+<!-- Styles et JS spécifiques à la section Approvisionnement -->
 <style>
   /* =========================================================
    MISE À JOUR DES STYLES POUR L'ÉCRAN D'APPROVISIONNEMENT
    ========================================================= */
 
-/* On donne un fond gris clair �  l'écran */
+/* On donne un fond gris clair à l'écran */
 #screen-approvisionnement {
     background-color: #f5f7fa;
     padding: 10px;
@@ -5799,7 +5857,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
     font-weight: 700;
     color: #333;
     margin-bottom: 20px;
-    text-align: left; /* On aligne �  gauche */
+    text-align: left; /* On aligne à gauche */
 }
 
 /* Style pour les labels au-dessus des champs */
@@ -5915,10 +5973,6 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
 #panierApproContent .panier-item span {
   color: #777;
 }
-#accountSelectionContainer {
-  margin-top: 15px; /* Ajoutez cette ligne pour créer de l'espace au-dessus */
-}
-
 /* Vous pouvez aussi ajuster le margin-bottom du sélecteur principal si vous voulez plus d'espace */
 #screen-approvisionnement .vente-form select {
   margin-bottom: 16px; /* Ajustez cette valeur si nécessaire */
@@ -5928,6 +5982,219 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
 <script>
   // Variable globale pour stocker les articles ajoutés au panier d'approvisionnement
   let currentApproItems = [];
+  let approPayments = [];
+  let approPaymentAutoId = 0;
+
+  function resetApproPayments() {
+      approPayments = [];
+      approPaymentAutoId = 0;
+      const container = document.getElementById('purchasePaymentsContainer');
+      if (container) {
+          container.innerHTML = '';
+      }
+      rafraichirResumePaiementAppro();
+  }
+
+  function ensureApproPaymentsInitialized() {
+      const container = document.getElementById('purchasePaymentsContainer');
+      if (!container) {
+          return;
+      }
+      if (approPayments.length === 0) {
+          ajouterLignePaiementAppro();
+      } else if (!container.childElementCount) {
+          renderApproPayments();
+      }
+      rafraichirResumePaiementAppro();
+  }
+
+  function getCurrentPurchaseDueAmount() {
+      return currentApproItems.reduce((sum, item) => {
+          const valeur = parseFloat(item.coutTotal) || 0;
+          return sum + valeur;
+      }, 0);
+  }
+
+  function ajouterLignePaiementAppro(initialData) {
+      const payload = initialData || {};
+      approPayments.push({
+          id: ++approPaymentAutoId,
+          compteId: payload.compteId || '',
+          montant: payload.montant || ''
+      });
+      renderApproPayments();
+      rafraichirResumePaiementAppro();
+  }
+
+  function renderApproPayments() {
+      const container = document.getElementById('purchasePaymentsContainer');
+      if (!container) {
+          return;
+      }
+
+      container.innerHTML = '';
+
+      approPayments.forEach(payment => {
+          const row = document.createElement('div');
+          row.className = 'vente-payment-row';
+          row.dataset.paymentId = payment.id;
+
+          const compteSelect = document.createElement('select');
+          compteSelect.id = `compteSelectApproPayment-${payment.id}`;
+          compteSelect.className = 'vente-payment-account';
+          compteSelect.addEventListener('change', event => {
+              onApproPaymentFieldChange(payment.id, 'compteId', event.target.value);
+          });
+          row.appendChild(compteSelect);
+
+          const amountInput = document.createElement('input');
+          amountInput.type = 'number';
+          amountInput.min = '0';
+          amountInput.step = '100';
+          amountInput.placeholder = 'Montant pay?';
+          amountInput.value = payment.montant || '';
+          amountInput.addEventListener('input', event => {
+              onApproPaymentFieldChange(payment.id, 'montant', event.target.value);
+          });
+          row.appendChild(amountInput);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'vente-payment-remove btn-modern secondary';
+          removeBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+          removeBtn.addEventListener('click', () => supprimerLignePaiementAppro(payment.id));
+          row.appendChild(removeBtn);
+
+          container.appendChild(row);
+      });
+
+      remplirTousSelectComptes();
+      approPayments.forEach(payment => {
+          const selectEl = document.getElementById(`compteSelectApproPayment-${payment.id}`);
+          if (selectEl) {
+              selectEl.value = payment.compteId || '';
+          }
+      });
+
+      if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+          lucide.createIcons();
+      }
+  }
+
+  function onApproPaymentFieldChange(paymentId, field, value) {
+      const payment = approPayments.find(p => p.id === paymentId);
+      if (!payment) {
+          return;
+      }
+
+      payment[field] = value;
+      rafraichirResumePaiementAppro();
+  }
+
+  function supprimerLignePaiementAppro(paymentId) {
+      if (approPayments.length <= 1) {
+          const unique = approPayments[0];
+          if (unique) {
+              unique.compteId = '';
+              unique.montant = '';
+          }
+          renderApproPayments();
+          rafraichirResumePaiementAppro();
+          return;
+      }
+
+      approPayments = approPayments.filter(p => p.id !== paymentId);
+      renderApproPayments();
+      rafraichirResumePaiementAppro();
+  }
+
+  function analyserPaiementsAppro() {
+      const due = getCurrentPurchaseDueAmount();
+      let totalPaid = 0;
+      let valid = true;
+      let message = '';
+      let hasPositivePayment = false;
+
+      for (const payment of approPayments) {
+          const amount = parseFloat(payment.montant) || 0;
+          if (amount < 0) {
+              valid = false;
+              message = 'Les montants pay?s ne peuvent pas ?tre n?gatifs.';
+              break;
+          }
+          if (amount > 0 && !payment.compteId) {
+              valid = false;
+              message = 'S?lectionnez un compte de tr?sorerie pour chaque paiement.';
+              break;
+          }
+          if (amount > 0) {
+              hasPositivePayment = true;
+          }
+          totalPaid += amount;
+      }
+
+      const difference = due - totalPaid;
+
+      if (valid) {
+          if (due > 0 && !hasPositivePayment) {
+              valid = false;
+              message = 'Renseignez au moins un montant pay?.';
+          } else if (Math.abs(difference) > 0.5) {
+              valid = false;
+              message = `Le total pay? (${fmt(totalPaid)} FCFA) doit ?tre ?gal au total de l'achat (${fmt(due)} FCFA).`;
+          }
+      }
+
+      return { valid, message, due, totalPaid, difference };
+  }
+
+  function rafraichirResumePaiementAppro() {
+      const totalDueEl = document.getElementById('purchase-summary-total-due');
+      const totalPaidEl = document.getElementById('purchase-summary-total-paid');
+      const differenceEl = document.getElementById('purchase-summary-difference');
+      const warningEl = document.getElementById('purchase-payment-warning');
+
+      if (!totalDueEl || !totalPaidEl || !differenceEl) {
+          return analyserPaiementsAppro();
+      }
+
+      const stats = analyserPaiementsAppro();
+
+      totalDueEl.textContent = `${fmt(stats.due)} FCFA`;
+      totalPaidEl.textContent = `${fmt(stats.totalPaid)} FCFA`;
+      differenceEl.textContent = `${fmt(stats.difference)} FCFA`;
+
+      if (stats.difference === 0) {
+          differenceEl.style.color = '#3880ff';
+      } else if (stats.difference > 0) {
+          differenceEl.style.color = '#f04141';
+      } else {
+          differenceEl.style.color = '#2e7d32';
+      }
+
+      if (warningEl) {
+          warningEl.textContent = stats.valid ? '' : stats.message;
+      }
+
+      return stats;
+  }
+
+  function validateApproPayments(showAlert = true) {
+      const stats = analyserPaiementsAppro();
+      if (!stats.valid && showAlert) {
+          alert(stats.message);
+      }
+      return stats;
+  }
+
+  function getCompteNomById(compteId) {
+      if (!Array.isArray(comptesCache)) {
+          return compteId;
+      }
+      const compte = comptesCache.find(c => c.id === compteId);
+      return (compte && (compte.nom || compte.id)) || compteId;
+  }
+
   // Global variables for supplier search
 
 
@@ -5938,36 +6205,66 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
     const total = quantite * prix;
     document.getElementById("coutTotalAppro").value = total.toFixed(2);
   }
-// Cette fonction sera appelée �  chaque changement du type d'achat
-function handlePurchaseTypeChange() {
-    const purchaseType = document.getElementById("typeAchatAppro").value;
-    const paymentContainer = document.getElementById("paymentOptionsContainer");
+// Cette fonction sera appelée à chaque changement du type d'achat
+function updatePurchasePaymentUI() {
+    const paymentStatusSelect = document.getElementById("purchasePaymentStatus");
+    const paymentBlock = document.getElementById("purchasePaymentsBlock");
 
-    if (purchaseType === 'depot') {
-        // Si c'est un dépôt, on cache les options de paiement
-        paymentContainer.style.display = 'none';
-        // On rend les champs non-obligatoires pour que le formulaire puisse être validé
-        document.getElementById("paymentMethodApproBasket").required = false;
-        document.getElementById("compteSelectAppro").required = false;
+    if (!paymentStatusSelect || !paymentBlock) {
+        return;
+    }
+
+    if (paymentStatusSelect.value === 'yes') {
+        paymentBlock.style.display = 'block';
+        ensureApproPaymentsInitialized();
     } else {
-        // Sinon (achat normal), on affiche les options
-        paymentContainer.style.display = 'block';
-        // Et on les rend �  nouveau obligatoires
-        document.getElementById("paymentMethodApproBasket").required = true;
-        // On appelle aussi la fonction qui gère l'affichage du compte
-        togglePaymentAccount(); 
+        paymentBlock.style.display = 'none';
+        resetApproPayments();
     }
 }
 
-// On attache l'événement au champ de sélection du type d'achat
-document.getElementById("typeAchatAppro").addEventListener('change', handlePurchaseTypeChange);
+function handlePurchaseTypeChange() {
+    const typeSelect = document.getElementById("typeAchatAppro");
+    const paymentSection = document.getElementById("purchasePaymentSection");
+    const statusSelect = document.getElementById("purchasePaymentStatus");
 
-// Assurez-vous que l'état initial est correct lorsque vous arrivez sur la page
+    if (!typeSelect || !paymentSection) {
+        return;
+    }
+
+    if (typeSelect.value === 'depot') {
+        paymentSection.style.display = 'none';
+        if (statusSelect) {
+            statusSelect.value = 'no';
+        }
+        resetApproPayments();
+        rafraichirResumePaiementAppro();
+    } else {
+        paymentSection.style.display = 'block';
+        if (statusSelect && !statusSelect.value) {
+            statusSelect.value = 'no';
+        }
+        updatePurchasePaymentUI();
+    }
+}
+
+const typeAchatSelect = document.getElementById("typeAchatAppro");
+if (typeAchatSelect) {
+    typeAchatSelect.addEventListener('change', handlePurchaseTypeChange);
+}
+const purchasePaymentStatusSelect = document.getElementById("purchasePaymentStatus");
+if (purchasePaymentStatusSelect) {
+    purchasePaymentStatusSelect.addEventListener('change', updatePurchasePaymentUI);
+}
+
 window.addEventListener('hashchange', () => {
     if (window.location.hash === '#approvisionnement') {
         handlePurchaseTypeChange();
     }
 });
+
+handlePurchaseTypeChange();
+
   // Incrémenter/Décrémenter la quantité
   function decrementQuantityAppro() {
     const input = document.getElementById("quantiteAppro");
@@ -5987,13 +6284,13 @@ window.addEventListener('hashchange', () => {
   // Recherche en temps réel pour les modèles
   const modeleInput = document.getElementById("modeleAppro");
   const suggestionListAppro = document.getElementById("suggestionListAppro");
-  /* Quand on change de catégorie : on nettoie l’input, on vide la liste */
+  /* Quand on change de catégorie : on nettoie l'input, on vide la liste */
 document.getElementById("categorieAppro").addEventListener("change", () => {
   modeleInput.value = "";
   suggestionListAppro.innerHTML = "";
   suggestionListAppro.style.display = "none";
 
-  // (facultatif) adapter le placeholder de l’input
+  // (facultatif) adapter le placeholder de l'input
   modeleInput.placeholder =
     document.getElementById("categorieAppro").value === "telephones"
       ? "Rechercher un modèle de téléphone…"
@@ -6083,7 +6380,7 @@ dbFirestore.collection("stock")
         name: fournisseur,
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      console.log(`Nouveau fournisseur '${fournisseur}' ajouté �  la base de données.`);
+      console.log(`Nouveau fournisseur '${fournisseur}' ajouté à la base de données.`);
     }
 
     // Now, continue with the existing logic for adding the item to the currentApproItems
@@ -6122,24 +6419,7 @@ dbFirestore.collection("stock")
 
 // New function to handle the visibility of the account selection
 // New function to handle the visibility of the account selection
-function togglePaymentAccount() {
-    const paymentMethod = document.getElementById("paymentMethodApproBasket").value;
-    const accountSelectionContainer = document.getElementById("accountSelectionContainer");
-    const compteSelectAppro = document.getElementById("compteSelectAppro");
-
-    if (paymentMethod === 'cash') {
-        accountSelectionContainer.style.display = 'block';
-        compteSelectAppro.setAttribute('required', 'required'); // Make it required for cash
-    } else { // credit
-        accountSelectionContainer.style.display = 'none';
-        compteSelectAppro.removeAttribute('required'); // No longer required for credit
-        compteSelectAppro.value = ''; // Clear selection if previously made
-    }
-    // Update the dropdown options to reflect selected state if needed (optional, but good for clarity)
-    remplirTousSelectComptes(); // Re-fill to update required status visually for the default selection
-}
-
-  function updatePanierApprovisionnement() {
+function updatePanierApprovisionnement() {
   const container = document.getElementById("panierApproContent");
   container.innerHTML = "";
 
@@ -6165,7 +6445,7 @@ function togglePaymentAccount() {
     if (item.category === 'telephones' && item.imeis && item.imeis.length > 0) {
       imeiInfo = `<br><small style="color: green;">✔ ${item.imeis.length} IMEI scannés</small>`;
     } else if (item.category === 'telephones') {
-      imeiInfo = `<br><small style="color: orange;">�  Pas d'IMEI scanné</small>`;
+      imeiInfo = `<br><small style="color: orange;">à Pas d'IMEI scanné</small>`;
     }
     
     // Calcul du coût unitaire ajusté (prix d'achat fournisseur + part des frais de transport)
@@ -6179,7 +6459,7 @@ function togglePaymentAccount() {
         itemAdjustedCostDisplay = `<br><small>Coût unitaire ajusté: <strong>${itemAdjustedUnitCost.toLocaleString('fr-FR')} FCFA</strong></small>`;
     }
 
-    // Mise �  jour de l'HTML de l'article dans le panier
+    // Mise à jour de l'HTML de l'article dans le panier
     div.innerHTML = `
         <strong>${item.produit}</strong> - Qté: ${item.quantite} - Coût Fournisseur: ${parseFloat(item.coutTotal).toLocaleString('fr-FR')} FCFA
         <span class="remove-item" onclick="retirerApproItem(${index})" style="cursor: pointer; color: red; float: right;">&times;</span>
@@ -6188,6 +6468,7 @@ function togglePaymentAccount() {
     `;
     container.appendChild(div);
   });
+  rafraichirResumePaiementAppro();
 }
 
 // Permet de retirer un article du panier
@@ -6214,16 +6495,16 @@ function retirerApproItem(index) {
     const fraisTransport = parseFloat(document.getElementById("fraisTransportAppro").value) || 0;
 
     // Validation spécifique pour l'achat normal
-    if (typeAchat === 'normal') {
-        const paymentMethod = document.getElementById("paymentMethodApproBasket").value;
-        const compteId = document.getElementById("compteSelectAppro").value;
+        let purchasePaymentStatus = 'no';
+    let paymentStats = null;
+    const paymentStatusSelect = document.getElementById("purchasePaymentStatus");
+    if (paymentStatusSelect) {
+        purchasePaymentStatus = paymentStatusSelect.value || 'no';
+    }
 
-        if (!paymentMethod) {
-            alert("Veuillez sélectionner un mode de paiement pour un achat normal.");
-            return;
-        }
-        if (paymentMethod === 'cash' && !compteId) {
-            alert("Veuillez sélectionner un compte de trésorerie pour le paiement cash.");
+    if (typeAchat === 'normal' && purchasePaymentStatus === 'yes') {
+        paymentStats = validateApproPayments(true);
+        if (!paymentStats.valid) {
             return;
         }
     }
@@ -6249,7 +6530,7 @@ function retirerApproItem(index) {
             };
         });
 
-        // La mise �  jour du stock reste la même dans les deux cas
+        // La mise à jour du stock reste la même dans les deux cas
         for (const item of finalItemsForFirestore) {
             const stockQuery = await dbFirestore.collection("stock").where("name", "==", item.produit).limit(1).get();
             let stockDocRef;
@@ -6317,36 +6598,93 @@ function retirerApproItem(index) {
             enregistreParNom: user.displayName || user.email// Ajoute la liste des noms de produits
         };
 
-        if (typeAchat === 'normal') {
-            const paymentMethod = document.getElementById("paymentMethodApproBasket").value;
-            const compteId = document.getElementById("compteSelectAppro").value;
+        approData.totalCost = totalCostFromSupplier;
+        approData.paymentsDetails = [];
+        approData.paymentsTotalPaid = 0;
+        approData.remainingAmount = 0;
+        approData.isPaid = false;
+        approData.paymentMethod = typeAchat === 'depot' ? 'depot' : 'credit';
+        approData.compteId = null;
 
-            approData.paymentMethod = paymentMethod;
-            approData.isPaid = paymentMethod === 'cash';
-            approData.remainingAmount = paymentMethod === 'credit' ? totalCostFromSupplier : 0;
-            approData.totalCost = totalCostFromSupplier;
-            approData.compteId = paymentMethod === 'cash' ? compteId : null;
-            
-            // Enregistrement du mouvement de caisse pour l'achat normal
-            if (paymentMethod === 'cash') {
+        const paymentsToRegister = [];
+
+        if (typeAchat === 'normal') {
+            if (purchasePaymentStatus === 'yes') {
+                if (!paymentStats) {
+                    paymentStats = validateApproPayments(false);
+                }
+
+                const paymentsFromForm = approPayments
+                    .map(p => {
+                        const amount = parseFloat(p.montant) || 0;
+                        const compteId = p.compteId || '';
+                        return { amount, compteId };
+                    })
+                    .filter(p => p.amount > 0 && p.compteId);
+
+                if (paymentsFromForm.length === 0) {
+                    throw new Error('Aucun paiement valide pour cet achat.');
+                }
+
+                const paymentsDetails = paymentsFromForm.map(payment => {
+                    const compteNom = getCompteNomById(payment.compteId);
+                    return {
+                        compteId: payment.compteId,
+                        compteNom,
+                        amount: payment.amount
+                    };
+                });
+
+                const paidTotal = paymentStats ? paymentStats.totalPaid : paymentsDetails.reduce((sum, detail) => sum + detail.amount, 0);
+                const paidDue = paymentStats ? paymentStats.due : totalCostFromSupplier;
+
+                approData.paymentMethod = 'paid';
+                approData.isPaid = true;
+                approData.remainingAmount = Math.max(0, paidDue - paidTotal);
+                approData.paymentsDetails = paymentsDetails;
+                approData.paymentsTotalPaid = paidTotal;
+
+                paymentsDetails.forEach(detail => {
+                    paymentsToRegister.push({
+                        compteId: detail.compteId,
+                        amount: detail.amount,
+                        compteNom: detail.compteNom
+                    });
+                });
+            } else {
+                approData.paymentMethod = 'credit';
+                approData.remainingAmount = totalCostFromSupplier;
+            }
+        }
+
+        batch.set(approRef, approData);
+
+        if (paymentsToRegister.length > 0) {
+            const paymentTimestamp = firebase.firestore.Timestamp.now();
+            paymentsToRegister.forEach(payment => {
+                const paymentDocRef = approRef.collection("payments").doc();
+                batch.set(paymentDocRef, {
+                    amount: payment.amount,
+                    account: payment.compteId,
+                    compteNom: payment.compteNom,
+                    date: paymentTimestamp,
+                    origin: 'achat_initial',
+                    refApproId: approRef.id
+                });
+            });
+
+            for (const payment of paymentsToRegister) {
                 await enregistrerMouvementTresorerie({
-                    compteId: compteId,
+                    compteId: payment.compteId,
                     type: 'paiement_fournisseur',
                     sens: 'out',
-                    montant: totalCostFromSupplier,
+                    montant: payment.amount,
                     description: `Achat fournisseur ${fournisseur}`,
                     refId: approRef.id
                 });
             }
-        } else { // Cas d'un dépôt
-            approData.paymentMethod = 'depot';
-            approData.isPaid = false; // Il n'est pas payé initialement
-            approData.remainingAmount = 0; // Pas de dette initiale
-            approData.totalCost = totalCostFromSupplier;
-            approData.compteId = null;
         }
 
-        batch.set(approRef, approData);
 
         // La gestion des frais de transport reste la même, car c'est une dépense réelle
         if (fraisTransport > 0) {
@@ -6383,9 +6721,28 @@ function retirerApproItem(index) {
     } finally {
         currentApproItems = [];
         updatePanierApprovisionnement();
-        document.getElementById("fournisseurAppro").value = "";
-        document.getElementById("fraisTransportAppro").value = "";
-        document.getElementById("typeAchatAppro").value = "normal"; // Reset to default
+
+        const fournisseurField = document.getElementById("fournisseurAppro");
+        if (fournisseurField) {
+            fournisseurField.value = "";
+        }
+
+        const fraisTransportField = document.getElementById("fraisTransportAppro");
+        if (fraisTransportField) {
+            fraisTransportField.value = "";
+        }
+
+        const purchaseTypeSelect = document.getElementById("typeAchatAppro");
+        if (purchaseTypeSelect) {
+            purchaseTypeSelect.value = "normal";
+        }
+
+        const paymentStatusSelect = document.getElementById("purchasePaymentStatus");
+        if (paymentStatusSelect) {
+            paymentStatusSelect.value = 'no';
+        }
+
+        resetApproPayments();
         handlePurchaseTypeChange(); // Update UI
         chargerApprovisionnements();
         updateStockSummary();
@@ -6396,7 +6753,7 @@ function retirerApproItem(index) {
 
 // Function to record a payment for a credit purchase (Placeholder)
 async function recordCreditPayment(approId, outstandingAmount) {
-    const paymentAmount = parseFloat(prompt(`Montant �  payer pour l'achat �  crédit (Dû: ${outstandingAmount.toLocaleString()} FCFA):`));
+    const paymentAmount = parseFloat(prompt(`Montant à payer pour l'achat à crédit (Dû: ${outstandingAmount.toLocaleString()} FCFA):`));
 
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
         alert("Montant de paiement invalide.");
@@ -6419,7 +6776,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
         const approDoc = await approRef.get();
 
         if (!approDoc.exists) {
-            alert("Achat �  crédit non trouvé.");
+            alert("Achat à crédit non trouvé.");
             return;
         }
 
@@ -6461,7 +6818,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
         updateBalanceDisplay(); // Update treasury display
     } catch (error) {
         console.error("Error recording credit payment:", error);
-        alert("Erreur lors de l'enregistrement du paiement �  crédit: " + error.message);
+        alert("Erreur lors de l'enregistrement du paiement à crédit: " + error.message);
     }
 }
 
@@ -6495,7 +6852,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
 
     <hr style="margin: 15px 0;">
 
-    <h4>IMEI �  Ajouter :</h4>
+    <h4>IMEI à Ajouter :</h4>
     <ul id="scannedImeiListDynamsoft" style="list-style-type: none; padding: 10px; max-height: 120px; overflow-y: auto; background: #f9f9f9; border-radius: 5px;">
     </ul>
 
@@ -6872,7 +7229,7 @@ function lancerScanDynamsoft(item) {
   currentApproItemForScan = item;
   tempScannedImeis = [];
 
-  // Mettre �  jour l'interface
+  // Mettre à jour l'interface
   document.getElementById('scanProductNameDynamsoft').textContent = item.produit;
   document.getElementById('scanTargetCountDynamsoft').textContent = item.quantite;
   document.getElementById('scanCurrentCountDynamsoft').textContent = '0';
@@ -6936,19 +7293,19 @@ function processImei(rawInput) {
   const cleaned = rawInput.replace(/\D/g, '').slice(0, 15);
 
   if (cleaned.length !== 15 || tempScannedImeis.includes(cleaned)) {
-    showToast(cleaned.length !== 15 ? "IMEI invalide." : "IMEI déj�  scanné.", "error");
+    showToast(cleaned.length !== 15 ? "IMEI invalide." : "IMEI déjà scanné.", "error");
     afficherBoutonDeScan(); // Affiche le bouton pour le prochain essai
     return;
   }
 
   if (tempScannedImeis.length >= currentApproItemForScan.quantite) {
-    showToast("Quantité requise déj�  atteinte.");
+    showToast("Quantité requise déjà atteinte.");
     return;
   }
 
   tempScannedImeis.push(cleaned);
 
-  // Mise �  jour de l'interface
+  // Mise à jour de l'interface
   const list = document.getElementById('scannedImeiListDynamsoft');
   const listItem = document.createElement('li');
   listItem.textContent = cleaned;
@@ -6962,7 +7319,7 @@ function processImei(rawInput) {
     document.getElementById('btnConfirmerScanDynamsoft').disabled = false;
     document.getElementById('scanFeedbackDynamsoft').textContent = "Tous les IMEI ont été ajoutés !";
     document.getElementById('scan-container').innerHTML = '<p style="color: green; font-weight: bold;">Terminé ! Vous pouvez confirmer.</p>';
-    showToast("Prêt �  confirmer.");
+    showToast("Prêt à confirmer.");
   } else {
     afficherBoutonDeScan(); // Affiche le bouton pour le suivant
   }
@@ -6978,14 +7335,14 @@ function ajouterImeiManuellementDynamsoft() {
         processImei(imei);
         input.value = '';
     } else {
-        showToast("Quantité requise déj�  atteinte.");
+        showToast("Quantité requise déjà atteinte.");
     }
   }
 }
 
 function confirmerScanApprovisionnementDynamsoft() {
   if (tempScannedImeis.length !== currentApproItemForScan.quantite) {
-    alert("Le nombre d'IMEI ne correspond pas �  la quantité !");
+    alert("Le nombre d'IMEI ne correspond pas à la quantité !");
     return;
   }
   currentApproItemForScan.imeis = tempScannedImeis;
@@ -7124,7 +7481,7 @@ function annulerScan() {
               montant,
               description
             })
-            /* ➜ on consigne la dépense pour l’historique */
+            /* ➜ on consigne la dépense pour l'historique */
             .then(() => logDepenseRemboursement({
               collection  : "depenses",
               montant,
@@ -7267,7 +7624,7 @@ function annulerScan() {
               montant,
               description
             })
-            /* ➜ on consigne la dépense pour l’historique */
+            /* ➜ on consigne la dépense pour l'historique */
             .then(() => logDepenseRemboursement({
               collection  : "depenses",
               montant,
@@ -7334,7 +7691,7 @@ function annulerScan() {
     circle.style.top  = `${e.clientY - rect.top  - d/2}px`;
     this.appendChild(circle);
 
-    // Au lieu de tout casser de suite, on attend la fin de l’anim :
+    // Au lieu de tout casser de suite, on attend la fin de l'anim :
     circle.addEventListener('animationend', () => {
       circle.remove();
       window.location.hash = 'search-article';
@@ -7469,7 +7826,7 @@ function annulerScan() {
           montant,
           description : "Remboursement Papa"
         })
-        /* ➜ on consigne le remboursement pour l’historique */
+        /* ➜ on consigne le remboursement pour l'historique */
         .then(() => logDepenseRemboursement({
           collection  : "remboursements",
           montant,
@@ -7630,7 +7987,7 @@ function annulerScan() {
   z-index: 10;
 }
 
-/* Cibler spécifiquement l'icône Lucide �  l'intérieur du bouton */
+/* Cibler spécifiquement l'icône Lucide à l'intérieur du bouton */
 .edit-client-btn i[data-lucide] {
   font-size: 20px; /* Taille légèrement plus grande pour l'icône */
   color: #333; /* S'assurer que l'icône est sombre */
@@ -7662,7 +8019,7 @@ function annulerScan() {
   /**
  * Ouvre la modale Ionic pour modifier les informations du client/vendeur.
  * Pré-remplit les champs avec les données existantes si fournies.
- * @param {object} [data=null] - Objet contenant les données �  pré-remplir (ex: { nom: '...', email: '...' }).
+ * @param {object} [data=null] - Objet contenant les données à pré-remplir (ex: { nom: '...', email: '...' }).
  */
 async function ouvrirModalModifierClientNom(data = null) {
   const modal = document.getElementById('editClientNameModal');
@@ -7698,7 +8055,7 @@ function enregistrerNouveauVendeur() {
   const nom = document.getElementById('inputClientNomEditIonic').value;
   const email = document.getElementById('inputClientEmailEditIonic').value;
   console.log(`Enregistrer: Nom = ${nom}, Email = ${email}`);
-  showToast("Fonction d'enregistrement �  implémenter."); // Utilise votre fonction showToast existante
+  showToast("Fonction d'enregistrement à implémenter."); // Utilise votre fonction showToast existante
   fermerModalModifierClientNom();
 }
 
@@ -7716,7 +8073,7 @@ function preparerModificationClient(saleId, clientNom, clientNumero) {
     nom: clientNom,
     email: clientNumero // On utilise le champ "email" de la modale pour le numéro WhatsApp temporairement
   });
-  // Mettez �  jour le titre de la modale pour indiquer "Modifier client" au lieu de "Nouveau vendeur"
+  // Mettez à jour le titre de la modale pour indiquer "Modifier client" au lieu de "Nouveau vendeur"
   const modalTitle = document.querySelector('#editClientNameModal ion-title');
   if (modalTitle) {
       modalTitle.textContent = 'Modifier le client';
@@ -7725,8 +8082,8 @@ function preparerModificationClient(saleId, clientNom, clientNumero) {
   const saveButton = document.querySelector('#editClientNameModal ion-buttons[slot="end"] ion-button');
   if (saveButton) {
       saveButton.textContent = 'Modifier';
-      // Et on va changer son action pour appeler une nouvelle fonction de mise �  jour
-      saveButton.onclick = enregistrerModificationClient; // Nouvelle fonction pour la mise �  jour
+      // Et on va changer son action pour appeler une nouvelle fonction de mise à jour
+      saveButton.onclick = enregistrerModificationClient; // Nouvelle fonction pour la mise à jour
   }
 }
 
@@ -7750,21 +8107,21 @@ async function enregistrerModificationClient() {
   showSaleLoader(); // Afficher le loader
 
   try {
-    // Mettre �  jour le document de vente dans Firestore
+    // Mettre à jour le document de vente dans Firestore
     await dbFirestore.collection("ventes").doc(currentSaleIdForClientEdit).update({
       clientNom: nouveauNom,
-      clientNumero: nouveauNumero // Mettre �  jour le numéro WhatsApp
+      clientNumero: nouveauNumero // Mettre à jour le numéro WhatsApp
     });
 
     // Fermer la modale
     fermerModalModifierClientNom();
     // Afficher un message de succès
-    showToast("Nom et numéro du client mis �  jour avec succès !");
+    showToast("Nom et numéro du client mis à jour avec succès !");
     // Recharger l'historique des ventes pour que les changements soient visibles
     filterSalesHistory(document.getElementById('sales-tabs').value); // Recharger le filtre actuel
   } catch (error) {
-    console.error("Erreur lors de la mise �  jour du client:", error);
-    showToast("Erreur lors de la mise �  jour du client: " + error.message, "error");
+    console.error("Erreur lors de la mise à jour du client:", error);
+    showToast("Erreur lors de la mise à jour du client: " + error.message, "error");
   } finally {
     hideSaleLoader(); // Cacher le loader
     currentSaleIdForClientEdit = null; // Réinitialiser l'ID de la vente en cours de modification
@@ -8178,13 +8535,13 @@ function validateVentePayments(showAlert = true) {
     
 
     // Déclaration globale
-// stockId sélectionné pour l’historique
+// stockId sélectionné pour l'historique
 let currentHistoryStockId = null;
 
 // Pagination dépenses  (⚙️ correctif anti-doublon)
 let lastVisibleDepenses = null;
 let loadingDepenses     = false;
-let renderedDepenseIds  = new Set();   // ← mémorise les ID déj�  rendus
+let renderedDepenseIds  = new Set();   // ← mémorise les ID déjà rendus
 
 // Fonction pour charger le stock depuis Firestore et le mettre en cache
 function fetchAndCacheStock() {
@@ -8234,15 +8591,15 @@ function debounce(func, delay) {
       });
   }
 
-  // Fonction pour mettre �  jour le solde de dépense papa
+  // Fonction pour mettre à jour le solde de dépense papa
   function setDepensePapaBalance(newBalance) {
     return dbFirestore.collection("depensePapa").doc("balance").set({ montant: newBalance })
       .catch(error => {
-        console.error("Erreur lors de la mise �  jour du solde de dépense papa :", error);
+        console.error("Erreur lors de la mise à jour du solde de dépense papa :", error);
       });
   }
 
-  // Fonction pour mettre �  jour le texte du bouton "Dépense Papa" avec le solde actuel
+  // Fonction pour mettre à jour le texte du bouton "Dépense Papa" avec le solde actuel
   function updateDepensePapaButton() {
     getDepensePapaBalance().then(balance => {
       const btn = document.getElementById("btnDepensePapa");
@@ -8252,14 +8609,14 @@ function debounce(func, delay) {
         lucide.createIcons();
       }
     }).catch(error => {
-      console.error("Erreur lors de la mise �  jour du bouton Dépense Papa :", error);
+      console.error("Erreur lors de la mise à jour du bouton Dépense Papa :", error);
     });
   }
 
   // Fonction qui interroge la base pour récupérer la somme de toutes les dépenses de papa,
-// met �  jour le document "depensePapa/balance" et rafraîchit l'affichage sur le bouton.
+// met à jour le document "depensePapa/balance" et rafraîchit l'affichage sur le bouton.
 function updateDepensePapaBalance() {
-  console.log("Mise �  jour du solde des dépenses Papa...");
+  console.log("Mise à jour du solde des dépenses Papa...");
   // Récupérer la somme des dépenses papa
   const depensesPromise = dbFirestore.collection("depenses")
     .where("type", "==", "papa")
@@ -8292,7 +8649,7 @@ function updateDepensePapaBalance() {
         .then(() => newBalance);
     })
     .then(newBalance => {
-      console.log("Solde des dépenses Papa mis �  jour :", newBalance);
+      console.log("Solde des dépenses Papa mis à jour :", newBalance);
       updateDepensePapaButton(); // Rafraîchit l'affichage du bouton
       return newBalance;
     })
@@ -8486,7 +8843,7 @@ function updateBalanceDisplay() {
         { totalDepensesFonctionnelles, totalDepensesPapa, totalFraisTransport },
         totalRemboursements
     ]) => {
-        // Le solde final doit aussi ignorer les frais de transport car ils sont déj�  inclus
+        // Le solde final doit aussi ignorer les frais de transport car ils sont déjà inclus
         // dans le coût ajusté des approvisionnements. Ici on les soustrait car on les affiche séparément.
         const soldeFinalGlobal =
             openingBalanceGlobal +
@@ -8494,10 +8851,10 @@ function updateBalanceDisplay() {
             totalRemboursements -
             totalDepensesFonctionnelles -
             totalDepensesPapa -
-            totalFraisTransport - // On le soustrait car il est affiché �  part
+            totalFraisTransport - // On le soustrait car il est affiché à part
             totalAppro;
         
-        // Mise �  jour de l'interface utilisateur
+        // Mise à jour de l'interface utilisateur
         document.getElementById("treso-opening-balance").textContent = "XOF " + openingBalanceGlobal.toLocaleString('fr-FR');
         document.getElementById("treso-total-ventes").textContent = "+XOF " + totalVentes.toLocaleString('fr-FR');
         document.getElementById("treso-total-remboursements").textContent = "+XOF " + totalRemboursements.toLocaleString('fr-FR');
@@ -8548,7 +8905,7 @@ function updateBalanceDisplay() {
     function updateSaleFirestore(venteId, vente) {
       return dbFirestore.collection("ventes").doc(venteId).set(vente, { merge: true })
         .then(() => venteId)
-        .catch(error => { throw new Error("Erreur lors de la mise �  jour de la vente : " + error.message); });
+        .catch(error => { throw new Error("Erreur lors de la mise à jour de la vente : " + error.message); });
     }
     function getSalesForTodayFirestore() {
       const today = new Date().toLocaleDateString("fr-FR");
@@ -8606,7 +8963,7 @@ function updateBalanceDisplay() {
       snapshot.forEach(doc => {
         stocks.push({ id: doc.id, ...doc.data() });
       });
-      // Mettre �  jour le cache global
+      // Mettre à jour le cache global
       cachedStock = stocks;
       resolve(stocks);
     }, error => {
@@ -8667,7 +9024,7 @@ function updateStockAfterSaleFirestore(items) {
       });
   });
 
-  // Après toutes les mises �  jour, on peut rafraîchir l'UI
+  // Après toutes les mises à jour, on peut rafraîchir l'UI
   return Promise.all(promises).then(() => updateStockSummary());
 }
 
@@ -8688,7 +9045,7 @@ function updateStockAfterSaleFirestore(items) {
       return Promise.all(promises).then(() => updateStockSummary());
     }
 
-    // Mise �  jour de l'affichage du stock
+    // Mise à jour de l'affichage du stock
     function updateStockSummary() {
       getAllStockFirestore().then(stocks => {
         const totalTelephones = stocks.filter(s => s.category === 'telephones').reduce((sum, s) => sum + s.stock, 0);
@@ -8852,7 +9209,7 @@ function enregistrerSnapshotDaily() {
           });
         });
       } else {
-        console.log("Snapshot déj�  existant pour " + todayString);
+        console.log("Snapshot déjà existant pour " + todayString);
       }
     })
     .catch(err => {
@@ -8862,9 +9219,9 @@ function enregistrerSnapshotDaily() {
 
   
 function voirHistoriqueStock(stockId, e) {
-  e.stopPropagation();                       // éviter le “bubbling”
-  currentHistoryStockId = stockId;          // mémoriser l’ID du produit
-  window.location.hash = 'stock-history';   // basculer vers l’écran historique
+  e.stopPropagation();                       // éviter le "bubbling"
+  currentHistoryStockId = stockId;          // mémoriser l'ID du produit
+  window.location.hash = 'stock-history';   // basculer vers l'écran historique
 }
 
 
@@ -8882,7 +9239,7 @@ function voirHistoriqueStock(stockId, e) {
     window.location.hash = 'vendre';
   }
 
-  // Mettre �  jour l'état actif de la navigation
+  // Mettre à jour l'état actif de la navigation
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
   const activeNav = document.getElementById(`nav-${hash}`);
   if (activeNav) {
@@ -8902,7 +9259,7 @@ function voirHistoriqueStock(stockId, e) {
       afficherLivraisons();
       break;
      case 'scan-dynamsoft':
-      // Rien de spécial �  faire ici, l'écran sera déj�  affiché.
+      // Rien de spécial à faire ici, l'écran sera déjà affiché.
       // On s'assure que les icônes sont bien rendues.
       lucide.createIcons(); 
       break;
@@ -8926,10 +9283,10 @@ case 'article-detail':
       if (!dateFilter.value) {
           dateFilter.value = new Date().toISOString().split('T')[0];
       }
-      updateBalanceDisplay(); // Puis on met �  jour l'affichage
+      updateBalanceDisplay(); // Puis on met à jour l'affichage
       break;
     case 'rapports':
-      // Appeler la fonction qui met �  jour la section "Rapports & Statistiques"
+      // Appeler la fonction qui met à jour la section "Rapports & Statistiques"
       updateRapports();
       break;
 
@@ -8939,10 +9296,10 @@ case 'article-detail':
 
     case 'approvisionnement':
         chargerApprovisionnements();
-        togglePaymentAccount(); // Ensure payment method UI is correct on entry
+        handlePurchaseTypeChange(); // Ensure payment UI is correct on entry
         break;
     case 'profit':
-      updateProfitScreen(); // Appellez ici la fonction qui met �  jour et affiche les détails du profit
+      updateProfitScreen(); // Appellez ici la fonction qui met à jour et affiche les détails du profit
         break;
     case 'repertoire-imei':
       // Code spécifique pour le répertoire d'IMEI, si nécessaire
@@ -8983,7 +9340,7 @@ case 'article-detail':
   }
 }
 
-    // Récupération de l’overlay
+    // Récupération de l'overlay
 const offlineOverlay = document.getElementById('offlineOverlay');
 
 // Quand on passe hors‑ligne…
@@ -8996,7 +9353,7 @@ window.addEventListener('online', () => {
   offlineOverlay.style.display = 'none';
 });
 
-// Au chargement de la page, si on est déj�  hors‑ligne
+// Au chargement de la page, si on est déjà hors‑ligne
 if (!navigator.onLine) {
   offlineOverlay.style.display = 'flex';
 }
@@ -9007,7 +9364,7 @@ if (!navigator.onLine) {
    ========================================================== */
 let currentArticleId = null; // Variable pour garder l'ID de l'article sélectionné
 let currentItems = [];              // contenu du panier
-let cachedStock  = [];              // stock en mémoire (déj�  chargé)
+let cachedStock  = [];              // stock en mémoire (déjà chargé)
 
 /* --- MÀJ DU FOOTER PANIER ---------------------------------- */
 function updateCartFooter () {
@@ -9037,7 +9394,7 @@ function updateSearchCartBadge() {
 }
 
 
-// Au clic sur l’icône, on va directement au panier
+// Au clic sur l'icône, on va directement au panier
 document.getElementById('searchCartIcon').addEventListener('click', () => {
   window.location.hash = 'panier';
   updatePanierPage();
@@ -9048,7 +9405,7 @@ function addOrIncrementItem(prod) {
   const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') || (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
   const idx = currentItems.findIndex(it => it.produit === prod.name);
 
-  if (idx > -1) {                               // déj�  présent → on incrémente
+  if (idx > -1) {                               // déjà présent → on incrémente
     if (currentItems[idx].quantite >= prod.stock) {
       showToast("Stock épuisé !");
       return;
@@ -9076,7 +9433,7 @@ function addOrIncrementItem(prod) {
   updateCartFooter();            // ← NOUVEL appel
 }
 
-/* ========== Aperçu rapide dans l’étape 1 ========= */
+/* ========== Aperçu rapide dans l'étape 1 ========= */
 function renderMiniPanier(){
   const zone = document.getElementById("miniPanier");
   if (!zone) return;
@@ -9124,7 +9481,7 @@ function updatePanierPage() {
   updateCartFooter();   // ← un seul point de vérité pour le footer
 }
 
-// Le bouton du footer doit appeler la même fonction que l’ancien � Suivant �
+// Le bouton du footer doit appeler la même fonction que l'ancien “Suivant”
 document.getElementById('footerCheckout').onclick = continuerDepuisPanier;
 
 
@@ -9134,7 +9491,7 @@ window.addEventListener('hashchange', () => {
     updateSearchCartBadge();
   }
 });
-/* Recalcul lors d’une saisie Qté ou Prix ---------------------- */
+/* Recalcul lors d'une saisie Qté ou Prix ---------------------- */
 function onChangeQtOrPx(e) {
   const idx  = +e.target.dataset.idx;
   const wrap = e.target.closest('.panier-item');
@@ -9172,7 +9529,7 @@ function retirerArticle(i) {
   updateCartFooter();            // ← NOUVEL appel
 }
 
-/* Passer �  l’écran Panier ------------------------------------ */
+/* Passer à l'écran Panier ------------------------------------ */
 function ouvrirPanier(){
   window.location.hash = 'panier';
   updatePanierPage();
@@ -9180,7 +9537,7 @@ function ouvrirPanier(){
 
 }
 
-/* Bouton “Suivant” depuis l’écran Panier --------------------- */
+/* Bouton "Suivant" depuis l'écran Panier --------------------- */
 function continuerDepuisPanier() {
   if (currentItems.length === 0) return;
   window.location.hash = 'vendre';   // retour au wizard
@@ -9223,7 +9580,7 @@ function continuerDepuisPanier() {
       }
       const vendeur = document.getElementById("vendeurSelect").value;
       if(!vendeur) {
-        alert("Veuillez s�lectionner un canal de vente.");
+        alert("Veuillez sélectionner un canal de vente.");
         return;
       }
       const photoFile = document.getElementById("photoFacture").files[0];
@@ -9282,7 +9639,7 @@ function continuerDepuisPanier() {
                     const profitUnitaire = item.prix - (stockData.price || 0);
                     const profitTotal = profitUnitaire * item.quantite;
                     totalProfit += profitTotal;
-                    // Vous pouvez aussi ajouter ce profit �  l'article pour le report détaillé
+                    // Vous pouvez aussi ajouter ce profit à l'article pour le report détaillé
                     item.profitUnitaire = profitUnitaire;
                     item.profitTotal = profitTotal;
                     item.coutAchat = stockData.price || 0; // TRÈS IMPORTANT: On stocke le coût pour la dette
@@ -9364,7 +9721,7 @@ function continuerDepuisPanier() {
         // Étape 1 : Enregistrer la vente et récupérer son nouvel ID
         const newSaleId = await addSaleFirestore(vente);
 
-        // Étape 2 : Mettre �  jour le stock
+        // Étape 2 : Mettre à jour le stock
         await updateStockAfterSaleFirestore(currentItems);
 
         // Étape 3 : Enregistrer le mouvement de trésorerie pour la vente
@@ -9395,7 +9752,7 @@ function continuerDepuisPanier() {
         // Étape 4 : On lance la création des dettes de dépôt pour cette vente
         await creerDettesDeVente(newSaleId, { ...vente, timestamp: firebase.firestore.Timestamp.now() });
 
-        // Étape 5 : Mettre �  jour l'affichage des soldes
+        // Étape 5 : Mettre à jour l'affichage des soldes
         await updateBalanceDisplay();
 
         // Si tout s'est bien passé
@@ -9512,7 +9869,7 @@ function continuerDepuisPanier() {
           }
 
           if(sale.isDelivery) {
-            let statusEmoji = "�  En cours";
+            let statusEmoji = "à En cours";
             if(sale.deliveryStatus === "réussie") {
               statusEmoji = "🟢 Réussie";
             } else if(sale.deliveryStatus === "échouée") {
@@ -9554,7 +9911,7 @@ function continuerDepuisPanier() {
 document.getElementById('exportInventoryBtn')
     .addEventListener('click', async () => {
       
-      // --- Demander la date �  l'utilisateur ---
+      // --- Demander la date à l'utilisateur ---
       const dateInput = prompt(
         "Pour quelle date souhaitez-vous générer l'inventaire ? (AAAA-MM-JJ)",
         new Date().toISOString().slice(0, 10) // Propose la date du jour par défaut
@@ -9617,7 +9974,7 @@ document.getElementById('exportInventoryBtn')
         await Promise.all(checkMovementPromises);
 
         if (inventoryPhones.length === 0 && inventoryAccessories.length === 0) {
-            alert(`Aucun article en stock ou avec un mouvement le ${reportDate.toLocaleDateString('fr-FR')} �  exporter.`);
+            alert(`Aucun article en stock ou avec un mouvement le ${reportDate.toLocaleDateString('fr-FR')} à exporter.`);
             return;
         }
 
@@ -9669,7 +10026,7 @@ document.getElementById('exportInventoryBtn')
                 columnStyles: { 1: { halign: 'center' } }
             });
             
-            yPos = doc.lastAutoTable.finalY + 30; // NOUVEAU : On met �  jour la position pour le prochain tableau
+            yPos = doc.lastAutoTable.finalY + 30; // NOUVEAU : On met à jour la position pour le prochain tableau
         }
 
         // --- NOUVEAU : SECTION ACCESSOIRES ---
@@ -9812,7 +10169,7 @@ document.getElementById('exportInventoryBtn')
         suggestionList.style.display = "none";
         return;
       }
-      // Utiliser le cache au lieu d'interroger Firestore �  chaque saisie
+      // Utiliser le cache au lieu d'interroger Firestore à chaque saisie
       if (cachedStock.length === 0) {
         suggestionList.innerHTML = "<div class='suggestion-item no-result'>Données non chargées</div>";
         suggestionList.style.display = "block";
@@ -9954,7 +10311,7 @@ fournisseurInput.addEventListener("input", debounce(async function () { // Added
         const addNewDiv = document.createElement("div");
         addNewDiv.className = "suggestion-item add-new-supplier";
         addNewDiv.innerHTML = `<i data-lucide="plus"></i> Ajouter "<strong>${query}</strong>"`; // Texte plus court
-        // Au lieu de mettre �  jour directement le champ, on appelle la fonction de confirmation
+        // Au lieu de mettre à jour directement le champ, on appelle la fonction de confirmation
         addNewDiv.addEventListener("click", function () {
             confirmerAjoutFournisseur(query); // Appelle la nouvelle fonction de confirmation
         });
@@ -10011,7 +10368,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
         showToast(`"${fournisseurName}" sera ajouté comme nouveau fournisseur.`);
     } else {
         // Si l'utilisateur annule, on peut vider le champ ou laisser l'utilisateur re-saisir
-        // Pour l'instant, on ne fait rien, l'utilisateur peut continuer �  modifier
+        // Pour l'instant, on ne fait rien, l'utilisateur peut continuer à modifier
         console.log("Ajout du fournisseur annulé par l'utilisateur.");
     }
     // Assurez-vous de vider la liste de suggestions après l'interaction
@@ -10248,14 +10605,14 @@ function confirmerAjoutFournisseur(fournisseurName) {
         });
     }
     function ajouterOuMettreAJourStock(produit, quantite, prix, category) {
-  // Cherche si le produit existe déj� 
+  // Cherche si le produit existe déjà 
   return dbFirestore
     .collection("stock")
     .where("name", "==", produit)
     .get()
     .then(querySnapshot => {
       if (!querySnapshot.empty) {
-        // —— CAS EXISTANT : on met �  jour le stock + prix moyen
+        // —— CAS EXISTANT : on met à jour le stock + prix moyen
         const docRef   = querySnapshot.docs[0].ref;
         const data     = querySnapshot.docs[0].data();
         const oldStock = parseFloat(data.stock) || 0;
@@ -10295,7 +10652,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
           .collection("stock")
           .add(newRecord)
           .then(docRef => {
-            // Log de la variation ↑ (équivalent �  "stock = quantite")
+            // Log de la variation ↑ (équivalent à "stock = quantite")
             return docRef
               .collection("history")
               .add({
@@ -10323,7 +10680,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
         select.innerHTML = "";
         const placeholder = document.createElement("option");
         placeholder.value = "";
-        placeholder.textContent = "S�lectionnez un canal";
+        placeholder.textContent = "Sélectionnez un canal";
         placeholder.disabled = true;
         placeholder.selected = true;
         select.appendChild(placeholder);
@@ -10349,7 +10706,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
       alert("La liste des canaux de vente est fixe : Boutique, WhatsApp, Facebook Marketplace, Instagram et CoinAfrique.");
     }
     function supprimerVendeur(id) {
-      alert("La liste des canaux de vente est fixe et ne peut pas �tre modifi�e depuis cette interface.");
+      alert("La liste des canaux de vente est fixe et ne peut pas être modifiée depuis cette interface.");
     }
     window.addEventListener("load", function() {
       chargerVendeurs();
@@ -10376,8 +10733,8 @@ function loadComptes() {
     .onSnapshot(snap => {
       comptesCache = [];
       snap.forEach(doc => comptesCache.push({ id: doc.id, ...doc.data() }));
-      remplirTousSelectComptes();   // met �  jour le <select> de la vente
-      majCartesTresorerie();   // (facultatif) met �  jour l’écran Trésorerie
+      remplirTousSelectComptes();   // met à jour le <select> de la vente
+      majCartesTresorerie();   // (facultatif) met à jour l'écran Trésorerie
     });
 }
 
@@ -10387,12 +10744,12 @@ function remplirTousSelectComptes(specificSelectElement = null) {
         : document.querySelectorAll('[id^="compteSelect"]'); // Remplir tous les éléments correspondant au sélecteur
 
     selectsToFill.forEach(sel => {
-        // Empêche la mise �  jour des sélecteurs non présents dans le DOM �  ce moment
+        // Empêche la mise à jour des sélecteurs non présents dans le DOM à ce moment
         if (!document.body.contains(sel)) return; //
 
         sel.innerHTML = '';
 
-        /* ➜ option “vide” d’abord */
+        /* ➜ option "vide" d'abord */
         const placeholder = document.createElement('option'); //
         placeholder.value = ''; //
         placeholder.textContent = '— Choisir un compte —'; //
@@ -10409,7 +10766,7 @@ function remplirTousSelectComptes(specificSelectElement = null) {
         });
     });
 }
-/** Met �  jour l'affichage des soldes de chaque compte dans #accounts-balances */
+/** Met à jour l'affichage des soldes de chaque compte dans #accounts-balances */
 function majCartesTresorerie() {
   const container = document.getElementById('accounts-balances');
   if (!container) return;
@@ -10513,7 +10870,7 @@ function majCartesTresorerie() {
 
       // Pour le menu de navigation
       if (role === "employe") {
-        // Les employ�s ne voient pas le bouton Menu
+        // Les employés ne voient pas le bouton Menu
         if (navMenu) {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
@@ -10541,7 +10898,7 @@ function majCartesTresorerie() {
         if (stockSummary) {
           stockSummary.style.setProperty('display', 'none', 'important');
         }
-        // Vous pouvez ajouter ici d'autres masquages sp�cifiques aux employ�s.
+        // Vous pouvez ajouter ici d'autres masquages spécifiques aux employés.
       } else if (role === "patron") {
         // Le patron ne doit voir que Stock, Historique et Menu.
         if (stockSummary) {
@@ -10560,7 +10917,7 @@ function majCartesTresorerie() {
         const navLivraisons = document.getElementById("nav-livraisons");
         if (navVendre) { navVendre.style.display = "none"; }
         if (navLivraisons) { navLivraisons.style.display = "none"; }
-        // Dans l'�cran Menu, n'afficher que Rapport & Statistiques, Tr�sorerie, D�penses et D�connexion.
+        // Dans l'écran Menu, n'afficher que Rapport & Statistiques, Trésorerie, Dépenses et Déconnexion.
         const sections = document.querySelectorAll("#screen-menu .section");
         sections.forEach(section => {
           const txt = section.textContent.toLowerCase();
@@ -10569,7 +10926,7 @@ function majCartesTresorerie() {
           }
         });
       } else if (role === "admin") {
-        // Pour l'admin, tout doit �tre visible.
+        // Pour l'admin, tout doit être visible.
         if (navMenu) {
           navMenu.classList.remove('hidden-by-role');
           navMenu.style.display = "flex";
@@ -10666,7 +11023,7 @@ function majCartesTresorerie() {
   window.location.hash = 'article-detail';
 }
 /**
- * Récupère les données de l'article depuis Firestore et met �  jour l'interface.
+ * Récupère les données de l'article depuis Firestore et met à jour l'interface.
  */
 function loadArticleDetail() {
   if (!currentArticleId) {
@@ -10711,8 +11068,8 @@ function loadArticleDetail() {
     function selectProduct(prod){
   addOrIncrementItem(prod);     // ajoute ou incrémente
   updatePanierPage();
-  showToast(`+1 ${prod.name} ajouté au panier`);           // met �  jour badge & totaux
-  // → on reste sur l’écran de recherche pour pouvoir enchaîner plusieurs sélections
+  showToast(`+1 ${prod.name} ajouté au panier`);           // met à jour badge & totaux
+  // → on reste sur l'écran de recherche pour pouvoir enchaîner plusieurs sélections
   // window.location.hash = 'panier';
 }
 
@@ -10745,11 +11102,11 @@ function loadArticleDetail() {
         .then(reg => {
           console.log('[App] SW enregistré, scope :', reg.scope);
 
-          // Dès qu’on déploie une nouvelle version (CACHE_NAME incrémenté)…
+          // Dès qu'on déploie une nouvelle version (CACHE_NAME incrémenté)…
           reg.addEventListener('updatefound', () => {
             const newSW = reg.installing;
             newSW.addEventListener('statechange', () => {
-              // Quand le nouvel SW est prêt et qu’il y avait déj�  un SW actif
+              // Quand le nouvel SW est prêt et qu'il y avait déjà un SW actif
               if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
                 console.log('[App] Nouvelle version dispo → reload');
                 window.location.reload();
@@ -10811,7 +11168,7 @@ function detachScrollHandlerDepenses() {
   }
 }
 
-/* Lance un reset complet de l’écran Dépenses */
+/* Lance un reset complet de l'écran Dépenses */
 function initEcranDepenses() {
   const cont = document.getElementById("recent-depenses");
   cont.innerHTML = "";
@@ -10834,7 +11191,7 @@ document.getElementById('exportStockBtn')
           const phones = stocks.filter(s => s.category === 'telephones' && s.stock >= 1);
 
           if (phones.length === 0) {
-            alert("Aucun téléphone en stock �  exporter.");
+            alert("Aucun téléphone en stock à exporter.");
             return;
           }
 
@@ -10907,7 +11264,7 @@ document.getElementById('exportStockBtn')
     });
 /* ============================================================
    MOUVEMENT DE TRESORERIE – NOUVELLE VERSION COMPLÈTE
-   (gère aussi le snapshot quotidien avec les soldes d’ouverture
+   (gère aussi le snapshot quotidien avec les soldes d'ouverture
     caisse / momo / banque + solde global)
    ============================================================ */
    async function enregistrerMouvementTresorerie({
@@ -10953,7 +11310,7 @@ document.getElementById('exportStockBtn')
       tx.get(compteBanque)
     ]);
 
-    /* 3) Soldes d’ouverture ------------------------------------------------- */
+    /* 3) Soldes d'ouverture ------------------------------------------------- */
     const openingCaisse = caisseSnap.exists ? (caisseSnap.data().solde || 0) : 0;
     const openingMomo   = momoSnap.exists   ? (momoSnap.data().solde   || 0) : 0;
     const openingBanque = banqueSnap.exists ? (banqueSnap.data().solde || 0) : 0;
@@ -10978,7 +11335,7 @@ document.getElementById('exportStockBtn')
       });
     }
 
-    /* 5b) Mise �  jour du solde du sous-compte concerné */
+    /* 5b) Mise à jour du solde du sous-compte concerné */
     tx.set(compteDoc, { solde: newSoldeCompte }, { merge: true });
 
     /* 5c) Enregistrement du mouvement dans la sous-collection */
@@ -10996,7 +11353,7 @@ document.getElementById('exportStockBtn')
       }
     );
 
-    /* 5d) Mise �  jour du solde global (document “tresorerie/balance”) */
+    /* 5d) Mise à jour du solde global (document "tresorerie/balance") */
     tx.set(
       balanceDoc,
       { montant: firebase.firestore.FieldValue.increment(delta) },
@@ -11027,7 +11384,7 @@ function exportDailyReportPDF() {
   );
   if (!saisie) return;
 
-  // ✅ NOUVEAU : On demande �  l'utilisateur s'il veut voir les profits
+  // ✅ NOUVEAU : On demande à l'utilisateur s'il veut voir les profits
   const inclureProfitDetail = confirm("Voulez-vous inclure le détail des profits par article dans le rapport ?");
 
   const jsDate = new Date(saisie + 'T00:00:00');
@@ -11615,16 +11972,16 @@ async function countPhonesSold(startTs, endTs){
 }
 
 /* ============================================================
-   UI : demande le mois puis lance l’export
+   UI : demande le mois puis lance l'export
    ============================================================ */
 function askMonthlyExport(){
-  const mois = prompt('Mois �  exporter (AAAA-MM) :',
+  const mois = prompt('Mois à exporter (AAAA-MM) :',
                       new Date().toISOString().slice(0,7));
   if(!mois || !/^\d{4}-\d{2}$/.test(mois)) return;
   exportMonthlyReportPDF(mois)
     .catch(err=>alert('Erreur export mensuel : '+err.message));
 }
-// ===== EXPORT MENSUEL AVEC DÉTECTION D’ANOMALIES =====
+// ===== EXPORT MENSUEL AVEC DÉTECTION D'ANOMALIES =====
 async function exportMonthlyReportPDF(month) {
   if (!/^\d{4}-\d{2}$/.test(month)) {
     throw new Error("Format de mois invalide (AAAA-MM attendu).");
@@ -11765,7 +12122,7 @@ async function exportMonthlyReportPDF(month) {
   head: [["Article", "Qté", "Profit cumulé"]],
   body: profitRows,
   foot: [["", "TOTAL", fmt(profit) + " FCFA"]],
-  showFoot: 'lastPage',               // ← n’affiche le pied que sur la dernière page
+  showFoot: 'lastPage',               // ← n'affiche le pied que sur la dernière page
   headStyles: { fillColor: [240,240,240] },
   footStyles: { fontStyle: "bold" },
   styles: { fontSize: 10 }
@@ -11778,7 +12135,7 @@ async function exportMonthlyReportPDF(month) {
 async function startDay() {
   const today = new Date().toISOString().slice(0, 10);   // AAAA-MM-JJ
 
-  // 1) Lecture du stock � téléphones � en base
+  // 1) Lecture du stock à téléphones à en base
   const snap = await dbFirestore
     .collection("stock")
     .where("category", "==", "telephones")
@@ -11791,12 +12148,12 @@ async function startDay() {
   snap.forEach(doc => {
     const d       = doc.data();
     const qty     = parseFloat(d.stock) || 0;
-    const price   = parseFloat(d.price) || 0;  // prix d’achat moyen
+    const price   = parseFloat(d.price) || 0;  // prix d'achat moyen
     openingUnits += qty;
     openingValue += qty * price;
   });
 
-  // 3) Écriture (ou mise �  jour) du snapshot quotidien
+  // 3) Écriture (ou mise à jour) du snapshot quotidien
   await dbFirestore
     .collection("stockSnapshots")
     .doc(today)
@@ -11814,7 +12171,7 @@ async function startDay() {
 }
 
 
-// Attacher l’écouteur
+// Attacher l'écouteur
 document.getElementById("btnStartDay").addEventListener("click", startDay);
 
 window.addEventListener('load', async () => {
@@ -11830,14 +12187,14 @@ window.addEventListener('load', async () => {
 window.addEventListener('hashchange', handleHashChange);
 
 /**
- * Charge et affiche l’historique des variations
+ * Charge et affiche l'historique des variations
  * pour un stock donné (appro + ventes).
  *
  * @param {string} stockId
  */
 function chargerHistoriqueStock(stockId) {
   const container = document.getElementById("stockHistoryContainer");
-  container.innerHTML = "<p>Chargement de l’historique…</p>";
+  container.innerHTML = "<p>Chargement de l'historique…</p>";
 
   dbFirestore
     .collection("stock")
@@ -11911,7 +12268,7 @@ lucide.createIcons();
 
 /**
  * Prépare et demande la confirmation pour l'annulation d'un achat.
- * @param {string} approId - L'ID du document d'approvisionnement �  annuler.
+ * @param {string} approId - L'ID du document d'approvisionnement à annuler.
  * @param {Event} event - L'objet d'événement du clic.
  */
 async function preparerAnnulationAchat(approId, event) {
@@ -11938,7 +12295,7 @@ async function preparerAnnulationAchat(approId, event) {
         if (!approDoc.exists) throw new Error("Cet achat n'existe pas.");
         
         const approData = approDoc.data();
-        if (approData.status === 'annulé') throw new Error("Cet achat est déj�  annulé.");
+        if (approData.status === 'annulé') throw new Error("Cet achat est déjà annulé.");
 
         await annulerAchatTransaction(approId, approData);
         
@@ -11972,7 +12329,7 @@ function annulerAchatTransaction(approId, approData) {
     return dbFirestore.runTransaction(async (transaction) => {
         const approRef = dbFirestore.collection("approvisionnement").doc(approId);
 
-        // --- 1. Supprimer le document d'achat au lieu de le mettre �  jour ---
+        // --- 1. Supprimer le document d'achat au lieu de le mettre à jour ---
         transaction.delete(approRef); // ✅ LIGNE MODIFIÉE
 
         // 2. Reverse stock impact for each item AND recalculate average cost
@@ -11994,7 +12351,7 @@ function annulerAchatTransaction(approId, approData) {
                 if (newStock > 0) {
                     newAvgPrice = ((currentStock * currentAvgPrice) - (cancelledQty * cancelledItemCost)) / newStock;
                 } else {
-                    newAvgPrice = currentAvgPrice; // Garde l'ancien prix si le stock tombe �  0
+                    newAvgPrice = currentAvgPrice; // Garde l'ancien prix si le stock tombe à 0
                 }
 
                 transaction.update(stockDocRef, {
@@ -12092,12 +12449,12 @@ function annulerAchatTransaction(approId, approData) {
 
 /**
  * Gère l'annulation d'une vente dans une transaction sécurisée.
- * @param {string} saleId - L'ID de la vente �  annuler.
+ * @param {string} saleId - L'ID de la vente à annuler.
  */
 /**
  * Gère l'annulation d'une vente dans une transaction sécurisée.
  * MODIFIÉ : Supprime la vente au lieu de la marquer comme annulée.
- * @param {string} saleId - L'ID de la vente �  annuler.
+ * @param {string} saleId - L'ID de la vente à annuler.
  */
 async function annulerVente(saleId) {
     const saleRef = dbFirestore.collection("ventes").doc(saleId);
@@ -12111,9 +12468,9 @@ async function annulerVente(saleId) {
 
             const saleData = saleDoc.data();
 
-            // Si la vente a déj�  le statut "annulé" (ancienne méthode), on la supprime aussi
+            // Si la vente a déjà le statut "annulé" (ancienne méthode), on la supprime aussi
             if (saleData.status === 'annulé') {
-                 console.log("Cette vente était déj�  marquée comme annulée, suppression en cours...");
+                 console.log("Cette vente était déjà marquée comme annulée, suppression en cours...");
             }
 
             // --- 1. On supprime la vente de la base de données ---
@@ -12130,7 +12487,7 @@ for (const item of saleData.items) {
         const oldStock = stockData.stock || 0;
         const newStockAfterCancellation = oldStock + item.quantite;
 
-        // 1. On met �  jour le stock (on remet les articles)
+        // 1. On met à jour le stock (on remet les articles)
         transaction.update(stockDocRef, {
             stock: newStockAfterCancellation
         });
@@ -12209,7 +12566,7 @@ async function creerDettesDeVente(saleId, saleData) {
 
     for (const item of saleData.items) {
         // Pour chaque article vendu, on cherche le dernier approvisionnement de type "dépôt" le contenant.
-        // Cette méthode (Dernier entré, premier sorti) est la plus simple �  implémenter.
+        // Cette méthode (Dernier entré, premier sorti) est la plus simple à implémenter.
         const approQuery = dbFirestore.collection('approvisionnement')
             .where('typeAchat', '==', 'depot')
             .where('productNames', 'array-contains', item.produit)
@@ -12239,7 +12596,7 @@ async function creerDettesDeVente(saleId, saleData) {
                 venteId: saleId,
                 dateVente: saleData.timestamp,
                 approvisionnementId: approDoc.id,
-                status: 'a_payer' // Le statut initial est "�  payer"
+                status: 'a_payer' // Le statut initial est "à payer"
             });
         }
     }
@@ -12471,7 +12828,7 @@ async function creerDettesDeVente(saleId, saleData) {
 
     for (const item of saleData.items) {
         // Pour chaque article vendu, on cherche le dernier approvisionnement de type "dépôt" le contenant.
-        // Cette méthode (Dernier entré, premier sorti) est la plus simple �  implémenter.
+        // Cette méthode (Dernier entré, premier sorti) est la plus simple à implémenter.
         const approQuery = dbFirestore.collection('approvisionnement')
             .where('typeAchat', '==', 'depot')
             .where('productNames', 'array-contains', item.produit)
@@ -12501,7 +12858,7 @@ async function creerDettesDeVente(saleId, saleData) {
                 venteId: saleId,
                 dateVente: saleData.timestamp,
                 approvisionnementId: approDoc.id,
-                status: 'a_payer' // Le statut initial est "�  payer"
+                status: 'a_payer' // Le statut initial est "à payer"
             });
         }
     }
