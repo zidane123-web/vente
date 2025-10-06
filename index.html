@@ -9171,7 +9171,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique']);
+      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -10875,7 +10875,7 @@ function majCartesTresorerie() {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique'];
+        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail'];
         const currentHash = window.location.hash.replace('#', '');
         if (disallowedForEmployee.includes(currentHash)) {
           window.location.hash = 'vendre';
@@ -11019,6 +11019,12 @@ function majCartesTresorerie() {
     });
 }
     function showArticleDetail(articleId) {
+  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+    (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+  if (isEmployee) {
+    showToast("Acces interdit aux details pour les employes.", "error");
+    return;
+  }
   currentArticleId = articleId;
   window.location.hash = 'article-detail';
 }
@@ -11026,6 +11032,13 @@ function majCartesTresorerie() {
  * Récupère les données de l'article depuis Firestore et met à jour l'interface.
  */
 function loadArticleDetail() {
+  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+    (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+  if (isEmployee) {
+    showToast("Acces interdit aux details pour les employes.", "error");
+    window.location.hash = 'stock';
+    return;
+  }
   if (!currentArticleId) {
     console.error("Aucun ID d'article sélectionné.");
     window.location.hash = 'stock'; // Retourne au stock si pas d'ID
