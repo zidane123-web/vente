@@ -2302,6 +2302,47 @@ function generateInvoicePDF(sale) {
   </div>
 </section>
 
+<section id="screen-commande-reception" class="screen">
+  <header>
+    <button class="back-btn" onclick="fermerReceptionCommande()">
+      <i data-lucide="arrow-left"></i> Retour
+    </button>
+    <h1>Réception commande</h1>
+  </header>
+
+  <div class="reception-content">
+    <div class="reception-card">
+      <div id="commandeReceptionSummary" class="reception-summary">
+        <p>Aucune commande sélectionnée.</p>
+      </div>
+    </div>
+
+    <div class="reception-card">
+      <h2>Articles à réceptionner</h2>
+      <div id="commandeReceptionItemsContainer" class="reception-items"></div>
+    </div>
+
+    <div class="reception-card">
+      <h2>Détails de réception</h2>
+      <label for="commandeReceptionTransport">Frais de transport (FCFA)</label>
+      <input type="number" id="commandeReceptionTransport" min="0" step="100" placeholder="0" />
+
+      <label for="commandeReceptionNotes">Notes internes</label>
+      <textarea id="commandeReceptionNotes" rows="3" placeholder="Commentaires sur la réception (optionnel)"></textarea>
+    </div>
+
+    <div class="reception-footer">
+      <div class="reception-total">
+        <span>Total réception :</span>
+        <strong id="commandeReceptionTotal">0 FCFA</strong>
+      </div>
+      <button class="btn-modern" id="commandeReceptionSubmitBtn" onclick="soumettreReceptionCommande()" disabled>
+        <i data-lucide="check-circle"></i>
+        Confirmer la réception
+      </button>
+    </div>
+  </div>
+</section>
 
     <!-- Screen 4: Stock -->
     <section id="screen-stock" class="screen">
@@ -2931,6 +2972,9 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
                             <ion-label>Crédit</ion-label>
                         </div>
                     </ion-segment-button>
+                    <ion-segment-button value="commandes">
+                        <ion-label>Commandes</ion-label>
+                    </ion-segment-button>
                     <ion-segment-button value="paid">
                         <ion-label>Payé</ion-label>
                     </ion-segment-button>
@@ -3170,6 +3214,17 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
 #approvisionnementHistoryList ion-item.status-depot .total-amount {
     color: #6c757d;
 }
+#approvisionnementHistoryList ion-item.status-commande .total-amount {
+    color: #f39c12;
+}
+#approvisionnementHistoryList ion-item.status-partial .total-amount {
+    color: #3f51b5;
+}
+#approvisionnementHistoryList ion-item.status-commande .payment-method,
+#approvisionnementHistoryList ion-item.status-partial .payment-method {
+    color: #555;
+    font-weight: 600;
+}
 
 
 #approvisionnementHistoryList ion-item .payment-method {
@@ -3239,13 +3294,143 @@ async function chargerApprovisionnements(statusFilter = 'all') {
         let query = dbFirestore.collection("approvisionnement");
         let snapshot;
 
-        if (statusFilter === 'credit') {
+        if (statusFilter === 'commandes') {
+            const dateInput = document.getElementById("filterPurchaseDate").value;
+            const hasDateFilter = !!dateInput;
+            let dateStart = null;
+            let dateEnd = null;
+            if (hasDateFilter) {
+                const selectedDate = new Date(dateInput);
+                dateStart = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0, 0);
+                dateEnd = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999);
+            }
+
+            const statuses = ['commande', 'reception_partielle'];
+            const snapshots = await Promise.all(statuses.map(status => {
+                let statusQuery = dbFirestore.collection("approvisionnement").where("status", "==", status);
+                if (selectedUser && selectedUser !== 'all') {
+                    statusQuery = statusQuery.where("enregistreParNom", "==", selectedUser);
+                }
+                if (hasDateFilter) {
+                    statusQuery = statusQuery
+                        .where("timestamp", ">=", firebase.firestore.Timestamp.fromDate(dateStart))
+                        .where("timestamp", "<=", firebase.firestore.Timestamp.fromDate(dateEnd));
+                }
+                return statusQuery.get();
+            }));
+
+            const commandes = [];
+            snapshots.forEach(snap => {
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    if (data.status === 'annulé') {
+                        return;
+                    }
+                    data.id = doc.id;
+                    commandes.push(data);
+                });
+            });
+
+            commandes.sort((a, b) => {
+                const timeA = a.timestamp?.toDate ? a.timestamp.toDate().getTime() : new Date(a.timestamp || 0).getTime();
+                const timeB = b.timestamp?.toDate ? b.timestamp.toDate().getTime() : new Date(b.timestamp || 0).getTime();
+                return timeB - timeA;
+            });
+
+            container.innerHTML = "";
+            if (commandes.length === 0) {
+                container.innerHTML = `
+                    <ion-item style="text-align:center; --background: transparent; box-shadow: none;">
+                        <ion-label>
+                            <ion-icon name="cart-outline" style="font-size: 40px;"></ion-icon><br>
+                            Aucune commande fournisseur en attente.
+                        </ion-label>
+                    </ion-item>`;
+                document.getElementById("totalPurchaseCost").innerText = "Total commandes en attente : 0 FCFA";
+                return;
+            }
+
+            let totalPendingOrders = 0;
+            commandes.forEach(appro => {
+                const totalOrderCost = parseFloat(appro.orderTotalCost || appro.totalCost || 0);
+                totalPendingOrders += totalOrderCost;
+                const depositPaid = parseFloat(appro.paymentsTotalPaid || 0);
+                const outstanding = Math.max(0, totalOrderCost - depositPaid);
+                const timestamp = appro.timestamp instanceof firebase.firestore.Timestamp ? appro.timestamp.toDate() : new Date(appro.timestamp);
+                const dateAppro = timestamp.toLocaleString("fr-FR", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+                const expectedDateRaw = appro.commandeMeta && appro.commandeMeta.expectedDate ? new Date(appro.commandeMeta.expectedDate) : null;
+                const expectedDateDisplay = expectedDateRaw ? expectedDateRaw.toLocaleDateString('fr-FR') : null;
+                const supplierName = appro.fournisseur || 'Fournisseur';
+                const initials = supplierName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+                const avatarBgColor = getAvatarColor(supplierName);
+                const items = Array.isArray(appro.items) ? appro.items : [];
+                let itemsHtml = '';
+                items.forEach(item => {
+                    itemsHtml += `<p class="item-line">${item.quantite} x ${item.produit || 'Article'} - ${parseFloat(item.prixAchat || item.adjustedPrixAchat || 0).toLocaleString('fr-FR')} FCFA</p>`;
+                });
+                if (!itemsHtml) {
+                    itemsHtml = '<p class="item-line" style="color:#888;">Aucun article détaillé</p>';
+                }
+
+                const receptionStats = appro.receptionStats || {};
+                const totalOrdered = receptionStats.totalOrdered || items.reduce((acc, item) => acc + (parseFloat(item.quantite) || 0), 0);
+                const totalReceived = receptionStats.totalReceived || 0;
+                const statusClass = appro.status === 'commande' ? 'status-commande' : 'status-partial';
+                const statusLabel = appro.status === 'commande' ? 'À recevoir' : 'Réception partielle';
+                const outstandingColor = outstanding > 0 ? '#f39c12' : '#2e7d32';
+                const depositLine = depositPaid > 0 ? `<div class="purchase-date">Acompte : ${depositPaid.toLocaleString('fr-FR')} FCFA</div>` : '';
+                const outstandingLine = `<div class="purchase-date" style="color: ${outstandingColor};">Solde : ${outstanding.toLocaleString('fr-FR')} FCFA</div>`;
+                const expectedLine = expectedDateDisplay ? `<div class="purchase-date">Prévu : ${expectedDateDisplay}</div>` : '';
+                const receptionLine = appro.status === 'commande'
+                    ? `<div class="purchase-date">Commandé : ${totalOrdered}</div>`
+                    : `<div class="purchase-date">Réception : ${totalReceived}/${totalOrdered}</div>`;
+
+                const slidingItem = document.createElement('ion-item-sliding');
+                slidingItem.innerHTML = `
+                  <ion-item class="${statusClass}" button="true" lines="none" style="border-bottom:1px solid #eee; margin:0; padding:0; --padding-start:0; --padding-end:0; --inner-padding-end:0;">
+                    <ion-label style="padding: 12px 16px;">
+                        <div class="main-content-wrapper" style="display: flex; align-items: center; width: 100%;">
+                            <div class="avatar-circle" style="background-color: ${avatarBgColor};"> ${initials} </div>
+                            <div class="left-info">
+                                <div class="supplier-name">${supplierName}</div>
+                                <div class="purchase-date">${dateAppro}</div>
+                                <div class="item-list-container" style="margin-top: 5px;">${itemsHtml}</div>
+                                ${expectedLine}
+                                ${depositLine}
+                                ${outstandingLine}
+                                ${receptionLine}
+                                <ion-badge color="${appro.status === 'commande' ? 'warning' : 'tertiary'}" style="margin-top:6px;">${statusLabel}</ion-badge>
+                            </div>
+                            <div class="right-info">
+                                <div class="total-amount">XOF ${totalOrderCost.toLocaleString('fr-FR')}</div>
+                                <div class="payment-method">${statusLabel}</div>
+                            </div>
+                        </div>
+                    </ion-label>
+                    <ion-ripple-effect></ion-ripple-effect>
+                  </ion-item>
+
+                  <ion-item-options side="end">
+                    <ion-item-option color="success" expandable onclick="ouvrirReceptionCommande('${appro.id}', event)">
+                      <ion-icon slot="icon-only" name="download-outline"></ion-icon>
+                      Réceptionner
+                    </ion-item-option>
+                  </ion-item-options>
+                `;
+
+                slidingItem.addEventListener('click', () => ouvrirReceptionCommande(appro.id));
+                container.appendChild(slidingItem);
+            });
+
+            document.getElementById("totalPurchaseCost").innerText = `Total commandes en attente : ${totalPendingOrders.toLocaleString('fr-FR')} FCFA`;
+            return;
+        } else if (statusFilter === 'credit') {
             snapshot = await query.orderBy("timestamp", "desc").get(); // Fetch all for client-side aggregation
 
             const debtsBySupplier = {};
             snapshot.forEach(doc => {
                 const appro = doc.data();
-                if (appro.status === 'annulé') return;
+                if (appro.status === 'annulé' || appro.status === 'commande') return;
                 appro.id = doc.id;
                 const supplierName = appro.fournisseur || 'Fournisseur Inconnu';
                 const remaining = parseFloat(appro.remainingAmount || 0);
@@ -3362,8 +3547,8 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                 const appro = doc.data();
                 
                 //  FIX: ADDED client-side filtering to skip cancelled items
-                if (appro.status === 'annulé') {
-                    return; 
+                if (appro.status === 'annulé' || appro.status === 'commande' || appro.status === 'reception_partielle') {
+                    return;
                 }
 
                 appro.id = doc.id;
@@ -4244,7 +4429,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resetApproPayments();
         handlePurchaseTypeChange();
-        chargerApprovisionnements();
+        const purchaseTabsEl = document.getElementById('purchase-tabs');
+        const activePurchaseTab = purchaseTabsEl ? (purchaseTabsEl.value || 'all') : 'all';
+        chargerApprovisionnements(activePurchaseTab);
         updateStockSummary();
         updateBalanceDisplay();
         hideSaleLoader();
@@ -5769,8 +5956,26 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
             <select id="typeAchatAppro" required style="margin-bottom: 16px;">
                 <option value="normal" selected>Achat Normal</option>
                 <option value="depot">Dépôt Fournisseur</option>
+                <option value="commande">Commande fournisseur</option>
             </select>
 
+            <div id="commandeAdditionalFields" style="display: none;">
+                <label for="commandeDatePrevue">Date prévue de réception</label>
+                <input type="date" id="commandeDatePrevue" />
+
+                <label for="commandeReference">Référence commande</label>
+                <input type="text" id="commandeReference" placeholder="Référence fournisseur (optionnel)" />
+
+                <label for="commandeNotes">Notes internes</label>
+                <textarea id="commandeNotes" rows="2" placeholder="Instructions, conditions, etc."></textarea>
+
+                <div class="commande-flags">
+                    <label class="checkbox-inline">
+                        <input type="checkbox" id="commandeAllowPartial" checked />
+                        Réception partielle autorisée
+                    </label>
+                </div>
+            </div>
             
 
             <label for="fournisseurAppro">Fournisseur <span style="color: #d9534f;">*</span></label>
@@ -5827,7 +6032,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
                </div>
     
     <div id="purchasePaymentSection" class="purchase-payment-section">
-        <label for="purchasePaymentStatus">Achat réglé ? <span style="color: #d9534f;">*</span></label>
+        <label id="purchasePaymentStatusLabel" for="purchasePaymentStatus">Achat réglé ? <span style="color: #d9534f;">*</span></label>
         <select id="purchasePaymentStatus" required>
             <option value="no" selected>Non - enregistrer comme dette</option>
             <option value="yes">Oui - paiement effectué</option>
@@ -5898,7 +6103,8 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
 
 /* Style pour les champs de saisie (input, select) */
 #screen-approvisionnement .vente-form input,
-#screen-approvisionnement .vente-form select {
+#screen-approvisionnement .vente-form select,
+#screen-approvisionnement .vente-form textarea {
     width: 100%;
     padding: 10px 4px; /* Plus d'espace vertical */
     font-size: 16px;
@@ -5911,10 +6117,32 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
 
 /* Effet au focus */
 #screen-approvisionnement .vente-form input:focus,
-#screen-approvisionnement .vente-form select:focus {
+#screen-approvisionnement .vente-form select:focus,
+#screen-approvisionnement .vente-form textarea:focus {
     outline: none;
     box-shadow: none; /* Pas d'ombre au focus */
     border-bottom: 2px solid var(--primary-color); /* Ligne plus épaisse et colorée */
+}
+
+#screen-approvisionnement .vente-form textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+#screen-approvisionnement .commande-flags {
+    margin: 8px 0 16px;
+}
+
+#screen-approvisionnement .commande-flags .checkbox-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #555;
+}
+
+#screen-approvisionnement .commande-flags input[type="checkbox"] {
+    width: auto;
 }
 
 /* Cas particulier du sélecteur de quantité */
@@ -6012,6 +6240,10 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
   let currentApproItems = [];
   let approPayments = [];
   let approPaymentAutoId = 0;
+  let currentCommandeReception = null;
+  let currentReceptionDraft = null;
+  let scanUsageMode = 'appro';
+  let currentReceptionScanIndex = null;
 
   function resetApproPayments() {
       approPayments = [];
@@ -6142,6 +6374,12 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
       let valid = true;
       let message = '';
       let hasPositivePayment = false;
+      const typeSelect = document.getElementById("typeAchatAppro");
+      const paymentStatusSelect = document.getElementById("purchasePaymentStatus");
+      const currentType = typeSelect ? typeSelect.value : 'normal';
+      const paymentStatus = paymentStatusSelect ? paymentStatusSelect.value : 'no';
+      const requirePayment = paymentStatus === 'yes';
+      const allowPartialPayment = currentType === 'commande';
 
       for (const payment of approPayments) {
           const amount = parseFloat(payment.montant) || 0;
@@ -6164,16 +6402,19 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
       const difference = due - totalPaid;
 
       if (valid) {
-          if (due > 0 && !hasPositivePayment) {
+          if (requirePayment && due > 0 && !hasPositivePayment) {
               valid = false;
               message = 'Renseignez au moins un montant pay?.';
-          } else if (Math.abs(difference) > 0.5) {
+          } else if (requirePayment && !allowPartialPayment && Math.abs(difference) > 0.5) {
               valid = false;
               message = `Le total pay? (${fmt(totalPaid)} FCFA) doit ?tre ?gal au total de l'achat (${fmt(due)} FCFA).`;
+          } else if (requirePayment && allowPartialPayment && difference < -0.5) {
+              valid = false;
+              message = `Le total pay? (${fmt(totalPaid)} FCFA) ne peut pas d�passer le montant de la commande (${fmt(due)} FCFA).`;
           }
       }
 
-      return { valid, message, due, totalPaid, difference };
+      return { valid, message, due, totalPaid, difference, allowPartial: allowPartialPayment, requirePayment };
   }
 
   function rafraichirResumePaiementAppro() {
@@ -6255,12 +6496,38 @@ function handlePurchaseTypeChange() {
     const typeSelect = document.getElementById("typeAchatAppro");
     const paymentSection = document.getElementById("purchasePaymentSection");
     const statusSelect = document.getElementById("purchasePaymentStatus");
+    const paymentLabel = document.getElementById("purchasePaymentStatusLabel");
+    const commandeFields = document.getElementById("commandeAdditionalFields");
 
     if (!typeSelect || !paymentSection) {
         return;
     }
 
-    if (typeSelect.value === 'depot') {
+    const currentType = typeSelect.value;
+
+    if (commandeFields) {
+        commandeFields.style.display = currentType === 'commande' ? 'block' : 'none';
+    }
+
+    if (paymentLabel) {
+        if (currentType === 'commande') {
+            paymentLabel.innerHTML = 'Enregistrer un acompte ? <span style="color: #d9534f;">*</span>';
+        } else {
+            paymentLabel.innerHTML = 'Achat réglé ? <span style="color: #d9534f;">*</span>';
+        }
+    }
+
+    if (statusSelect && statusSelect.options.length >= 2) {
+        if (currentType === 'commande') {
+            statusSelect.options[0].text = 'Non - aucun acompte';
+            statusSelect.options[1].text = 'Oui - saisir un acompte';
+        } else {
+            statusSelect.options[0].text = 'Non - enregistrer comme dette';
+            statusSelect.options[1].text = 'Oui - paiement effectué';
+        }
+    }
+
+    if (currentType === 'depot') {
         paymentSection.style.display = 'none';
         if (statusSelect) {
             statusSelect.value = 'no';
@@ -6274,6 +6541,8 @@ function handlePurchaseTypeChange() {
         }
         updatePurchasePaymentUI();
     }
+
+    rafraichirResumePaiementAppro();
 }
 
 const typeAchatSelect = document.getElementById("typeAchatAppro");
@@ -6388,6 +6657,7 @@ dbFirestore.collection("stock")
   const quantite = parseInt(document.getElementById("quantiteAppro").value);
   const prixAchat = parseFloat(document.getElementById("prixAchatAppro").value);
   const coutTotal = parseFloat(document.getElementById("coutTotalAppro").value);
+  const typeAchatSelectionne = document.getElementById("typeAchatAppro").value;
 
   // Validation
   if (!fournisseur || !categorie || !modele || isNaN(quantite) || quantite <= 0 || isNaN(prixAchat) || prixAchat <= 0) {
@@ -6422,7 +6692,11 @@ dbFirestore.collection("stock")
       imeis: []
     };
 
-    if (item.category !== 'telephones') {
+    if (typeAchatSelectionne === 'commande') {
+      item.commande = true;
+    }
+
+    if (item.category !== 'telephones' || typeAchatSelectionne === 'commande') {
       currentApproItems.push(item);
       updatePanierApprovisionnement();
       showToast(`${item.produit} ajouté au panier.`);
@@ -6521,6 +6795,10 @@ function retirerApproItem(index) {
     const typeAchat = document.getElementById("typeAchatAppro").value;
     const fournisseur = currentApproItems[0].fournisseur;
     const fraisTransport = parseFloat(document.getElementById("fraisTransportAppro").value) || 0;
+    const commandeDatePrevue = document.getElementById("commandeDatePrevue") ? document.getElementById("commandeDatePrevue").value : '';
+    const commandeReference = document.getElementById("commandeReference") ? document.getElementById("commandeReference").value.trim() : '';
+    const commandeNotes = document.getElementById("commandeNotes") ? document.getElementById("commandeNotes").value.trim() : '';
+    const commandeAllowPartial = document.getElementById("commandeAllowPartial") ? document.getElementById("commandeAllowPartial").checked : true;
 
     // Validation spécifique pour l'achat normal
         let purchasePaymentStatus = 'no';
@@ -6530,7 +6808,7 @@ function retirerApproItem(index) {
         purchasePaymentStatus = paymentStatusSelect.value || 'no';
     }
 
-    if (typeAchat === 'normal' && purchasePaymentStatus === 'yes') {
+    if ((typeAchat === 'normal' || typeAchat === 'commande') && purchasePaymentStatus === 'yes') {
         paymentStats = validateApproPayments(true);
         if (!paymentStats.valid) {
             return;
@@ -6552,43 +6830,52 @@ function retirerApproItem(index) {
                 const itemShareOfTransport = (parseFloat(item.coutTotal) / totalCostOfAllItemsBeforeTransport) * fraisTransport;
                 adjustedPrixAchat += (itemShareOfTransport / item.quantite);
             }
-            return {
-                ...item,
+            const itemCopy = { ...item };
+            delete itemCopy.commande;
+            const payload = {
+                ...itemCopy,
                 adjustedPrixAchat: adjustedPrixAchat
             };
+            if (typeAchat === 'commande') {
+                payload.receivedQty = 0;
+                payload.remainingQty = item.quantite;
+            }
+            return payload;
         });
 
         // La mise à jour du stock reste la même dans les deux cas
-        for (const item of finalItemsForFirestore) {
-            const stockQuery = await dbFirestore.collection("stock").where("name", "==", item.produit).limit(1).get();
-            let stockDocRef;
-            let newStockQty;
+        if (typeAchat !== 'commande') {
+            for (const item of finalItemsForFirestore) {
+                const stockQuery = await dbFirestore.collection("stock").where("name", "==", item.produit).limit(1).get();
+                let stockDocRef;
+                let newStockQty;
 
-            if (stockQuery.empty) {
-                stockDocRef = dbFirestore.collection("stock").doc();
-                newStockQty = item.quantite;
-                batch.set(stockDocRef, {
-                    name: item.produit,
-                    category: item.category,
-                    stock: newStockQty,
-                    price: item.adjustedPrixAchat,
-                    icon: item.category === "accessoires" ? "🎧" : "📱",
-                    createdAt: serverTimestamp
-                });
-            } else {
-                stockDocRef = stockQuery.docs[0].ref;
-                const stockData = stockQuery.docs[0].data();
-                const oldStock = stockData.stock || 0;
-                const oldPrice = stockData.price || 0;
-                newStockQty = oldStock + item.quantite;
+                if (stockQuery.empty) {
+                    stockDocRef = dbFirestore.collection("stock").doc();
+                    newStockQty = item.quantite;
+                    batch.set(stockDocRef, {
+                        name: item.produit,
+                        category: item.category,
+                        stock: newStockQty,
+                        price: item.adjustedPrixAchat,
+                        icon: item.category === "accessoires" ? "🎧" : "📱",
+                        createdAt: serverTimestamp
+                    });
+                } else {
+                    stockDocRef = stockQuery.docs[0].ref;
+                    const stockData = stockQuery.docs[0].data();
+                    const oldStock = stockData.stock || 0;
+                    const oldPrice = stockData.price || 0;
+                    newStockQty = oldStock + item.quantite;
 
-                const newAveragePrice = newStockQty > 0 ? ((oldStock * oldPrice) + (item.quantite * item.adjustedPrixAchat)) / newStockQty : item.adjustedPrixAchat;
+                    const newAveragePrice = newStockQty > 0 ? ((oldStock * oldPrice) + (item.quantite * item.adjustedPrixAchat)) / newStockQty : item.adjustedPrixAchat;
 
-                batch.update(stockDocRef, {
-                    stock: newStockQty,
-                    price: newAveragePrice
-                });
-            }
+                    batch.update(stockDocRef, {
+                        stock: newStockQty,
+                        price: newAveragePrice
+                    });
+                }
+        }
 
             const historyRef = stockDocRef.collection("history").doc();
             batch.set(historyRef, {
@@ -6619,70 +6906,94 @@ function retirerApproItem(index) {
             items: finalItemsForFirestore,
             timestamp: serverTimestamp,
             fraisTransport: fraisTransport,
-            status: 'validé',
+            status: typeAchat === 'commande' ? 'commande' : 'validé',
             typeAchat: typeAchat,// On ajoute le type d'achat ici
             productNames: finalItemsForFirestore.map(it => it.produit),
             enregistreParUid: user.uid,
             enregistreParNom: user.displayName || user.email// Ajoute la liste des noms de produits
         };
 
-        approData.totalCost = totalCostFromSupplier;
+        approData.totalCost = typeAchat === 'commande' ? 0 : totalCostFromSupplier;
+        if (typeAchat === 'commande') {
+            const totalOrderedUnits = finalItemsForFirestore.reduce((acc, it) => acc + (parseFloat(it.quantite) || 0), 0);
+            approData.orderTotalCost = totalCostFromSupplier;
+            approData.receptionStats = {
+                totalOrdered: totalOrderedUnits,
+                totalReceived: 0,
+                totalRemaining: totalOrderedUnits
+            };
+            approData.receivedTotalCost = 0;
+            approData.commandeMeta = {
+                expectedDate: commandeDatePrevue || null,
+                reference: commandeReference || null,
+                notes: commandeNotes || '',
+                partialAllowed: !!commandeAllowPartial
+            };
+        }
         approData.paymentsDetails = [];
         approData.paymentsTotalPaid = 0;
-        approData.remainingAmount = 0;
+        approData.remainingAmount = totalCostFromSupplier;
         approData.isPaid = false;
-        approData.paymentMethod = typeAchat === 'depot' ? 'depot' : 'credit';
+        if (typeAchat === 'depot') {
+            approData.paymentMethod = 'depot';
+        } else if (typeAchat === 'commande') {
+            approData.paymentMethod = 'commande';
+        } else {
+            approData.paymentMethod = 'credit';
+        }
         approData.compteId = null;
 
         const paymentsToRegister = [];
 
-        if (typeAchat === 'normal') {
-            if (purchasePaymentStatus === 'yes') {
-                if (!paymentStats) {
-                    paymentStats = validateApproPayments(false);
-                }
-
-                const paymentsFromForm = approPayments
-                    .map(p => {
-                        const amount = parseFloat(p.montant) || 0;
-                        const compteId = p.compteId || '';
-                        return { amount, compteId };
-                    })
-                    .filter(p => p.amount > 0 && p.compteId);
-
-                if (paymentsFromForm.length === 0) {
-                    throw new Error('Aucun paiement valide pour cet achat.');
-                }
-
-                const paymentsDetails = paymentsFromForm.map(payment => {
-                    const compteNom = getCompteNomById(payment.compteId);
-                    return {
-                        compteId: payment.compteId,
-                        compteNom,
-                        amount: payment.amount
-                    };
-                });
-
-                const paidTotal = paymentStats ? paymentStats.totalPaid : paymentsDetails.reduce((sum, detail) => sum + detail.amount, 0);
-                const paidDue = paymentStats ? paymentStats.due : totalCostFromSupplier;
-
-                approData.paymentMethod = 'paid';
-                approData.isPaid = true;
-                approData.remainingAmount = Math.max(0, paidDue - paidTotal);
-                approData.paymentsDetails = paymentsDetails;
-                approData.paymentsTotalPaid = paidTotal;
-
-                paymentsDetails.forEach(detail => {
-                    paymentsToRegister.push({
-                        compteId: detail.compteId,
-                        amount: detail.amount,
-                        compteNom: detail.compteNom
-                    });
-                });
-            } else {
-                approData.paymentMethod = 'credit';
-                approData.remainingAmount = totalCostFromSupplier;
+        if ((typeAchat === 'normal' || typeAchat === 'commande') && purchasePaymentStatus === 'yes') {
+            if (!paymentStats) {
+                paymentStats = validateApproPayments(false);
             }
+
+            const paymentsFromForm = approPayments
+                .map(p => {
+                    const amount = parseFloat(p.montant) || 0;
+                    const compteId = p.compteId || '';
+                    return { amount, compteId };
+                })
+                .filter(p => p.amount > 0 && p.compteId);
+
+            if (paymentsFromForm.length === 0) {
+                throw new Error('Aucun paiement valide pour cet achat.');
+            }
+
+            const paymentsDetails = paymentsFromForm.map(payment => {
+                const compteNom = getCompteNomById(payment.compteId);
+                return {
+                    compteId: payment.compteId,
+                    compteNom,
+                    amount: payment.amount
+                };
+            });
+
+            const paidTotal = paymentStats ? paymentStats.totalPaid : paymentsDetails.reduce((sum, detail) => sum + detail.amount, 0);
+            const dueTotal = paymentStats ? paymentStats.due : totalCostFromSupplier;
+
+            approData.paymentsDetails = paymentsDetails;
+            approData.paymentsTotalPaid = paidTotal;
+            approData.remainingAmount = Math.max(0, dueTotal - paidTotal);
+            approData.isPaid = approData.remainingAmount <= 0;
+            if (typeAchat === 'normal') {
+                approData.paymentMethod = approData.isPaid ? 'paid' : 'credit';
+            } else {
+                approData.paymentMethod = approData.isPaid ? 'paid' : 'commande';
+            }
+
+            paymentsDetails.forEach(detail => {
+                paymentsToRegister.push({
+                    compteId: detail.compteId,
+                    amount: detail.amount,
+                    compteNom: detail.compteNom
+                });
+            });
+        } else if (typeAchat === 'normal') {
+            approData.paymentMethod = 'credit';
+            approData.remainingAmount = totalCostFromSupplier;
         }
 
         batch.set(approRef, approData);
@@ -6715,7 +7026,7 @@ function retirerApproItem(index) {
 
 
         // La gestion des frais de transport reste la même, car c'est une dépense réelle
-        if (fraisTransport > 0) {
+        if (typeAchat !== 'commande' && fraisTransport > 0) {
             const transportExpenseCompteId = 'caisse';
             const transportDepenseRef = dbFirestore.collection("depenses").doc();
 
@@ -6741,7 +7052,12 @@ function retirerApproItem(index) {
 
         await batch.commit();
 
-        alert(`Approvisionnement de type "${typeAchat === 'depot' ? 'Dépôt Fournisseur' : 'Achat Normal'}" enregistré avec succès !`);
+        const typeLibelle = typeAchat === 'depot'
+            ? 'Dépôt fournisseur'
+            : typeAchat === 'commande'
+                ? 'Commande fournisseur'
+                : 'Achat normal';
+        alert(`Approvisionnement de type "${typeLibelle}" enregistré avec succès !`);
 
     } catch (error) {
         console.error("Erreur lors de la finalisation de l'approvisionnement : ", error);
@@ -6770,9 +7086,27 @@ function retirerApproItem(index) {
             paymentStatusSelect.value = 'no';
         }
 
+        const commandeDateField = document.getElementById("commandeDatePrevue");
+        if (commandeDateField) {
+            commandeDateField.value = "";
+        }
+        const commandeReferenceField = document.getElementById("commandeReference");
+        if (commandeReferenceField) {
+            commandeReferenceField.value = "";
+        }
+        const commandeNotesField = document.getElementById("commandeNotes");
+        if (commandeNotesField) {
+            commandeNotesField.value = "";
+        }
+        const commandeAllowPartialField = document.getElementById("commandeAllowPartial");
+        if (commandeAllowPartialField) {
+            commandeAllowPartialField.checked = true;
+        }
+
         resetApproPayments();
         handlePurchaseTypeChange(); // Update UI
-        chargerApprovisionnements();
+        const currentTabAfterSave = document.getElementById('purchase-tabs');
+        chargerApprovisionnements(currentTabAfterSave ? (currentTabAfterSave.value || 'all') : 'all');
         updateStockSummary();
         updateBalanceDisplay();
         hideSaleLoader();
@@ -6842,7 +7176,8 @@ async function recordCreditPayment(approId, outstandingAmount) {
 
 
         alert("Paiement enregistré avec succès!");
-        chargerApprovisionnements(); // Refresh the list
+        const tabAfterPayment = document.getElementById('purchase-tabs');
+        chargerApprovisionnements(tabAfterPayment ? (tabAfterPayment.value || 'all') : 'all'); // Refresh the list
         updateBalanceDisplay(); // Update treasury display
     } catch (error) {
         console.error("Error recording credit payment:", error);
@@ -6889,6 +7224,127 @@ async function recordCreditPayment(approId, outstandingAmount) {
     </button>
   </div>
 </section>
+
+<style>
+  #screen-commande-reception {
+      background: #f5f7fa;
+      padding: 10px;
+  }
+  #screen-commande-reception header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+  }
+  #screen-commande-reception h1 {
+      font-size: 20px;
+      margin: 0;
+      color: var(--primary-color);
+  }
+  .reception-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 8px 4px 60px;
+  }
+  .reception-card {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 16px;
+  }
+  .reception-card h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: #2e3748;
+  }
+  .reception-summary p {
+      margin: 4px 0;
+      color: #4a4a4a;
+  }
+  .reception-items {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+  }
+  .reception-item {
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fafafa;
+  }
+  .reception-item h3 {
+      margin: 0 0 6px;
+      font-size: 16px;
+      color: #1f2933;
+  }
+  .reception-item-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 13px;
+      color: #5f6b7a;
+      margin-bottom: 8px;
+  }
+  .reception-item-inputs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 8px;
+  }
+  .reception-item-inputs label {
+      font-size: 13px;
+      color: #444;
+      display: block;
+      margin-bottom: 4px;
+  }
+  .reception-item-inputs input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 15px;
+  }
+  .reception-item-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+  }
+  .reception-item-actions .btn-modern {
+      padding: 8px 12px;
+  }
+  .reception-item-imeis {
+      font-size: 12px;
+      color: #5f6b7a;
+  }
+  .reception-item-imeis button {
+      background: none;
+      border: none;
+      color: var(--primary-color);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0;
+  }
+  .reception-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+  }
+  .reception-total {
+      font-size: 16px;
+      color: #1f2933;
+  }
+  #commandeReceptionNotes {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      font-size: 15px;
+      resize: vertical;
+  }
+</style>
 
 <section id="screen-depots-fournisseurs" class="screen">
   <ion-app>
@@ -7253,8 +7709,11 @@ let currentApproItemForScan = null;
 let tempScannedImeis = [];
 
 // --- 1. Fonction principale pour démarrer le processus ---
-function lancerScanDynamsoft(item) {
-  currentApproItemForScan = item;
+function lancerScanDynamsoft(item, options = {}) {
+  scanUsageMode = options.mode || 'appro';
+  currentReceptionScanIndex = typeof options.receptionIndex === 'number' ? options.receptionIndex : null;
+  const targetQuantity = options.quantiteCible != null ? options.quantiteCible : item.quantite;
+  currentApproItemForScan = { ...item, quantite: targetQuantity };
   tempScannedImeis = [];
 
   // Mettre à jour l'interface
@@ -7271,6 +7730,20 @@ function lancerScanDynamsoft(item) {
   // Afficher le bouton pour lancer le premier scan
   afficherBoutonDeScan();
   lucide.createIcons(); // Pour l'icône dans le bouton de saisie manuelle
+}
+
+function lancerScanDynamsoftReception(item, index) {
+  if (!item || typeof index !== 'number') {
+      return;
+  }
+  lancerScanDynamsoft(
+      {
+          produit: item.produit,
+          quantite: item.restant,
+          category: item.category || 'telephones'
+      },
+      { mode: 'reception', receptionIndex: index, quantiteCible: item.restant }
+  );
 }
 
 // --- 2. Affiche le bouton "Scanner le prochain IMEI" ---
@@ -7369,19 +7842,527 @@ function ajouterImeiManuellementDynamsoft() {
 }
 
 function confirmerScanApprovisionnementDynamsoft() {
-  if (tempScannedImeis.length !== currentApproItemForScan.quantite) {
-    alert("Le nombre d'IMEI ne correspond pas à la quantité !");
-    return;
+  if (scanUsageMode === 'appro') {
+      if (tempScannedImeis.length !== currentApproItemForScan.quantite) {
+        alert("Le nombre d'IMEI ne correspond pas à la quantité !");
+        return;
+      }
+      currentApproItemForScan.imeis = tempScannedImeis;
+      currentApproItems.push(currentApproItemForScan);
+      updatePanierApprovisionnement();
+      annulerScan(); // Quitte l'écran de scan
+  } else if (scanUsageMode === 'reception') {
+      if (tempScannedImeis.length === 0) {
+          alert("Aucun IMEI scanné pour cette réception.");
+          return;
+      }
+      if (!currentReceptionDraft || currentReceptionScanIndex === null || !currentReceptionDraft.items[currentReceptionScanIndex]) {
+          alert("Impossible d'associer les IMEI scannés à la commande.");
+          return;
+      }
+      const targetItem = currentReceptionDraft.items[currentReceptionScanIndex];
+      targetItem.imeis = [...tempScannedImeis];
+      targetItem.qtyToReceive = tempScannedImeis.length;
+      renderCommandeReceptionItems();
+      annulerScan();
   }
-  currentApproItemForScan.imeis = tempScannedImeis;
-  currentApproItems.push(currentApproItemForScan);
-  updatePanierApprovisionnement();
-  annulerScan(); // Quitte l'écran de scan
 }
 
 function annulerScan() {
-    window.location.hash = 'approvisionnement';
+    if (scanUsageMode === 'reception') {
+        window.location.hash = 'commande-reception';
+    } else {
+        window.location.hash = 'approvisionnement';
+    }
+    scanUsageMode = 'appro';
+    currentReceptionScanIndex = null;
 }
+
+async function ouvrirReceptionCommande(approId, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    if (!approId) {
+        return;
+    }
+    try {
+        showSaleLoader();
+        const approRef = dbFirestore.collection("approvisionnement").doc(approId);
+        const approSnap = await approRef.get();
+        if (!approSnap.exists) {
+            alert("Commande introuvable.");
+            return;
+        }
+        const data = approSnap.data();
+        if (data.status !== 'commande' && data.status !== 'reception_partielle') {
+            alert("Cette commande est déjà réceptionnée.");
+            return;
+        }
+        currentCommandeReception = { id: approId, ref: approRef, data };
+        const itemsSource = Array.isArray(data.items) ? data.items : [];
+        const itemsDraft = itemsSource.map((item, index) => {
+            const receivedQty = parseFloat(item.receivedQty || 0);
+            const baseRemaining = item.remainingQty != null
+                ? parseFloat(item.remainingQty)
+                : Math.max(0, (parseFloat(item.quantite) || 0) - receivedQty);
+            return {
+                index,
+                produit: item.produit || `Article ${index + 1}`,
+                category: item.category || '',
+                quantiteCommandee: parseFloat(item.quantite) || 0,
+                dejaRecu: receivedQty,
+                restant: baseRemaining,
+                qtyToReceive: 0,
+                unitCost: parseFloat(item.adjustedPrixAchat || item.prixAchat || 0),
+                imeis: [],
+                existingImeis: Array.isArray(item.imeis) ? item.imeis : []
+            };
+        }).filter(item => item.restant > 0);
+
+        currentReceptionDraft = {
+            id: approId,
+            fournisseur: data.fournisseur || 'Fournisseur',
+            orderTotalCost: parseFloat(data.orderTotalCost || data.totalCost || 0),
+            paymentsTotalPaid: parseFloat(data.paymentsTotalPaid || 0),
+            remainingAmount: parseFloat(data.remainingAmount || 0),
+            commandeMeta: data.commandeMeta || {},
+            receptionStats: data.receptionStats || {},
+            receivedTotalCost: parseFloat(data.receivedTotalCost || 0),
+            items: itemsDraft
+        };
+
+        const transportField = document.getElementById("commandeReceptionTransport");
+        if (transportField) transportField.value = '';
+        const notesField = document.getElementById("commandeReceptionNotes");
+        if (notesField) notesField.value = '';
+
+        renderCommandeReceptionSummary();
+        renderCommandeReceptionItems();
+        actualiserTotalReception();
+        window.location.hash = 'commande-reception';
+    } catch (error) {
+        console.error("Erreur lors de l'ouverture de la réception :", error);
+        alert("Impossible de charger la commande : " + error.message);
+    } finally {
+        hideSaleLoader();
+    }
+}
+
+function renderCommandeReceptionSummary() {
+    const summaryEl = document.getElementById("commandeReceptionSummary");
+    if (!summaryEl) {
+        return;
+    }
+    if (!currentReceptionDraft) {
+        summaryEl.innerHTML = "<p>Aucune commande sélectionnée.</p>";
+        return;
+    }
+    const draft = currentReceptionDraft;
+    const stats = draft.receptionStats || {};
+    const totalOrdered = stats.totalOrdered || draft.items.reduce((sum, item) => sum + (parseFloat(item.quantiteCommandee) || 0), 0);
+    const totalReceived = stats.totalReceived || 0;
+    const deposit = parseFloat(draft.paymentsTotalPaid || 0);
+    const outstanding = Math.max(0, (parseFloat(draft.orderTotalCost || 0) - deposit));
+    const expectedDate = draft.commandeMeta && draft.commandeMeta.expectedDate
+        ? new Date(draft.commandeMeta.expectedDate).toLocaleDateString('fr-FR')
+        : 'Non défini';
+
+    summaryEl.innerHTML = `
+        <p><strong>Fournisseur :</strong> ${draft.fournisseur}</p>
+        <p><strong>Commande :</strong> ${totalOrdered} article(s) — Reçu : ${totalReceived}</p>
+        <p><strong>Acompte :</strong> ${deposit.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Solde estimé :</strong> ${outstanding.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Réception prévue :</strong> ${expectedDate}</p>
+    `;
+}
+
+function renderCommandeReceptionItems() {
+    const container = document.getElementById("commandeReceptionItemsContainer");
+    if (!container) {
+        return;
+    }
+    if (!currentReceptionDraft || currentReceptionDraft.items.length === 0) {
+        container.innerHTML = "<p>Aucun article restant à réceptionner.</p>";
+        const submitBtn = document.getElementById("commandeReceptionSubmitBtn");
+        if (submitBtn) submitBtn.disabled = true;
+        actualiserTotalReception();
+        return;
+    }
+
+    let html = '';
+    currentReceptionDraft.items.forEach((item, index) => {
+        const disableInputs = item.restant <= 0;
+        const scanButton = item.category === 'telephones'
+            ? `<button type="button" class="btn-modern secondary" onclick="lancerScanDynamsoftReception(currentReceptionDraft.items[${index}], ${index})"><i data-lucide="smartphone"></i> Scanner IMEI</button>`
+            : '';
+        const imeiInfo = item.category === 'telephones' && item.imeis.length
+            ? `<div class="reception-item-imeis">IMEI : ${item.imeis.join(', ')} <button type="button" onclick="viderImeisReception(${index})">Effacer</button></div>`
+            : '';
+
+        html += `
+        <div class="reception-item" data-index="${index}">
+            <h3>${item.produit}</h3>
+            <div class="reception-item-meta">
+                <span>Commandé : ${item.quantiteCommandee}</span>
+                <span>Déjà reçu : ${item.dejaRecu}</span>
+                <span>Restant : ${item.restant}</span>
+            </div>
+            <div class="reception-item-inputs">
+                <div>
+                    <label>Quantité à réceptionner</label>
+                    <input type="number" min="0" max="${item.restant}" value="${item.qtyToReceive || 0}" ${disableInputs ? 'disabled' : ''} oninput="majQuantiteReception(${index}, this.value)" />
+                </div>
+                <div>
+                    <label>Coût unitaire (FCFA)</label>
+                    <input type="number" min="0" step="100" value="${item.unitCost || 0}" oninput="majPrixReception(${index}, this.value)" />
+                </div>
+            </div>
+            <div class="reception-item-actions">
+                ${scanButton}
+                ${item.category === 'telephones' ? `<span>${item.imeis.length} IMEI scanné(s)</span>` : ''}
+            </div>
+            ${imeiInfo}
+        </div>
+        `;
+    });
+
+    container.innerHTML = html;
+    if (typeof lucide !== 'undefined' && lucide.createIcons) {
+        lucide.createIcons();
+    }
+    actualiserTotalReception();
+}
+
+function majQuantiteReception(index, rawValue) {
+    if (!currentReceptionDraft || !currentReceptionDraft.items[index]) {
+        return;
+    }
+    const item = currentReceptionDraft.items[index];
+    const max = item.restant;
+    let value = parseFloat(rawValue);
+    if (isNaN(value) || value < 0) value = 0;
+    if (value > max) value = max;
+    item.qtyToReceive = value;
+    if (item.category === 'telephones' && Array.isArray(item.imeis) && item.imeis.length > value) {
+        item.imeis = item.imeis.slice(0, value);
+        renderCommandeReceptionItems();
+        return;
+    }
+    actualiserTotalReception();
+}
+
+function majPrixReception(index, rawValue) {
+    if (!currentReceptionDraft || !currentReceptionDraft.items[index]) {
+        return;
+    }
+    const value = parseFloat(rawValue);
+    currentReceptionDraft.items[index].unitCost = isNaN(value) || value < 0 ? 0 : value;
+    actualiserTotalReception();
+}
+
+function viderImeisReception(index) {
+    if (!currentReceptionDraft || !currentReceptionDraft.items[index]) {
+        return;
+    }
+    const item = currentReceptionDraft.items[index];
+    item.imeis = [];
+    if (item.category === 'telephones') {
+        item.qtyToReceive = 0;
+    }
+    renderCommandeReceptionItems();
+}
+
+function actualiserTotalReception() {
+    const totalEl = document.getElementById("commandeReceptionTotal");
+    const submitBtn = document.getElementById("commandeReceptionSubmitBtn");
+    if (!currentReceptionDraft || !totalEl) {
+        if (totalEl) totalEl.textContent = "0 FCFA";
+        if (submitBtn) submitBtn.disabled = true;
+        return;
+    }
+    let total = 0;
+    let hasQuantity = false;
+    currentReceptionDraft.items.forEach(item => {
+        const qty = parseFloat(item.qtyToReceive) || 0;
+        const unitCost = parseFloat(item.unitCost) || 0;
+        if (qty > 0) {
+            hasQuantity = true;
+        }
+        total += qty * unitCost;
+    });
+    totalEl.textContent = `${total.toLocaleString('fr-FR')} FCFA`;
+    if (submitBtn) submitBtn.disabled = !hasQuantity;
+}
+
+function resetCommandeReceptionUI() {
+    const summaryEl = document.getElementById("commandeReceptionSummary");
+    const itemsEl = document.getElementById("commandeReceptionItemsContainer");
+    const totalEl = document.getElementById("commandeReceptionTotal");
+    const submitBtn = document.getElementById("commandeReceptionSubmitBtn");
+    if (summaryEl) summaryEl.innerHTML = "<p>Aucune commande sélectionnée.</p>";
+    if (itemsEl) itemsEl.innerHTML = "";
+    if (totalEl) totalEl.textContent = "0 FCFA";
+    if (submitBtn) submitBtn.disabled = true;
+    currentReceptionDraft = null;
+    currentCommandeReception = null;
+}
+
+function fermerReceptionCommande() {
+    resetCommandeReceptionUI();
+    window.location.hash = 'approvisionnement-historique';
+}
+
+async function soumettreReceptionCommande() {
+    if (!currentReceptionDraft || !currentCommandeReception) {
+        alert("Aucune commande à réceptionner.");
+        return;
+    }
+    const itemsToReceive = currentReceptionDraft.items
+        .filter(item => (parseFloat(item.qtyToReceive) || 0) > 0)
+        .map(item => ({ ...item, qtyToReceive: parseFloat(item.qtyToReceive) || 0 }));
+
+    if (itemsToReceive.length === 0) {
+        alert("Sélectionnez au moins un article à réceptionner.");
+        return;
+    }
+
+    const missingImeis = itemsToReceive.some(item => item.category === 'telephones' && (!item.imeis || item.imeis.length !== item.qtyToReceive));
+    if (missingImeis) {
+        alert("Assurez-vous d'avoir scanné les IMEI pour tous les téléphones réceptionnés.");
+        return;
+    }
+
+    const user = firebase.auth().currentUser;
+    if (!user) {
+        alert("Votre session a expiré. Merci de vous reconnecter.");
+        return;
+    }
+
+    const transportCost = parseFloat(document.getElementById("commandeReceptionTransport").value) || 0;
+    const notes = document.getElementById("commandeReceptionNotes").value.trim();
+
+    const receptionMap = new Map(itemsToReceive.map(item => [item.index, item]));
+    const stockOperations = new Map();
+    try {
+        showSaleLoader();
+        for (const item of itemsToReceive) {
+            const stockQuery = await dbFirestore.collection("stock")
+                .where("name", "==", item.produit)
+                .limit(1)
+                .get();
+            if (stockQuery.empty) {
+                stockOperations.set(item.index, {
+                    docRef: dbFirestore.collection("stock").doc(),
+                    existingData: null,
+                    isNew: true,
+                    produit: item.produit,
+                    category: item.category
+                });
+            } else {
+                const doc = stockQuery.docs[0];
+                stockOperations.set(item.index, {
+                    docRef: doc.ref,
+                    existingData: doc.data(),
+                    isNew: false,
+                    produit: item.produit,
+                    category: item.category
+                });
+            }
+        }
+
+        await dbFirestore.runTransaction(async tx => {
+            const approRef = currentCommandeReception.ref || dbFirestore.collection("approvisionnement").doc(currentReceptionDraft.id);
+            const approSnap = await tx.get(approRef);
+            if (!approSnap.exists) {
+                throw new Error("Commande introuvable en base.");
+            }
+            const approData = approSnap.data();
+            if (approData.status === 'reçu') {
+                throw new Error("Cette commande est déjà enregistrée comme reçue.");
+            }
+
+            const updatedItems = Array.isArray(approData.items) ? approData.items.map(item => ({ ...item })) : [];
+            const stats = approData.receptionStats || {};
+            let totalRemainingAfter = 0;
+            let totalReceivedThisRun = 0;
+            let receptionValue = 0;
+            const orderTotalCost = parseFloat(approData.orderTotalCost || approData.totalCost || 0);
+            const paymentsTotal = parseFloat(approData.paymentsTotalPaid || 0);
+            const existingReceivedTotalCost = parseFloat(approData.receivedTotalCost || 0);
+            let totalCostValue = parseFloat(approData.totalCost || 0);
+            const serverTs = firebase.firestore.FieldValue.serverTimestamp();
+            const receptionRecord = {
+                timestamp: serverTs,
+                utilisateurUid: user.uid,
+                utilisateurNom: user.displayName || user.email || 'Utilisateur',
+                totalValue: 0,
+                transportCost: transportCost,
+                notes: notes || '',
+                lignes: []
+            };
+
+            updatedItems.forEach((orderItem, idx) => {
+                const draftItem = receptionMap.get(idx);
+                const previousReceived = parseFloat(orderItem.receivedQty || 0);
+                const previousRemaining = orderItem.remainingQty != null
+                    ? parseFloat(orderItem.remainingQty)
+                    : Math.max(0, (parseFloat(orderItem.quantite) || 0) - previousReceived);
+                let newRemaining = previousRemaining;
+
+                if (draftItem && draftItem.qtyToReceive > 0) {
+                    const receptionQty = draftItem.qtyToReceive;
+                    const unitCost = parseFloat(draftItem.unitCost) || 0;
+                    newRemaining = Math.max(0, previousRemaining - receptionQty);
+                    const newReceived = previousReceived + receptionQty;
+
+                    orderItem.receivedQty = newReceived;
+                    orderItem.remainingQty = newRemaining;
+                    orderItem.adjustedPrixAchat = unitCost;
+                    if (!Array.isArray(orderItem.imeis)) {
+                        orderItem.imeis = [];
+                    }
+                    if (draftItem.imeis && draftItem.imeis.length > 0) {
+                        orderItem.imeis = Array.from(new Set([...orderItem.imeis, ...draftItem.imeis]));
+                    }
+
+                    totalReceivedThisRun += receptionQty;
+                    receptionValue += receptionQty * unitCost;
+                    receptionRecord.lignes.push({
+                        produit: draftItem.produit,
+                        quantite: receptionQty,
+                        unitCost: unitCost,
+                        imeis: draftItem.imeis || []
+                    });
+
+                    const stockOp = stockOperations.get(idx);
+                    if (stockOp) {
+                        const stockDocRef = stockOp.docRef;
+                        const stockData = stockOp.existingData || {
+                            stock: 0,
+                            price: unitCost,
+                            category: orderItem.category || stockOp.category || 'telephones',
+                            name: draftItem.produit
+                        };
+                        const oldStock = parseFloat(stockData.stock || 0);
+                        const oldPrice = parseFloat(stockData.price || 0);
+                        const newStock = oldStock + receptionQty;
+                        const newAveragePrice = newStock > 0 ? ((oldStock * oldPrice) + (receptionQty * unitCost)) / newStock : unitCost;
+
+                        if (stockOp.isNew) {
+                            tx.set(stockDocRef, {
+                                name: draftItem.produit,
+                                category: stockData.category,
+                                stock: newStock,
+                                price: newAveragePrice,
+                                createdAt: serverTs
+                            });
+                        } else {
+                            tx.update(stockDocRef, {
+                                stock: newStock,
+                                price: newAveragePrice
+                            });
+                        }
+
+                        const historyRef = stockDocRef.collection("history").doc();
+                        tx.set(historyRef, {
+                            timestamp: serverTs,
+                            change: receptionQty,
+                            newStock: newStock,
+                            type: 'approvisionnement-reception',
+                            costOfChange: receptionQty * unitCost,
+                            sourceApproId: approRef.id
+                        });
+
+                        if ((draftItem.category === 'telephones' || orderItem.category === 'telephones') && draftItem.imeis && draftItem.imeis.length > 0) {
+                            draftItem.imeis.forEach(imei => {
+                                const imeiDocRef = stockDocRef.collection("imeis").doc(imei);
+                                tx.set(imeiDocRef, {
+                                    status: "disponible",
+                                    dateEntree: serverTs,
+                                    source: approRef.id
+                                });
+                            });
+                        }
+                    }
+                }
+
+                totalRemainingAfter += newRemaining;
+            });
+
+            if (totalReceivedThisRun <= 0) {
+                throw new Error("Aucune quantité valide à réceptionner.");
+            }
+
+            receptionRecord.totalValue = receptionValue;
+
+            const totalOrdered = stats.totalOrdered || updatedItems.reduce((sum, itm) => sum + (parseFloat(itm.quantite) || 0), 0);
+            const newTotalReceived = (stats.totalReceived || 0) + totalReceivedThisRun;
+            const newStats = {
+                totalOrdered,
+                totalReceived: newTotalReceived,
+                totalRemaining: totalRemainingAfter
+            };
+            const newStatus = totalRemainingAfter > 0 ? 'reception_partielle' : 'reçu';
+            const newReceivedTotalCost = existingReceivedTotalCost + receptionValue;
+            const newTotalCostValue = totalCostValue + receptionValue;
+            const newRemainingAmount = Math.max(0, (orderTotalCost || newTotalCostValue) - paymentsTotal);
+            const paymentMethodResolved = newStatus === 'commande'
+                ? (approData.paymentMethod || 'commande')
+                : (newRemainingAmount > 0 ? 'credit' : 'paid');
+
+            tx.update(approRef, {
+                items: updatedItems,
+                receptionStats: newStats,
+                status: newStatus,
+                receivedTotalCost: newReceivedTotalCost,
+                totalCost: newTotalCostValue,
+                remainingAmount: newRemainingAmount,
+                paymentMethod: paymentMethodResolved,
+                isPaid: newRemainingAmount <= 0
+            });
+
+            const receptionsRef = approRef.collection("receptions").doc();
+            tx.set(receptionsRef, receptionRecord);
+        });
+
+        if (transportCost > 0) {
+            const transportExpenseCompteId = 'caisse';
+            const now = new Date();
+            await dbFirestore.collection("depenses").doc().set({
+                montant: transportCost,
+                description: `Frais transport réception ${currentReceptionDraft.fournisseur}`,
+                type: "depense fonctionnelle",
+                timestamp: now.getTime(),
+                date: now.toISOString(),
+                compteId: transportExpenseCompteId,
+                refId: currentReceptionDraft.id
+            });
+            await enregistrerMouvementTresorerie({
+                compteId: transportExpenseCompteId,
+                type: 'frais_transport_appro',
+                sens: 'out',
+                montant: transportCost,
+                description: `Frais transport réception ${currentReceptionDraft.fournisseur}`,
+                refId: currentReceptionDraft.id
+            });
+        }
+
+        alert("Réception enregistrée avec succès.");
+        const activeTab = document.getElementById('purchase-tabs');
+        chargerApprovisionnements(activeTab ? (activeTab.value || 'all') : 'all');
+        updateStockSummary();
+        updateBalanceDisplay();
+        resetCommandeReceptionUI();
+        window.location.hash = 'approvisionnement-historique';
+    } catch (error) {
+        console.error("Erreur lors de la réception :", error);
+        alert("Erreur lors de la réception : " + error.message);
+    } finally {
+        hideSaleLoader();
+    }
+}
+
 </script>
 
 
@@ -9199,7 +10180,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail']);
+      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -9316,6 +10297,10 @@ case 'article-detail':
     case 'rapports':
       // Appeler la fonction qui met à jour la section "Rapports & Statistiques"
       updateRapports();
+      break;
+    case 'commande-reception':
+      renderCommandeReceptionSummary();
+      renderCommandeReceptionItems();
       break;
 
      case 'depots-fournisseurs':
