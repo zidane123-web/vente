@@ -2327,6 +2327,11 @@ function generateInvoicePDF(sale) {
       <label for="commandeReceptionTransport">Frais de transport (FCFA)</label>
       <input type="number" id="commandeReceptionTransport" min="0" step="100" placeholder="0" />
 
+      <label for="compteSelectCommandeReceptionTransport">Compte utilisé pour le transport</label>
+      <select id="compteSelectCommandeReceptionTransport">
+        <option value="">-- Sélectionner un compte --</option>
+      </select>
+
       <label for="commandeReceptionNotes">Notes internes</label>
       <textarea id="commandeReceptionNotes" rows="3" placeholder="Commentaires sur la réception (optionnel)"></textarea>
     </div>
@@ -4416,6 +4421,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fraisTransportField) {
             fraisTransportField.value = "";
         }
+        const transportAccountField = document.getElementById("compteSelectTransportAppro");
+        if (transportAccountField) {
+            transportAccountField.value = "";
+        }
 
         const purchaseTypeSelect = document.getElementById("typeAchatAppro");
         if (purchaseTypeSelect) {
@@ -6029,8 +6038,14 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
                placeholder="Saisir les frais de transport"
                min="0"
                oninput="updatePanierApprovisionnement()">
-               </div>
-    
+    </div>
+    <div class="input-group" style="margin-bottom: 15px;">
+        <label for="compteSelectTransportAppro">Compte utilisé pour le transport</label>
+        <select id="compteSelectTransportAppro">
+            <option value="">-- Sélectionner un compte --</option>
+        </select>
+    </div>
+
     <div id="purchasePaymentSection" class="purchase-payment-section">
         <label id="purchasePaymentStatusLabel" for="purchasePaymentStatus">Achat réglé ? <span style="color: #d9534f;">*</span></label>
         <select id="purchasePaymentStatus" required>
@@ -6795,6 +6810,8 @@ function retirerApproItem(index) {
     const typeAchat = document.getElementById("typeAchatAppro").value;
     const fournisseur = currentApproItems[0].fournisseur;
     const fraisTransport = parseFloat(document.getElementById("fraisTransportAppro").value) || 0;
+    const transportCompteSelect = document.getElementById("compteSelectTransportAppro");
+    const transportCompteId = transportCompteSelect ? transportCompteSelect.value : '';
     const commandeDatePrevue = document.getElementById("commandeDatePrevue") ? document.getElementById("commandeDatePrevue").value : '';
     const commandeReference = document.getElementById("commandeReference") ? document.getElementById("commandeReference").value.trim() : '';
     const commandeNotes = document.getElementById("commandeNotes") ? document.getElementById("commandeNotes").value.trim() : '';
@@ -6813,6 +6830,11 @@ function retirerApproItem(index) {
         if (!paymentStats.valid) {
             return;
         }
+    }
+
+    if (typeAchat !== 'commande' && fraisTransport > 0 && !transportCompteId) {
+        alert("Sélectionnez le compte de trésorerie utilisé pour les frais de transport.");
+        return;
     }
 
     showSaleLoader();
@@ -7027,7 +7049,8 @@ function retirerApproItem(index) {
 
         // La gestion des frais de transport reste la même, car c'est une dépense réelle
         if (typeAchat !== 'commande' && fraisTransport > 0) {
-            const transportExpenseCompteId = 'caisse';
+            const transportExpenseCompteId = transportCompteId;
+            const transportCompteNom = getCompteNomById(transportExpenseCompteId);
             const transportDepenseRef = dbFirestore.collection("depenses").doc();
 
             batch.set(transportDepenseRef, {
@@ -7037,6 +7060,7 @@ function retirerApproItem(index) {
                 timestamp: now.getTime(),
                 date: now.toISOString(),
                 compteId: transportExpenseCompteId,
+                compteNom: transportCompteNom,
                 refId: approRef.id
             });
 
@@ -7343,6 +7367,19 @@ async function recordCreditPayment(approId, outstandingAmount) {
       border-radius: 8px;
       font-size: 15px;
       resize: vertical;
+  }
+  #screen-commande-reception select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d0d5dd;
+      border-radius: 8px;
+      background-color: #fff;
+      font-size: 15px;
+  }
+  #screen-commande-reception select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(56, 128, 255, 0.2);
   }
 </style>
 
@@ -7940,6 +7977,10 @@ async function ouvrirReceptionCommande(approId, event) {
         renderCommandeReceptionSummary();
         renderCommandeReceptionItems();
         actualiserTotalReception();
+        const receptionTransportSelect = document.getElementById("compteSelectCommandeReceptionTransport");
+        if (receptionTransportSelect) {
+            remplirTousSelectComptes(receptionTransportSelect);
+        }
         window.location.hash = 'commande-reception';
     } catch (error) {
         console.error("Erreur lors de l'ouverture de la réception :", error);
@@ -8104,6 +8145,12 @@ function resetCommandeReceptionUI() {
     if (itemsEl) itemsEl.innerHTML = "";
     if (totalEl) totalEl.textContent = "0 FCFA";
     if (submitBtn) submitBtn.disabled = true;
+    const transportInput = document.getElementById("commandeReceptionTransport");
+    if (transportInput) transportInput.value = "";
+    const transportAccount = document.getElementById("compteSelectCommandeReceptionTransport");
+    if (transportAccount) transportAccount.value = "";
+    const notesField = document.getElementById("commandeReceptionNotes");
+    if (notesField) notesField.value = "";
     currentReceptionDraft = null;
     currentCommandeReception = null;
 }
@@ -8140,7 +8187,14 @@ async function soumettreReceptionCommande() {
     }
 
     const transportCost = parseFloat(document.getElementById("commandeReceptionTransport").value) || 0;
+    const transportAccountSelect = document.getElementById("compteSelectCommandeReceptionTransport");
+    const transportAccountId = transportAccountSelect ? transportAccountSelect.value : '';
     const notes = document.getElementById("commandeReceptionNotes").value.trim();
+
+    if (transportCost > 0 && !transportAccountId) {
+        alert("Sélectionnez le compte utilisé pour régler les frais de transport de la réception.");
+        return;
+    }
 
     const receptionMap = new Map(itemsToReceive.map(item => [item.index, item]));
     const stockOperations = new Map();
@@ -8327,7 +8381,8 @@ async function soumettreReceptionCommande() {
         });
 
         if (transportCost > 0) {
-            const transportExpenseCompteId = 'caisse';
+            const transportExpenseCompteId = transportAccountId;
+            const transportCompteNom = getCompteNomById(transportExpenseCompteId);
             const now = new Date();
             await dbFirestore.collection("depenses").doc().set({
                 montant: transportCost,
@@ -8336,6 +8391,7 @@ async function soumettreReceptionCommande() {
                 timestamp: now.getTime(),
                 date: now.toISOString(),
                 compteId: transportExpenseCompteId,
+                compteNom: transportCompteNom,
                 refId: currentReceptionDraft.id
             });
             await enregistrerMouvementTresorerie({
