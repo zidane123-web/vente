@@ -3358,9 +3358,12 @@ async function chargerApprovisionnements(statusFilter = 'all') {
             let totalPendingOrders = 0;
             commandes.forEach(appro => {
                 const totalOrderCost = parseFloat(appro.orderTotalCost || appro.totalCost || 0);
-                totalPendingOrders += totalOrderCost;
-                const depositPaid = parseFloat(appro.paymentsTotalPaid || 0);
-                const outstanding = Math.max(0, totalOrderCost - depositPaid);
+                const receivedValue = parseFloat(appro.receivedTotalCost || 0);
+                const paidValue = parseFloat(appro.paymentsTotalPaid || 0);
+                const goodsRemainingValue = Math.max(0, totalOrderCost - receivedValue);
+                totalPendingOrders += goodsRemainingValue;
+                const advanceValue = Math.max(0, paidValue - receivedValue);
+                const paymentDue = Math.max(0, receivedValue - paidValue);
                 const timestamp = appro.timestamp instanceof firebase.firestore.Timestamp ? appro.timestamp.toDate() : new Date(appro.timestamp);
                 const dateAppro = timestamp.toLocaleString("fr-FR", { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
                 const expectedDateRaw = appro.commandeMeta && appro.commandeMeta.expectedDate ? new Date(appro.commandeMeta.expectedDate) : null;
@@ -3382,13 +3385,16 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                 const totalReceived = receptionStats.totalReceived || 0;
                 const statusClass = appro.status === 'commande' ? 'status-commande' : 'status-partial';
                 const statusLabel = appro.status === 'commande' ? 'À recevoir' : 'Réception partielle';
-                const outstandingColor = outstanding > 0 ? '#f39c12' : '#2e7d32';
-                const depositLine = depositPaid > 0 ? `<div class="purchase-date">Acompte : ${depositPaid.toLocaleString('fr-FR')} FCFA</div>` : '';
-                const outstandingLine = `<div class="purchase-date" style="color: ${outstandingColor};">Solde : ${outstanding.toLocaleString('fr-FR')} FCFA</div>`;
+                const goodsRemainingLine = goodsRemainingValue > 0 ? `<div class="purchase-date">À recevoir : ${goodsRemainingValue.toLocaleString('fr-FR')} FCFA</div>` : '';
+                const advanceLine = advanceValue > 0 ? `<div class="purchase-date" style="color:#2e7d32;">Avance fournisseur : ${advanceValue.toLocaleString('fr-FR')} FCFA</div>` : '';
+                const paymentDueLine = paymentDue > 0 ? `<div class="purchase-date" style="color:#f04141;">Solde à payer : ${paymentDue.toLocaleString('fr-FR')} FCFA</div>` : '';
                 const expectedLine = expectedDateDisplay ? `<div class="purchase-date">Prévu : ${expectedDateDisplay}</div>` : '';
                 const receptionLine = appro.status === 'commande'
                     ? `<div class="purchase-date">Commandé : ${totalOrdered}</div>`
                     : `<div class="purchase-date">Réception : ${totalReceived}/${totalOrdered}</div>`;
+                const receivedValueLine = receivedValue > 0 ? `<div class="purchase-date">Reçu : ${receivedValue.toLocaleString('fr-FR')} FCFA</div>` : '';
+                const financialLabel = advanceValue > 0 ? 'Avance fournisseur' : (paymentDue > 0 ? 'À payer' : statusLabel);
+                const supplierNameEncoded = encodeURIComponent(supplierName);
 
                 const slidingItem = document.createElement('ion-item-sliding');
                 slidingItem.innerHTML = `
@@ -3401,14 +3407,16 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                                 <div class="purchase-date">${dateAppro}</div>
                                 <div class="item-list-container" style="margin-top: 5px;">${itemsHtml}</div>
                                 ${expectedLine}
-                                ${depositLine}
-                                ${outstandingLine}
+                                ${receivedValueLine}
+                                ${advanceLine}
+                                ${paymentDueLine}
+                                ${goodsRemainingLine}
                                 ${receptionLine}
                                 <ion-badge color="${appro.status === 'commande' ? 'warning' : 'tertiary'}" style="margin-top:6px;">${statusLabel}</ion-badge>
                             </div>
                             <div class="right-info">
                                 <div class="total-amount">XOF ${totalOrderCost.toLocaleString('fr-FR')}</div>
-                                <div class="payment-method">${statusLabel}</div>
+                                <div class="payment-method">${financialLabel}</div>
                             </div>
                         </div>
                     </ion-label>
@@ -3420,6 +3428,14 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                       <ion-icon slot="icon-only" name="download-outline"></ion-icon>
                       Réceptionner
                     </ion-item-option>
+                    <ion-item-option color="medium" expandable onclick="ouvrirFournisseurBalance(decodeURIComponent('${supplierNameEncoded}'), event)">
+                      <ion-icon slot="icon-only" name="person-circle-outline"></ion-icon>
+                      Détails
+                    </ion-item-option>
+                    <ion-item-option color="danger" expandable onclick="annulerCommandeFournisseur('${appro.id}', event)">
+                      <ion-icon slot="icon-only" name="close-circle-outline"></ion-icon>
+                      Annuler
+                    </ion-item-option>
                   </ion-item-options>
                 `;
 
@@ -3427,7 +3443,7 @@ async function chargerApprovisionnements(statusFilter = 'all') {
                 container.appendChild(slidingItem);
             });
 
-            document.getElementById("totalPurchaseCost").innerText = `Total commandes en attente : ${totalPendingOrders.toLocaleString('fr-FR')} FCFA`;
+            document.getElementById("totalPurchaseCost").innerText = `Valeur restante à recevoir : ${totalPendingOrders.toLocaleString('fr-FR')} FCFA`;
             return;
         } else if (statusFilter === 'credit') {
             snapshot = await query.orderBy("timestamp", "desc").get(); // Fetch all for client-side aggregation
@@ -6039,7 +6055,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
                min="0"
                oninput="updatePanierApprovisionnement()">
     </div>
-    <div class="input-group" style="margin-bottom: 15px;">
+    <div class="input-group" id="transportCompteApproGroup" style="margin-bottom: 15px;">
         <label for="compteSelectTransportAppro">Compte utilisé pour le transport</label>
         <select id="compteSelectTransportAppro">
             <option value="">-- Sélectionner un compte --</option>
@@ -6513,6 +6529,8 @@ function handlePurchaseTypeChange() {
     const statusSelect = document.getElementById("purchasePaymentStatus");
     const paymentLabel = document.getElementById("purchasePaymentStatusLabel");
     const commandeFields = document.getElementById("commandeAdditionalFields");
+    const transportGroup = document.getElementById("transportCompteApproGroup");
+    const transportSelect = document.getElementById("compteSelectTransportAppro");
 
     if (!typeSelect || !paymentSection) {
         return;
@@ -6522,6 +6540,22 @@ function handlePurchaseTypeChange() {
 
     if (commandeFields) {
         commandeFields.style.display = currentType === 'commande' ? 'block' : 'none';
+    }
+
+    if (transportGroup) {
+        if (currentType === 'commande') {
+            transportGroup.style.display = 'none';
+        } else {
+            transportGroup.style.display = 'block';
+        }
+    }
+    if (transportSelect) {
+        if (currentType === 'commande') {
+            transportSelect.value = '';
+            transportSelect.disabled = true;
+        } else {
+            transportSelect.disabled = false;
+        }
     }
 
     if (paymentLabel) {
@@ -6936,6 +6970,7 @@ function retirerApproItem(index) {
         };
 
         approData.totalCost = typeAchat === 'commande' ? 0 : totalCostFromSupplier;
+        approData.transportCompteId = transportCompteId || null;
         if (typeAchat === 'commande') {
             const totalOrderedUnits = finalItemsForFirestore.reduce((acc, it) => acc + (parseFloat(it.quantite) || 0), 0);
             approData.orderTotalCost = totalCostFromSupplier;
@@ -6951,6 +6986,8 @@ function retirerApproItem(index) {
                 notes: commandeNotes || '',
                 partialAllowed: !!commandeAllowPartial
             };
+        } else {
+            approData.receivedTotalCost = totalCostFromSupplier;
         }
         approData.paymentsDetails = [];
         approData.paymentsTotalPaid = 0;
@@ -7017,6 +7054,10 @@ function retirerApproItem(index) {
             approData.paymentMethod = 'credit';
             approData.remainingAmount = totalCostFromSupplier;
         }
+        if (typeof approData.receivedTotalCost === 'undefined') {
+            approData.receivedTotalCost = typeAchat === 'commande' ? 0 : totalCostFromSupplier;
+        }
+        approData.netSupplierBalance = (approData.paymentsTotalPaid || 0) - (approData.receivedTotalCost || 0);
 
         batch.set(approRef, approData);
 
@@ -7383,6 +7424,183 @@ async function recordCreditPayment(approId, outstandingAmount) {
   }
 </style>
 
+<section id="screen-fournisseur-balance" class="screen">
+  <header>
+    <button class="back-btn" onclick="window.location.hash='approvisionnement-historique'">
+      <i data-lucide="arrow-left"></i> Retour
+    </button>
+    <h1 id="supplierBalanceTitle">Fournisseur</h1>
+  </header>
+
+  <div class="supplier-balance-content">
+    <div class="balance-summary-grid">
+      <div class="balance-card">
+        <span class="label">Total payé</span>
+        <span class="value" id="supplierBalanceTotalPaid">0 FCFA</span>
+      </div>
+      <div class="balance-card">
+        <span class="label">Valeur reçue</span>
+        <span class="value" id="supplierBalanceReceived">0 FCFA</span>
+      </div>
+      <div class="balance-card">
+        <span class="label">À recevoir (valeur)</span>
+        <span class="value" id="supplierBalanceToReceive">0 FCFA</span>
+      </div>
+      <div class="balance-card positive">
+        <span class="label">Avance chez le fournisseur</span>
+        <span class="value" id="supplierBalanceAdvance">0 FCFA</span>
+      </div>
+      <div class="balance-card negative">
+        <span class="label">Solde à payer</span>
+        <span class="value" id="supplierBalanceDue">0 FCFA</span>
+      </div>
+    </div>
+
+    <div class="balance-details-card">
+      <h2>Commandes & réceptions</h2>
+      <div id="supplierBalanceOrders" class="orders-list">
+        <p class="placeholder">Chargement...</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  #screen-fournisseur-balance {
+      background: #f5f7fa;
+      padding: 10px;
+  }
+  #screen-fournisseur-balance header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+  }
+  #screen-fournisseur-balance h1 {
+      font-size: 20px;
+      margin: 0;
+      color: var(--primary-color);
+  }
+  .supplier-balance-content {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding-bottom: 60px;
+  }
+  .balance-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+  }
+  .balance-card {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+  }
+  .balance-card .label {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+  }
+  .balance-card .value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1f2933;
+  }
+  .balance-card.positive .value {
+      color: #2e7d32;
+  }
+  .balance-card.negative .value {
+      color: #f04141;
+  }
+  .balance-details-card {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 16px;
+  }
+  .balance-details-card h2 {
+      margin-top: 0;
+      font-size: 18px;
+      color: #1f2933;
+  }
+  .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+  }
+  .orders-list .placeholder {
+      color: #6b7280;
+      text-align: center;
+      margin: 0;
+  }
+  .supplier-order-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+  }
+  .supplier-order-card header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+  }
+  .supplier-order-card header h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #111827;
+  }
+  .supplier-order-card header span {
+      font-size: 13px;
+      color: #6b7280;
+  }
+  .supplier-order-card .order-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 13px;
+      color: #4b5563;
+  }
+  .supplier-order-card .order-amounts {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+  }
+  .supplier-order-card .order-amounts span strong {
+      color: #111827;
+  }
+  .supplier-order-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+  }
+  .supplier-order-chip.partial {
+      background: #ede9fe;
+      color: #5b21b6;
+  }
+  .supplier-order-chip.completed {
+      background: #dcfce7;
+      color: #166534;
+  }
+</style>
+
 <section id="screen-depots-fournisseurs" class="screen">
   <ion-app>
     <div id="fournisseurs-hub-list">
@@ -7461,6 +7679,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
   <script>
  // Variable globale pour stocker les données du fournisseur actuellement consulté
 let currentSupplierDetailData = null;
+let currentSupplierBalanceData = null;
 
 /**
  * Gère l'affichage principal du Hub Dépôts.
@@ -8004,7 +8223,11 @@ function renderCommandeReceptionSummary() {
     const totalOrdered = stats.totalOrdered || draft.items.reduce((sum, item) => sum + (parseFloat(item.quantiteCommandee) || 0), 0);
     const totalReceived = stats.totalReceived || 0;
     const deposit = parseFloat(draft.paymentsTotalPaid || 0);
-    const outstanding = Math.max(0, (parseFloat(draft.orderTotalCost || 0) - deposit));
+    const receivedValue = parseFloat(draft.receivedTotalCost || 0);
+    const orderValue = parseFloat(draft.orderTotalCost || receivedValue || 0);
+    const goodsRemainingValue = Math.max(0, orderValue - receivedValue);
+    const advanceValue = Math.max(0, deposit - receivedValue);
+    const paymentDue = Math.max(0, receivedValue - deposit);
     const expectedDate = draft.commandeMeta && draft.commandeMeta.expectedDate
         ? new Date(draft.commandeMeta.expectedDate).toLocaleDateString('fr-FR')
         : 'Non défini';
@@ -8012,8 +8235,11 @@ function renderCommandeReceptionSummary() {
     summaryEl.innerHTML = `
         <p><strong>Fournisseur :</strong> ${draft.fournisseur}</p>
         <p><strong>Commande :</strong> ${totalOrdered} article(s) — Reçu : ${totalReceived}</p>
-        <p><strong>Acompte :</strong> ${deposit.toLocaleString('fr-FR')} FCFA</p>
-        <p><strong>Solde estimé :</strong> ${outstanding.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Valeur reçue :</strong> ${receivedValue.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Valeur restante :</strong> ${goodsRemainingValue.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Acompte versé :</strong> ${deposit.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Avance fournisseur :</strong> ${advanceValue.toLocaleString('fr-FR')} FCFA</p>
+        <p><strong>Solde à payer :</strong> ${paymentDue.toLocaleString('fr-FR')} FCFA</p>
         <p><strong>Réception prévue :</strong> ${expectedDate}</p>
     `;
 }
@@ -8364,6 +8590,7 @@ async function soumettreReceptionCommande() {
             const paymentMethodResolved = newStatus === 'commande'
                 ? (approData.paymentMethod || 'commande')
                 : (newRemainingAmount > 0 ? 'credit' : 'paid');
+            receptionRecord.balanceAfter = paymentsTotal - newReceivedTotalCost;
 
             tx.update(approRef, {
                 items: updatedItems,
@@ -8373,7 +8600,8 @@ async function soumettreReceptionCommande() {
                 totalCost: newTotalCostValue,
                 remainingAmount: newRemainingAmount,
                 paymentMethod: paymentMethodResolved,
-                isPaid: newRemainingAmount <= 0
+                isPaid: newRemainingAmount <= 0,
+                netSupplierBalance: (approData.paymentsTotalPaid || 0) - newReceivedTotalCost
             });
 
             const receptionsRef = approRef.collection("receptions").doc();
@@ -8414,6 +8642,240 @@ async function soumettreReceptionCommande() {
     } catch (error) {
         console.error("Erreur lors de la réception :", error);
         alert("Erreur lors de la réception : " + error.message);
+    } finally {
+        hideSaleLoader();
+    }
+}
+
+async function ouvrirFournisseurBalance(supplierName, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    if (!supplierName) {
+        return;
+    }
+    try {
+        showSaleLoader();
+        const snapshot = await dbFirestore.collection("approvisionnement").where("fournisseur", "==", supplierName).get();
+        const orders = [];
+        let totalPaid = 0;
+        let totalReceived = 0;
+        let totalOrderExpected = 0;
+        let totalAdvance = 0;
+        let totalDue = 0;
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.status === 'annulé') {
+                return;
+            }
+            const orderValue = parseFloat(data.orderTotalCost || data.totalCost || 0);
+            const receivedValue = parseFloat(data.receivedTotalCost || data.totalCost || 0);
+            const paidValue = parseFloat(data.paymentsTotalPaid || 0);
+            const goodsRemaining = Math.max(0, orderValue - receivedValue);
+            const advanceValue = Math.max(0, paidValue - receivedValue);
+            const paymentDue = Math.max(0, receivedValue - paidValue);
+            totalOrderExpected += orderValue;
+            totalReceived += receivedValue;
+            totalPaid += paidValue;
+            totalAdvance += advanceValue;
+            totalDue += paymentDue;
+            const timestamp = data.timestamp instanceof firebase.firestore.Timestamp
+                ? data.timestamp.toDate()
+                : (data.timestamp ? new Date(data.timestamp) : new Date());
+            const expectedDate = data.commandeMeta && data.commandeMeta.expectedDate ? data.commandeMeta.expectedDate : null;
+            orders.push({
+                id: doc.id,
+                status: data.status || 'commande',
+                typeAchat: data.typeAchat || 'commande',
+                orderValue,
+                receivedValue,
+                goodsRemaining,
+                paidValue,
+                advanceValue,
+                paymentDue,
+                expectedDate,
+                timestamp,
+                reference: data.commandeMeta && data.commandeMeta.reference ? data.commandeMeta.reference : doc.id.substring(0, 6).toUpperCase(),
+                receptionStats: data.receptionStats || {}
+            });
+        });
+
+        orders.sort((a, b) => b.timestamp - a.timestamp);
+        const goodsRemainingValue = Math.max(0, totalOrderExpected - totalReceived);
+        currentSupplierBalanceData = {
+            name: supplierName,
+            totalPaid,
+            totalReceived,
+            totalOrderExpected,
+            goodsRemainingValue,
+            advanceBalance: totalAdvance,
+            totalDue,
+            orders
+        };
+        renderSupplierBalanceScreen();
+        window.location.hash = 'fournisseur-balance';
+    } catch (error) {
+        console.error("Erreur chargement balance fournisseur :", error);
+        alert("Impossible de charger la balance fournisseur : " + error.message);
+    } finally {
+        hideSaleLoader();
+    }
+}
+
+function renderSupplierBalanceScreen() {
+    const titleEl = document.getElementById('supplierBalanceTitle');
+    const totalPaidEl = document.getElementById('supplierBalanceTotalPaid');
+    const totalReceivedEl = document.getElementById('supplierBalanceReceived');
+    const toReceiveEl = document.getElementById('supplierBalanceToReceive');
+    const advanceEl = document.getElementById('supplierBalanceAdvance');
+    const dueEl = document.getElementById('supplierBalanceDue');
+    const ordersContainer = document.getElementById('supplierBalanceOrders');
+
+    if (!titleEl || !totalPaidEl || !totalReceivedEl || !toReceiveEl || !advanceEl || !dueEl || !ordersContainer) {
+        return;
+    }
+    const formatValue = (value) => (Math.round(value || 0)).toLocaleString('fr-FR');
+
+    if (!currentSupplierBalanceData) {
+        titleEl.textContent = 'Fournisseur';
+        totalPaidEl.textContent = `${formatValue(0)} FCFA`;
+        totalReceivedEl.textContent = `${formatValue(0)} FCFA`;
+        toReceiveEl.textContent = `${formatValue(0)} FCFA`;
+        advanceEl.textContent = `${formatValue(0)} FCFA`;
+        dueEl.textContent = `${formatValue(0)} FCFA`;
+        ordersContainer.innerHTML = '<p class="placeholder">Aucun historique.</p>';
+        return;
+    }
+
+    const data = currentSupplierBalanceData;
+    titleEl.textContent = data.name;
+    totalPaidEl.textContent = `${formatValue(data.totalPaid)} FCFA`;
+    totalReceivedEl.textContent = `${formatValue(data.totalReceived)} FCFA`;
+    toReceiveEl.textContent = `${formatValue(data.goodsRemainingValue)} FCFA`;
+    advanceEl.textContent = `${formatValue(data.advanceBalance)} FCFA`;
+    dueEl.textContent = `${formatValue(data.totalDue)} FCFA`;
+
+    if (data.orders.length === 0) {
+        ordersContainer.innerHTML = '<p class="placeholder">Aucune commande enregistrée pour ce fournisseur.</p>';
+        return;
+    }
+
+    ordersContainer.innerHTML = '';
+    data.orders.forEach(order => {
+        const card = document.createElement('div');
+        card.className = 'supplier-order-card';
+        const statusLabel = order.status === 'reçu'
+            ? 'Réception terminée'
+            : (order.status === 'reception_partielle' ? 'Réception partielle' : 'Commande en attente');
+        const chipClass = order.status === 'reçu'
+            ? 'supplier-order-chip completed'
+            : (order.status === 'reception_partielle' ? 'supplier-order-chip partial' : 'supplier-order-chip');
+        const expectedDisplay = order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('fr-FR') : 'Non défini';
+        const receptionStats = order.receptionStats || {};
+        const totalOrdered = receptionStats.totalOrdered || 0;
+        const totalReceivedUnits = receptionStats.totalReceived || 0;
+
+        card.innerHTML = `
+            <header>
+                <h3>Commande #${order.reference}</h3>
+                <span>${order.timestamp.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+            </header>
+            <div class="${chipClass}">${statusLabel}</div>
+            <div class="order-meta">
+                <span>Articles : ${totalOrdered} &bull; Réceptionnés : ${totalReceivedUnits}</span>
+                <span>Livraison prévue : ${expectedDisplay}</span>
+            </div>
+            <div class="order-amounts">
+                <span>Valeur commandée : <strong>${order.orderValue.toLocaleString('fr-FR')} FCFA</strong></span>
+                <span>Valeur reçue : <strong>${order.receivedValue.toLocaleString('fr-FR')} FCFA</strong></span>
+                <span>Valeur restante : <strong>${order.goodsRemaining.toLocaleString('fr-FR')} FCFA</strong></span>
+                <span>Montant payé : <strong>${order.paidValue.toLocaleString('fr-FR')} FCFA</strong></span>
+                <span>Avance fournisseur : <strong style="color:${order.advanceValue > 0 ? '#2e7d32' : '#6b7280'}">${order.advanceValue.toLocaleString('fr-FR')} FCFA</strong></span>
+                <span>Solde à payer : <strong style="color:${order.paymentDue > 0 ? '#f04141' : '#6b7280'}">${order.paymentDue.toLocaleString('fr-FR')} FCFA</strong></span>
+            </div>
+        `;
+        ordersContainer.appendChild(card);
+    });
+}
+
+async function annulerCommandeFournisseur(approId, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    if (!approId) {
+        return;
+    }
+    const confirmation = confirm("Êtes-vous sûr de vouloir annuler cette commande ?\n\nLes acomptes enregistrés seront restitués dans la trésorerie.");
+    if (!confirmation) {
+        return;
+    }
+    try {
+        showSaleLoader();
+        const approRef = dbFirestore.collection("approvisionnement").doc(approId);
+        const approSnap = await approRef.get();
+        if (!approSnap.exists) {
+            throw new Error("Cette commande n'existe pas.");
+        }
+        const approData = approSnap.data();
+        if (approData.status !== 'commande' && approData.status !== 'reception_partielle') {
+            throw new Error("Seules les commandes en attente peuvent être annulées.");
+        }
+        const receivedValue = parseFloat(approData.receivedTotalCost || 0);
+        if (receivedValue > 0) {
+            throw new Error("Impossible d'annuler : cette commande a déjà été réceptionnée. Annulez d'abord la réception pour ces articles.");
+        }
+        const paymentDetails = Array.isArray(approData.paymentsDetails) ? approData.paymentsDetails.filter(detail => (parseFloat(detail.amount || 0) > 0)) : [];
+        const totalRefundAmount = paymentDetails.reduce((sum, detail) => sum + (parseFloat(detail.amount) || 0), 0);
+        await dbFirestore.runTransaction(async tx => {
+            tx.update(approRef, {
+                status: 'annulé',
+                cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+                remainingAmount: 0,
+                paymentsTotalPaid: 0,
+                paymentsDetails: [],
+                netSupplierBalance: 0,
+                refundsHistory: firebase.firestore.FieldValue.arrayUnion({
+                    at: firebase.firestore.FieldValue.serverTimestamp(),
+                    amount: totalRefundAmount,
+                    details: paymentDetails
+                })
+            });
+        });
+        if (paymentDetails.length > 0) {
+            for (const detail of paymentDetails) {
+                const montant = parseFloat(detail.amount) || 0;
+                if (montant <= 0) continue;
+                await enregistrerMouvementTresorerie({
+                    compteId: detail.compteId,
+                    type: 'annulation_commande',
+                    sens: 'in',
+                    montant,
+                    description: `Annulation commande fournisseur ${approData.fournisseur}`,
+                    refId: approId
+                });
+            }
+        }
+        const paymentsSnapshot = await approRef.collection("payments").get();
+        if (!paymentsSnapshot.empty) {
+            const batch = dbFirestore.batch();
+            paymentsSnapshot.forEach(paymentDoc => {
+                batch.update(paymentDoc.ref, {
+                    status: 'annulé',
+                    refundedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            });
+            await batch.commit();
+        }
+        alert("Commande annulée et acomptes remboursés.");
+        const activeTab = document.getElementById('purchase-tabs');
+        chargerApprovisionnements(activeTab ? (activeTab.value || 'all') : 'all');
+        updateBalanceDisplay();
+    } catch (error) {
+        console.error("Erreur lors de l'annulation de la commande :", error);
+        alert("Impossible d'annuler cette commande : " + error.message);
     } finally {
         hideSaleLoader();
     }
@@ -10236,7 +10698,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception']);
+      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -10357,6 +10819,9 @@ case 'article-detail':
     case 'commande-reception':
       renderCommandeReceptionSummary();
       renderCommandeReceptionItems();
+      break;
+    case 'fournisseur-balance':
+      renderSupplierBalanceScreen();
       break;
 
      case 'depots-fournisseurs':
