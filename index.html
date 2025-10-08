@@ -2972,11 +2972,6 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
                     <ion-segment-button value="all">
                         <ion-label>Tout</ion-label>
                     </ion-segment-button>
-                    <ion-segment-button value="credit">
-                        <div class="credit-badge-container"> <span id="creditSupplierCountCircle" class="credit-circle-count"></span>
-                            <ion-label>Crédit</ion-label>
-                        </div>
-                    </ion-segment-button>
                     <ion-segment-button value="commandes">
                         <ion-label>Commandes</ion-label>
                     </ion-segment-button>
@@ -3039,34 +3034,6 @@ const date = d.timestamp.toDate().toLocaleString("fr-FR");
     padding-right: 10px;
 }
 /* Styles pour le conteneur du badge à l'intérieur du segment button */
-#screen-approvisionnement-historique ion-segment-button[value="credit"] .credit-badge-container {
-    display: flex; /* Permet d'aligner le cercle et le texte */
-    align-items: center; /* Centre verticalement */
-    justify-content: center; /* Centre horizontalement le contenu du bouton */
-    width: 100%; /* S'assure que le conteneur prend toute la largeur du bouton */
-    position: relative; /* Pour positionner le cercle si besoin, bien que flex suffise ici */
-    height: 100%; /* S'assure que le conteneur prend toute la hauteur */
-    font-size: 15px; /* Taille de police de base pour aligner avec le texte */
-}
-
-/* Styles pour le cercle du compteur (le "4" dans la pastille) */
-#screen-approvisionnement-historique .credit-circle-count {
-    background-color: #f04141; /* Couleur rouge comme sur l'image */
-    color: white; /* Texte blanc */
-    border-radius: 50%; /* Rend la forme du cercle parfaite */
-    min-width: 20px; /* Taille minimum pour le cercle */
-    height: 20px; /* Hauteur identique pour un cercle parfait */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px; /* Taille de la police pour le chiffre à l'intérieur */
-    font-weight: bold; /* Gras pour le chiffre */
-    margin-right: 4px; /* Espace entre le cercle et le texte "Crédit" */
-    /* Ces propriétés assurent que le cercle est bien rond et que le texte est centré */
-    box-sizing: border-box; /* Inclure padding et border dans la largeur/hauteur */
-    flex-shrink: 0; /* Empêche le cercle de rétrécir si l'espace est limité */
-    padding: 2px; /* Un petit padding pour que le chiffre ne touche pas les bords */
-}
 #screen-approvisionnement-historique ion-title {
     font-weight: 600;
     color: #333; /* Plus sombre pour le titre */
@@ -3289,12 +3256,6 @@ async function chargerApprovisionnements(statusFilter = 'all') {
             </ion-label>
         </ion-item>`;
 
-    const creditCountCircle = document.getElementById('creditSupplierCountCircle');
-    if (creditCountCircle) {
-        creditCountCircle.textContent = '';
-        creditCountCircle.style.display = 'none';
-    }
-
     try {
         let query = dbFirestore.collection("approvisionnement");
         let snapshot;
@@ -3445,81 +3406,6 @@ async function chargerApprovisionnements(statusFilter = 'all') {
 
             document.getElementById("totalPurchaseCost").innerText = `Valeur restante à recevoir : ${totalPendingOrders.toLocaleString('fr-FR')} FCFA`;
             return;
-        } else if (statusFilter === 'credit') {
-            snapshot = await query.orderBy("timestamp", "desc").get(); // Fetch all for client-side aggregation
-
-            const debtsBySupplier = {};
-            snapshot.forEach(doc => {
-                const appro = doc.data();
-                if (appro.status === 'annulé' || appro.status === 'commande') return;
-                appro.id = doc.id;
-                const supplierName = appro.fournisseur || 'Fournisseur Inconnu';
-                const remaining = parseFloat(appro.remainingAmount || 0);
-
-                if (remaining > 0) {
-                    if (!debtsBySupplier[supplierName]) {
-                        debtsBySupplier[supplierName] = {
-                            name: supplierName,
-                            totalDue: 0,
-                            procurements: []
-                        };
-                    }
-                    debtsBySupplier[supplierName].totalDue += remaining;
-                    debtsBySupplier[supplierName].procurements.push(appro);
-                }
-            });
-
-            const numberOfSuppliersWithDebt = Object.keys(debtsBySupplier).length;
-            if (creditCountCircle) {
-                creditCountCircle.textContent = numberOfSuppliersWithDebt;
-                creditCountCircle.style.display = numberOfSuppliersWithDebt > 0 ? 'flex' : 'none';
-            }
-
-            container.innerHTML = ""; 
-
-            if (numberOfSuppliersWithDebt === 0) {
-                container.innerHTML = `
-                    <ion-item style="text-align:center; --background: transparent; box-shadow: none;">
-                        <ion-label>
-                            <ion-icon name="happy-outline" style="font-size: 40px;"></ion-icon><br>
-                            Aucune dette fournisseur en cours !
-                        </ion-label>
-                    </ion-item>`;
-                document.getElementById("totalPurchaseCost").innerText = "";
-                return;
-            }
-
-            const sortedSuppliers = Object.keys(debtsBySupplier).sort((a, b) => debtsBySupplier[b].totalDue - debtsBySupplier[a].totalDue);
-
-            sortedSuppliers.forEach(supplierName => {
-                const data = debtsBySupplier[supplierName];
-                const initials = supplierName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                const avatarBgColor = getAvatarColor(supplierName);
-                const ionItem = document.createElement('ion-item');
-                ionItem.classList.add('status-credit');
-                ionItem.setAttribute('button', 'true');
-                ionItem.setAttribute('lines', 'none');
-                ionItem.style.cssText = "border-bottom:1px solid #eee; margin:0; padding:0; --padding-start:0; --padding-end:0; --inner-padding-end:0;";
-                ionItem.innerHTML = `
-                    <ion-label style="padding: 12px 16px;">
-                        <div class="main-content-wrapper" style="display: flex; align-items: center; width: 100%;">
-                            <div class="avatar-circle" style="background-color: ${avatarBgColor};"> ${initials} </div>
-                            <div class="left-info">
-                                <div class="supplier-name">${supplierName}</div>
-                                <div class="purchase-date">${data.procurements.length} achat(s) à crédit</div>
-                            </div>
-                            <div class="right-info">
-                                <div class="total-amount" style="color: #f04141;">XOF ${data.totalDue.toLocaleString('fr-FR')}</div>
-                                <div class="payment-method">DUE</div>
-                            </div>
-                        </div>
-                    </ion-label>
-                    <ion-ripple-effect></ion-ripple-effect>
-                `;
-                ionItem.addEventListener('click', () => showSupplierDebtDetailsPage(data));
-                container.appendChild(ionItem);
-            });
-            document.getElementById("totalPurchaseCost").innerText = ""; 
         } else {
             // Logic for "All" and "Paid" tabs
             const dateInput = document.getElementById("filterPurchaseDate").value;
@@ -4412,7 +4298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Refresh UI
         // Option 1: Full refresh of supplier list and then detail page (safer for data consistency)
-        await chargerApprovisionnements('credit'); // This will update the main list
+        await chargerDettesFournisseurs(); // This will update the main list
         // We need to ensure currentDetailedSupplierData is fully up-to-date before calling showSupplierDebtDetailsPage
         // The best way is to re-fetch the specific supplier's aggregated data if chargerApprovisionnements doesn't return it
         // For now, we rely on local updates to currentDetailedSupplierData and then refresh the detail page.
@@ -6441,7 +6327,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
               message = `Le total pay? (${fmt(totalPaid)} FCFA) doit ?tre ?gal au total de l'achat (${fmt(due)} FCFA).`;
           } else if (requirePayment && allowPartialPayment && difference < -0.5) {
               valid = false;
-              message = `Le total pay? (${fmt(totalPaid)} FCFA) ne peut pas d�passer le montant de la commande (${fmt(due)} FCFA).`;
+              message = `Le total pay? (${fmt(totalPaid)} FCFA) ne peut pas dépasser le montant de la commande (${fmt(due)} FCFA).`;
           }
       }
 
@@ -6900,7 +6786,8 @@ function retirerApproItem(index) {
         });
 
         // La mise à jour du stock reste la même dans les deux cas
-        if (typeAchat !== 'commande') {
+        if (typeAchat !== 'commande') {
+
             for (const item of finalItemsForFirestore) {
                 const stockQuery = await dbFirestore.collection("stock").where("name", "==", item.produit).limit(1).get();
                 let stockDocRef;
@@ -6931,7 +6818,8 @@ function retirerApproItem(index) {
                         price: newAveragePrice
                     });
                 }
-        }
+        }
+
 
             const historyRef = stockDocRef.collection("history").doc();
             batch.set(historyRef, {
@@ -7457,6 +7345,24 @@ async function recordCreditPayment(approId, outstandingAmount) {
     </div>
 
     <div class="balance-details-card">
+      <h2>Enregistrer un paiement</h2>
+      <form id="supplierPaymentForm" onsubmit="event.preventDefault(); enregistrerPaiementFournisseur();">
+        <label for="supplierPaymentAmount">Montant</label>
+        <input type="number" id="supplierPaymentAmount" min="0" step="100" placeholder="0" />
+
+        <label for="supplierPaymentAccount">Compte de trésorerie</label>
+        <select id="supplierPaymentAccount">
+          <option value="">-- Sélectionner un compte --</option>
+        </select>
+
+        <button type="submit" class="btn-modern">
+          <i data-lucide="wallet"></i> Enregistrer le paiement
+        </button>
+      </form>
+      <p id="supplierPaymentWarning" class="payment-warning"></p>
+    </div>
+
+    <div class="balance-details-card">
       <h2>Commandes & réceptions</h2>
       <div id="supplierBalanceOrders" class="orders-list">
         <p class="placeholder">Chargement...</p>
@@ -7528,6 +7434,39 @@ async function recordCreditPayment(approId, outstandingAmount) {
       font-size: 18px;
       color: #1f2933;
   }
+  .balance-details-card form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+  }
+  .balance-details-card form label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+  }
+  .balance-details-card form input,
+  .balance-details-card form select {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #e5e7eb;
+      font-size: 15px;
+      background: #f8fafc;
+  }
+  .balance-details-card form input:focus,
+  .balance-details-card form select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px rgba(56, 128, 255, 0.2);
+  }
+  .balance-details-card .btn-modern {
+      align-self: flex-start;
+  }
+  .payment-warning {
+      color: #b91c1c;
+      font-size: 13px;
+      margin-top: 6px;
+  }
   .orders-list {
       display: flex;
       flex-direction: column;
@@ -7598,6 +7537,211 @@ async function recordCreditPayment(approId, outstandingAmount) {
   .supplier-order-chip.completed {
       background: #dcfce7;
       color: #166534;
+  }
+</style>
+
+<section id="screen-dettes-fournisseurs" class="screen">
+  <header>
+    <button class="back-btn" onclick="window.location.hash='menu'">
+      <i data-lucide="arrow-left"></i> Retour
+    </button>
+    <h1>Dettes fournisseurs</h1>
+  </header>
+
+  <div class="dettes-container">
+    <div class="dettes-summary-grid">
+      <div class="dettes-summary-card due">
+        <span class="label">Total à payer</span>
+        <strong id="supplierDebtsTotalDue">0 FCFA</strong>
+        <small id="supplierDebtsDueSuppliers">0 fournisseur(s)</small>
+      </div>
+      <div class="dettes-summary-card advance">
+        <span class="label">Avances fournisseurs</span>
+        <strong id="supplierDebtsTotalAdvance">0 FCFA</strong>
+        <small id="supplierDebtsAdvanceSuppliers">0 fournisseur(s)</small>
+      </div>
+    </div>
+
+    <div class="dettes-toolbar">
+      <div class="search-field">
+        <i data-lucide="search"></i>
+        <input type="search" id="supplierDebtSearch" placeholder="Rechercher un fournisseur..." autocomplete="off" />
+      </div>
+    </div>
+
+    <div id="supplierDebtsList" class="dettes-list">
+      <p class="placeholder">Chargement des dettes fournisseurs...</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  #screen-dettes-fournisseurs {
+      background: #f5f7fa;
+      padding: 12px;
+  }
+  #screen-dettes-fournisseurs header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+  }
+  #screen-dettes-fournisseurs h1 {
+      font-size: 22px;
+      margin: 0;
+      color: var(--primary-color);
+  }
+  .dettes-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+  }
+  .dettes-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+  }
+  .dettes-summary-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+  }
+  .dettes-summary-card .label {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+  }
+  .dettes-summary-card strong {
+      font-size: 20px;
+      color: #0f172a;
+  }
+  .dettes-summary-card small {
+      font-size: 13px;
+      color: #475569;
+  }
+  .dettes-summary-card.due strong {
+      color: #b91c1c;
+  }
+  .dettes-summary-card.advance strong {
+      color: #166534;
+  }
+  .dettes-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+  }
+  .dettes-toolbar .search-field {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      border-radius: 999px;
+      padding: 8px 14px;
+      box-shadow: inset 0 0 0 1px #e5e7eb;
+  }
+  .dettes-toolbar .search-field i {
+      color: #64748b;
+  }
+  .dettes-toolbar input[type="search"] {
+      border: none;
+      outline: none;
+      width: 100%;
+      font-size: 15px;
+      background: transparent;
+      color: #0f172a;
+  }
+  .dettes-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+  }
+  .dettes-list .placeholder {
+      text-align: center;
+      color: #6b7280;
+      margin: 24px 0;
+  }
+  .debt-item {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+  }
+  .debt-item.due {
+      border-left: 4px solid #b91c1c;
+  }
+  .debt-item.advance {
+      border-left: 4px solid #166534;
+  }
+  .debt-item header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+  }
+  .debt-item h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #0f172a;
+  }
+  .debt-item p {
+      margin: 0;
+      font-size: 13px;
+      color: #64748b;
+  }
+  .debt-badges {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+  }
+  .debt-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-weight: 600;
+  }
+  .debt-badge.due {
+      background: #fee2e2;
+      color: #b91c1c;
+  }
+  .debt-badge.advance {
+      background: #dcfce7;
+      color: #166534;
+  }
+  .debt-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 8px;
+      font-size: 13px;
+      color: #475569;
+  }
+  .debt-stats span strong {
+      color: #0f172a;
+  }
+  .debt-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+  }
+  .debt-actions .btn-modern {
+      padding: 10px 14px;
+      font-size: 14px;
   }
 </style>
 
@@ -7680,6 +7824,9 @@ async function recordCreditPayment(approId, outstandingAmount) {
  // Variable globale pour stocker les données du fournisseur actuellement consulté
 let currentSupplierDetailData = null;
 let currentSupplierBalanceData = null;
+let currentSupplierDebts = [];
+let supplierDebtSearchInitialized = false;
+let pendingSupplierPaymentFocus = null;
 
 /**
  * Gère l'affichage principal du Hub Dépôts.
@@ -8695,8 +8842,10 @@ async function ouvrirFournisseurBalance(supplierName, event) {
                 paidValue,
                 advanceValue,
                 paymentDue,
+                remainingAmount: data.remainingAmount !== undefined ? Math.max(0, parseFloat(data.remainingAmount)) : paymentDue,
                 expectedDate,
                 timestamp,
+                paymentMethod: data.paymentMethod || 'credit',
                 reference: data.commandeMeta && data.commandeMeta.reference ? data.commandeMeta.reference : doc.id.substring(0, 6).toUpperCase(),
                 receptionStats: data.receptionStats || {}
             });
@@ -8732,6 +8881,9 @@ function renderSupplierBalanceScreen() {
     const advanceEl = document.getElementById('supplierBalanceAdvance');
     const dueEl = document.getElementById('supplierBalanceDue');
     const ordersContainer = document.getElementById('supplierBalanceOrders');
+    const paymentAccountSelect = document.getElementById('supplierPaymentAccount');
+    const paymentAmountInput = document.getElementById('supplierPaymentAmount');
+    const paymentWarningEl = document.getElementById('supplierPaymentWarning');
 
     if (!titleEl || !totalPaidEl || !totalReceivedEl || !toReceiveEl || !advanceEl || !dueEl || !ordersContainer) {
         return;
@@ -8740,6 +8892,15 @@ function renderSupplierBalanceScreen() {
 
     if (!currentSupplierBalanceData) {
         titleEl.textContent = 'Fournisseur';
+        if (paymentAccountSelect) {
+            paymentAccountSelect.innerHTML = '<option value=>-- Sélectionner un compte --</option>';
+        }
+        if (paymentAmountInput) {
+            paymentAmountInput.value = '';
+        }
+        if (paymentWarningEl) {
+            paymentWarningEl.textContent = '';
+        }
         totalPaidEl.textContent = `${formatValue(0)} FCFA`;
         totalReceivedEl.textContent = `${formatValue(0)} FCFA`;
         toReceiveEl.textContent = `${formatValue(0)} FCFA`;
@@ -8751,6 +8912,20 @@ function renderSupplierBalanceScreen() {
 
     const data = currentSupplierBalanceData;
     titleEl.textContent = data.name;
+    if (paymentAccountSelect) {
+        remplirTousSelectComptes(paymentAccountSelect);
+        paymentAccountSelect.value = '';
+    }
+    if (paymentAmountInput) {
+        paymentAmountInput.value = '';
+    }
+    if (paymentWarningEl) {
+        paymentWarningEl.textContent = '';
+    }
+    if (pendingSupplierPaymentFocus && pendingSupplierPaymentFocus === data.name && paymentAmountInput) {
+        setTimeout(() => paymentAmountInput.focus(), 0);
+        pendingSupplierPaymentFocus = null;
+    }
     totalPaidEl.textContent = `${formatValue(data.totalPaid)} FCFA`;
     totalReceivedEl.textContent = `${formatValue(data.totalReceived)} FCFA`;
     toReceiveEl.textContent = `${formatValue(data.goodsRemainingValue)} FCFA`;
@@ -8798,6 +8973,362 @@ function renderSupplierBalanceScreen() {
         `;
         ordersContainer.appendChild(card);
     });
+}
+
+
+async function chargerDettesFournisseurs() {
+    const listEl = document.getElementById('supplierDebtsList');
+    const totalDueEl = document.getElementById('supplierDebtsTotalDue');
+    const totalAdvanceEl = document.getElementById('supplierDebtsTotalAdvance');
+    const dueCountEl = document.getElementById('supplierDebtsDueSuppliers');
+    const advanceCountEl = document.getElementById('supplierDebtsAdvanceSuppliers');
+    if (!listEl || !totalDueEl || !totalAdvanceEl || !dueCountEl || !advanceCountEl) {
+        return;
+    }
+
+    listEl.innerHTML = '<p class="placeholder">Chargement des dettes fournisseurs...</p>';
+
+    try {
+        const snapshot = await dbFirestore
+            .collection("approvisionnement")
+            .where("status", "in", ['validé', 'reception_partielle', 'reçu'])
+            .get();
+
+        const aggregates = new Map();
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            const received = parseFloat(
+                data.receivedTotalCost !== undefined ? data.receivedTotalCost : (data.totalCost || 0)
+            );
+            if (!(received > 0)) {
+                return;
+            }
+            const paid = parseFloat(data.paymentsTotalPaid || 0);
+            const supplier = data.fournisseur || 'Fournisseur Inconnu';
+
+            const entry = aggregates.get(supplier) || {
+                totalReceived: 0,
+                totalPaid: 0,
+                ordersCount: 0,
+                lastActivity: null
+            };
+
+            entry.totalReceived += received;
+            entry.totalPaid += paid;
+            entry.ordersCount += 1;
+
+            let timestamp = null;
+            if (data.updatedAt && typeof data.updatedAt.toDate === 'function') {
+                timestamp = data.updatedAt.toDate();
+            } else if (data.timestamp && typeof data.timestamp.toDate === 'function') {
+                timestamp = data.timestamp.toDate();
+            } else if (data.timestamp) {
+                timestamp = new Date(data.timestamp);
+            }
+            if (timestamp && (!entry.lastActivity || timestamp > entry.lastActivity)) {
+                entry.lastActivity = timestamp;
+            }
+
+            aggregates.set(supplier, entry);
+        });
+
+        currentSupplierDebts = Array.from(aggregates.entries()).map(([name, entry]) => {
+            const totalDue = Math.max(0, entry.totalReceived - entry.totalPaid);
+            const totalAdvance = Math.max(0, entry.totalPaid - entry.totalReceived);
+            if (totalDue === 0 && totalAdvance === 0) {
+                return null;
+            }
+            return {
+                name,
+                totalDue,
+                totalAdvance,
+                totalReceived: entry.totalReceived,
+                totalPaid: entry.totalPaid,
+                ordersCount: entry.ordersCount,
+                lastActivity: entry.lastActivity
+            };
+        }).filter(Boolean);
+
+        currentSupplierDebts.sort((a, b) => {
+            const dueDiff = b.totalDue - a.totalDue;
+            if (dueDiff !== 0) return dueDiff;
+            const advanceDiff = b.totalAdvance - a.totalAdvance;
+            if (advanceDiff !== 0) return advanceDiff;
+            return a.name.localeCompare(b.name, 'fr');
+        });
+
+        const totalDue = currentSupplierDebts.reduce((sum, item) => sum + item.totalDue, 0);
+        const totalAdvance = currentSupplierDebts.reduce((sum, item) => sum + item.totalAdvance, 0);
+        const suppliersWithDue = currentSupplierDebts.filter(item => item.totalDue > 0).length;
+        const suppliersWithAdvance = currentSupplierDebts.filter(item => item.totalAdvance > 0).length;
+
+        totalDueEl.textContent = `${fmt(totalDue)} FCFA`;
+        totalAdvanceEl.textContent = `${fmt(totalAdvance)} FCFA`;
+        dueCountEl.textContent = `${suppliersWithDue} fournisseur(s)`;
+        advanceCountEl.textContent = `${suppliersWithAdvance} fournisseur(s)`;
+
+        const searchInput = document.getElementById('supplierDebtSearch');
+        const initialTerm = searchInput ? searchInput.value : '';
+
+        if (currentSupplierDebts.length === 0) {
+            listEl.innerHTML = '<p class="placeholder">Aucune dette ni avance fournisseur pour le moment.</p>';
+        } else {
+            renderSupplierDebtList(initialTerm);
+        }
+
+        if (searchInput && !supplierDebtSearchInitialized) {
+            searchInput.addEventListener('input', () => renderSupplierDebtList(searchInput.value));
+            supplierDebtSearchInitialized = true;
+        }
+    } catch (error) {
+        console.error("Erreur lors du chargement des dettes fournisseurs :", error);
+        listEl.innerHTML = '<p class="placeholder">Impossible de charger les dettes fournisseurs.</p>';
+    } finally {
+        if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+            lucide.createIcons();
+        }
+    }
+}
+
+function renderSupplierDebtList(searchTerm = '') {
+    const listEl = document.getElementById('supplierDebtsList');
+    if (!listEl) {
+        return;
+    }
+
+    const normalized = (searchTerm || '').trim().toLowerCase();
+    const rows = normalized
+        ? currentSupplierDebts.filter(item => item.name.toLowerCase().includes(normalized))
+        : currentSupplierDebts;
+
+    if (rows.length === 0) {
+        listEl.innerHTML = normalized
+            ? '<p class="placeholder">Aucun fournisseur ne correspond à votre recherche.</p>'
+            : '<p class="placeholder">Aucune dette ni avance fournisseur pour le moment.</p>';
+        return;
+    }
+
+    const html = rows.map(item => {
+        const lastActivity = item.lastActivity
+            ? item.lastActivity.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
+            : 'N/A';
+        const encodedName = encodeURIComponent(item.name);
+        const badges = [
+            item.totalDue > 0 ? `<span class="debt-badge due"><i data-lucide="alert-triangle"></i>${fmt(item.totalDue)} FCFA dû</span>` : '',
+            item.totalAdvance > 0 ? `<span class="debt-badge advance"><i data-lucide="coins"></i>${fmt(item.totalAdvance)} FCFA en avance</span>` : ''
+        ].filter(Boolean).join('');
+
+        return `
+        <div class="debt-item ${item.totalDue > 0 ? 'due' : 'advance'}">
+          <header>
+            <div>
+              <h3>${item.name}</h3>
+              <p>${item.ordersCount} approvisionnement(s) — Dernière activité : ${lastActivity}</p>
+            </div>
+            <div class="debt-badges">
+              ${badges || '<span class=\"debt-badge advance\"><i data-lucide=\"check-circle\"></i>Aucun solde</span>'}
+            </div>
+          </header>
+          <div class="debt-stats">
+            <span>Valeur reçue : <strong>${fmt(item.totalReceived)} FCFA</strong></span>
+            <span>Montant payé : <strong>${fmt(item.totalPaid)} FCFA</strong></span>
+          </div>
+          <div class="debt-actions">
+            <button class="btn-modern secondary" onclick="ouvrirFournisseurBalance(decodeURIComponent('${encodedName}'), event)">
+              <i data-lucide="list-check"></i> Détails
+            </button>
+            <button class="btn-modern" onclick="ouvrirPaiementFournisseur(decodeURIComponent('${encodedName}'), event)">
+              <i data-lucide="wallet"></i> Payer
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+
+    listEl.innerHTML = html;
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+    }
+}
+async function enregistrerPaiementFournisseur() {
+    const amountInput = document.getElementById('supplierPaymentAmount');
+    const accountSelect = document.getElementById('supplierPaymentAccount');
+    const warningEl = document.getElementById('supplierPaymentWarning');
+
+    if (warningEl) {
+        warningEl.textContent = '';
+    }
+
+    if (!currentSupplierBalanceData) {
+        alert('Sélectionnez d'abord un fournisseur.');
+        return;
+    }
+
+    const amount = amountInput ? parseFloat(amountInput.value) : NaN;
+    if (!amountInput || Number.isNaN(amount) || amount <= 0) {
+        if (warningEl) {
+            warningEl.textContent = 'Saisissez un montant valide.';
+        }
+        if (amountInput) {
+            amountInput.focus();
+        }
+        return;
+    }
+
+    const accountId = accountSelect ? accountSelect.value : '';
+    if (!accountId) {
+        if (warningEl) {
+            warningEl.textContent = 'Sélectionnez un compte de trésorerie.';
+        }
+        if (accountSelect) {
+            accountSelect.focus();
+        }
+        return;
+    }
+
+    const orders = (currentSupplierBalanceData.orders || [])
+        .map(order => {
+            const outstanding = order.remainingAmount !== undefined
+                ? Math.max(0, parseFloat(order.remainingAmount))
+                : Math.max(0, (parseFloat(order.receivedValue || 0) - parseFloat(order.paidValue || 0)));
+            return { ...order, __outstandingDue: outstanding };
+        })
+        .filter(order => order.__outstandingDue > 0)
+        .sort((a, b) => {
+            const dateA = a.timestamp instanceof Date ? a.timestamp.getTime() : 0;
+            const dateB = b.timestamp instanceof Date ? b.timestamp.getTime() : 0;
+            return dateA - dateB;
+        });
+
+    if (!orders.length) {
+        alert(Le fournisseur  n'a pas de dette en cours.);
+        return;
+    }
+
+    showSaleLoader();
+
+    try {
+        let remaining = amount;
+        let totalApplied = 0;
+        const batch = dbFirestore.batch();
+        const paymentTimestamp = firebase.firestore.Timestamp.now();
+
+        for (const order of orders) {
+            if (remaining <= 0) break;
+            const due = Math.max(0, order.__outstandingDue || 0);
+            if (due <= 0) continue;
+
+            const applied = Math.min(remaining, due);
+            const orderRef = dbFirestore.collection('approvisionnement').doc(order.id);
+            const newPaid = (parseFloat(order.paidValue || 0) + applied);
+            const newReceived = parseFloat(order.receivedValue || 0);
+            const newRemaining = Math.max(0, due - applied);
+            const newIsPaid = newRemaining <= 0.0001;
+            const newAdvance = Math.max(0, newPaid - newReceived);
+
+            batch.update(orderRef, {
+                paymentsTotalPaid: newPaid,
+                remainingAmount: newRemaining,
+                isPaid: newIsPaid,
+                paymentMethod: newIsPaid ? 'paid' : 'credit',
+                netSupplierBalance: newPaid - newReceived
+            });
+
+            const paymentRecordRef = orderRef.collection('payments').doc();
+            batch.set(paymentRecordRef, {
+                amount: applied,
+                date: paymentTimestamp,
+                account: accountId,
+                refApproId: order.id
+            });
+
+            order.paidValue = newPaid;
+            order.remainingAmount = newRemaining;
+            order.paymentDue = Math.max(0, newReceived - newPaid);
+            order.advanceValue = newAdvance;
+            order.__outstandingDue = newRemaining;
+            order.status = newIsPaid ? 'reçu' : order.status;
+
+            remaining -= applied;
+            totalApplied += applied;
+        }
+
+        if (totalApplied <= 0) {
+            hideSaleLoader();
+            if (warningEl) {
+                warningEl.textContent = 'Aucune dette n'a été trouvée pour ce paiement.';
+            }
+            return;
+        }
+
+        await batch.commit();
+
+        currentSupplierBalanceData.orders = currentSupplierBalanceData.orders.map(original => {
+            const updated = orders.find(o => o.id === original.id);
+            return updated ? { ...original, ...updated } : original;
+        });
+
+        await enregistrerMouvementTresorerie({
+            compteId: accountId,
+            type: 'paiement_fournisseur',
+            sens: 'out',
+            montant: totalApplied,
+            description: Paiement fournisseur ,
+            refId: supplier:
+        });
+
+        const totals = currentSupplierBalanceData.orders.reduce((acc, order) => {
+            const received = parseFloat(order.receivedValue || 0);
+            const paid = parseFloat(order.paidValue || 0);
+            acc.totalReceived += received;
+            acc.totalPaid += paid;
+            acc.totalDue += Math.max(0, received - paid);
+            acc.totalAdvance += Math.max(0, paid - received);
+            return acc;
+        }, { totalReceived: 0, totalPaid: 0, totalDue: 0, totalAdvance: 0 });
+
+        currentSupplierBalanceData.totalReceived = totals.totalReceived;
+        currentSupplierBalanceData.totalPaid = totals.totalPaid;
+        currentSupplierBalanceData.totalDue = totals.totalDue;
+        currentSupplierBalanceData.advanceBalance = totals.totalAdvance;
+
+        if (amountInput) {
+            amountInput.value = '';
+        }
+        if (warningEl) {
+            warningEl.textContent = remaining > 0
+                ? Paiement enregistré ( FCFA).  FCFA n'ont pas été appliqués (dettes soldées).
+                : '';
+        }
+
+        renderSupplierBalanceScreen();
+        chargerDettesFournisseurs();
+        updateBalanceDisplay();
+
+    } catch (error) {
+        console.error('Erreur lors de l'enregistrement du paiement fournisseur :', error);
+        if (warningEl) {
+            warningEl.textContent = 'Erreur lors de l'enregistrement du paiement.';
+        }
+        alert('Erreur lors de l'enregistrement du paiement : ' + error.message);
+    } finally {
+        hideSaleLoader();
+    }
+}
+
+
+function ouvrirPaiementFournisseur(supplierName, event) {
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
+    if (!supplierName) {
+        return;
+    }
+    pendingSupplierPaymentFocus = supplierName;
+    ouvrirFournisseurBalance(supplierName);
+}
+
 }
 
 async function annulerCommandeFournisseur(approId, event) {
@@ -9397,6 +9928,10 @@ async function annulerCommandeFournisseur(approId, event) {
       <div class="nav-item" id="nav-appro-hist" onclick="window.location.hash='approvisionnement-historique'">
         <i data-lucide="archive"></i> <span>Achats</span>
     </div>
+      <div class="nav-item" id="nav-dettes-fournisseurs" onclick="window.location.hash='dettes-fournisseurs'">
+        <i data-lucide="receipt-text"></i>
+        <span>Dettes</span>
+      </div>
       <div class="nav-item" id="nav-menu" onclick="window.location.hash='menu'">
         <i data-lucide="menu"></i>
         <span>Menu</span>
@@ -10698,7 +11233,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance']);
+      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -12379,7 +12914,9 @@ function majCartesTresorerie() {
       const navMenu = document.getElementById("nav-menu");
       const navTresorerie = document.getElementById("nav-tresorerie");
       const navApproHist = document.getElementById("nav-appro-hist");
+      const navDettes = document.getElementById("nav-dettes-fournisseurs");
       const tresorerieMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='tresorerie']");
+      const dettesMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='dettes-fournisseurs']");
       const exportStockBtn = document.getElementById("exportStockBtn");
       const stockSummary = document.querySelector('#screen-stock .summary');
 
@@ -12395,8 +12932,15 @@ function majCartesTresorerie() {
         navApproHist.classList.remove('hidden-by-role');
         navApproHist.style.display = "flex";
       }
+      if (navDettes) {
+        navDettes.classList.remove('hidden-by-role');
+        navDettes.style.display = "flex";
+      }
       if (tresorerieMenuItem) {
         tresorerieMenuItem.style.display = "flex";
+      }
+      if (dettesMenuItem) {
+        dettesMenuItem.style.display = "flex";
       }
       if (exportStockBtn) {
         exportStockBtn.style.removeProperty('display');
@@ -12409,7 +12953,7 @@ function majCartesTresorerie() {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail'];
+        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'dettes-fournisseurs', 'fournisseur-balance'];
         const currentHash = window.location.hash.replace('#', '');
         if (disallowedForEmployee.includes(currentHash)) {
           window.location.hash = 'vendre';
@@ -12423,8 +12967,15 @@ function majCartesTresorerie() {
           navApproHist.classList.add('hidden-by-role');
           navApproHist.style.setProperty('display', 'none', 'important');
         }
+        if (navDettes) {
+          navDettes.classList.add('hidden-by-role');
+          navDettes.style.setProperty('display', 'none', 'important');
+        }
         if (tresorerieMenuItem) {
           tresorerieMenuItem.style.setProperty('display', 'none', 'important');
+        }
+        if (dettesMenuItem) {
+          dettesMenuItem.style.setProperty('display', 'none', 'important');
         }
         if (exportStockBtn) {
           exportStockBtn.style.setProperty('display', 'none', 'important');
