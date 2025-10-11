@@ -17,3 +17,5 @@ History favors short, imperative subjects—often in French—such as `blocage d
 
 ## Security & Configuration Tips
 Treat the Firebase admin key as sensitive: never email or attach it to issues, and prefer environment variables for new credentials. Avoid committing new artifacts under `reports/` or other ad hoc directories; share exports through secure channels. When syncing dependencies on another machine, run `npm install` instead of copying `node_modules/` to keep secrets out of version control.
+
+Always commit after changes. 

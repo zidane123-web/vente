@@ -9160,7 +9160,7 @@ async function enregistrerPaiementFournisseur() {
     }
 
     if (!currentSupplierBalanceData) {
-        alert('Sélectionnez d'abord un fournisseur.');
+        alert("Sélectionnez d'abord un fournisseur.");
         return;
     }
 
@@ -9201,7 +9201,7 @@ async function enregistrerPaiementFournisseur() {
         });
 
     if (!orders.length) {
-        alert(Le fournisseur  n'a pas de dette en cours.);
+        alert(`Le fournisseur ${currentSupplierBalanceData.name} n'a pas de dette en cours.`);
         return;
     }
 
@@ -9256,7 +9256,7 @@ async function enregistrerPaiementFournisseur() {
         if (totalApplied <= 0) {
             hideSaleLoader();
             if (warningEl) {
-                warningEl.textContent = 'Aucune dette n'a été trouvée pour ce paiement.';
+                warningEl.textContent = "Aucune dette n'a été trouvée pour ce paiement.";
             }
             return;
         }
@@ -9273,8 +9273,8 @@ async function enregistrerPaiementFournisseur() {
             type: 'paiement_fournisseur',
             sens: 'out',
             montant: totalApplied,
-            description: Paiement fournisseur ,
-            refId: supplier:
+            description: `Paiement fournisseur ${currentSupplierBalanceData.name}`,
+            refId: currentSupplierBalanceData.name
         });
 
         const totals = currentSupplierBalanceData.orders.reduce((acc, order) => {
@@ -9296,8 +9296,10 @@ async function enregistrerPaiementFournisseur() {
             amountInput.value = '';
         }
         if (warningEl) {
-            warningEl.textContent = remaining > 0
-                ? Paiement enregistré ( FCFA).  FCFA n'ont pas été appliqués (dettes soldées).
+            const formatCurrency = value => Math.round(value || 0).toLocaleString('fr-FR');
+            const leftover = Math.max(0, Math.round(remaining || 0));
+            warningEl.textContent = leftover > 0
+                ? `Paiement enregistré (${formatCurrency(totalApplied)} FCFA). ${formatCurrency(leftover)} FCFA n'ont pas été appliqués (dettes soldées).`
                 : '';
         }
 
@@ -9306,11 +9308,11 @@ async function enregistrerPaiementFournisseur() {
         updateBalanceDisplay();
 
     } catch (error) {
-        console.error('Erreur lors de l'enregistrement du paiement fournisseur :', error);
+        console.error("Erreur lors de l'enregistrement du paiement fournisseur :", error);
         if (warningEl) {
-            warningEl.textContent = 'Erreur lors de l'enregistrement du paiement.';
+            warningEl.textContent = "Erreur lors de l'enregistrement du paiement.";
         }
-        alert('Erreur lors de l'enregistrement du paiement : ' + error.message);
+        alert("Erreur lors de l'enregistrement du paiement : " + error.message);
     } finally {
         hideSaleLoader();
     }
@@ -9328,9 +9330,6 @@ function ouvrirPaiementFournisseur(supplierName, event) {
     pendingSupplierPaymentFocus = supplierName;
     ouvrirFournisseurBalance(supplierName);
 }
-
-}
-
 async function annulerCommandeFournisseur(approId, event) {
     if (event) {
         event.stopPropagation();
