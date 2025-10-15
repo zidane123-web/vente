@@ -4756,6 +4756,50 @@ async function generateSupplierCreditPDF() {
       margin: 0;
       font-size: 32px;
     }
+    .accounts-chips {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 15px;
+      scrollbar-width: none;
+    }
+    .accounts-chips::-webkit-scrollbar {
+      display: none;
+    }
+    .account-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(109,93,253,0.25);
+      background-color: rgba(109,93,253,0.12);
+      color: var(--text-color);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+    }
+    .account-chip:hover {
+      background-color: rgba(109,93,253,0.2);
+      transform: translateY(-1px);
+    }
+    .account-chip:focus {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .chip-label {
+      font-weight: 600;
+    }
+    .chip-amount {
+      font-size: 13px;
+      color: #555;
+    }
+    .account-chip-empty {
+      font-size: 14px;
+      color: #777;
+    }
     .section-title {
       font-size: 18px;
       font-weight: bold;
@@ -4806,7 +4850,7 @@ async function generateSupplierCreditPDF() {
       <p>Solde global</p>
     </div>
 
-    
+    <div class="accounts-chips" id="accounts-balances" aria-label="Comptes de tresorerie"></div>
 
     <div class="section-title">Résumé des flux du jour</div>
     <div class="history-list">
@@ -4851,6 +4895,124 @@ async function generateSupplierCreditPDF() {
     // Appel initial pour mettre à jour l'affichage des totaux et du solde
     updateBalanceDisplay();
   </script>
+</section>
+
+<section id="screen-tresorerie-compte" class="screen">
+  <style>
+    .compte-detail-container {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .compte-detail-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .compte-detail-name {
+      margin: 0;
+      font-size: 22px;
+      color: var(--text-color);
+    }
+    .compte-detail-date {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+      text-transform: capitalize;
+    }
+    .compte-detail-date-picker {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .compte-detail-date-picker label {
+      font-weight: 600;
+    }
+    .compte-detail-date-picker input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid #EEE;
+      border-radius: 8px;
+    }
+    .compte-detail-alert {
+      display: none;
+      background-color: rgba(220,53,69,0.1);
+      color: #a71d2a;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .compte-detail-loading {
+      font-size: 14px;
+      color: #666;
+    }
+    .compte-detail-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .compte-detail-card {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .compte-detail-card span {
+      font-size: 12px;
+      color: #666;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .compte-detail-card strong {
+      font-size: 18px;
+      color: var(--text-color);
+    }
+  </style>
+
+  <header>
+    <button class="back-btn" onclick="window.location.hash='tresorerie'">
+      <i data-lucide="arrow-left"></i>
+    </button>
+    <h1>Details du compte</h1>
+  </header>
+
+  <div class="compte-detail-container">
+    <div class="compte-detail-header">
+      <h2 id="compte-detail-name" class="compte-detail-name">Compte</h2>
+      <p id="compte-detail-date-label" class="compte-detail-date"></p>
+    </div>
+
+    <div class="compte-detail-date-picker">
+      <label for="compte-detail-date">Journee</label>
+      <input type="date" id="compte-detail-date">
+    </div>
+
+    <div id="compte-detail-alert" class="compte-detail-alert">Selectionnez un compte depuis la tresorerie.</div>
+    <div id="compte-detail-loading" class="compte-detail-loading" style="display:none;">Chargement des mouvements...</div>
+
+    <div id="compte-detail-summary" class="compte-detail-grid" style="display:none;">
+      <div class="compte-detail-card">
+        <span>Solde initial</span>
+        <strong id="compte-detail-opening">XOF 0</strong>
+      </div>
+      <div class="compte-detail-card">
+        <span>Entrees</span>
+        <strong id="compte-detail-entries">+XOF 0</strong>
+      </div>
+      <div class="compte-detail-card">
+        <span>Sorties</span>
+        <strong id="compte-detail-expenses">-XOF 0</strong>
+      </div>
+      <div class="compte-detail-card">
+        <span>Solde final</span>
+        <strong id="compte-detail-final">XOF 0</strong>
+      </div>
+    </div>
+  </div>
 </section>
 
     <!-- Screen: Dépenses -->
@@ -11232,7 +11394,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs']);
+      const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -11345,6 +11507,9 @@ case 'article-detail':
           dateFilter.value = new Date().toISOString().split('T')[0];
       }
       updateBalanceDisplay(); // Puis on met à jour l'affichage
+      break;
+    case 'tresorerie-compte':
+      initCompteDetailScreen();
       break;
     case 'rapports':
       // Appeler la fonction qui met à jour la section "Rapports & Statistiques"
@@ -12793,6 +12958,226 @@ function confirmerAjoutFournisseur(fournisseurName) {
     });
     let comptesCache = [];   // [{id:'caisse', nom:'Caisse', solde:…}, …]
 
+let currentCompteDetailId = null;
+
+function getCompteDisplayName(compteId) {
+  if (!compteId) {
+    return 'Compte';
+  }
+  const match = comptesCache.find(c => c.id === compteId);
+  if (match && match.nom) {
+    return match.nom;
+  }
+  return compteId;
+}
+
+function getOpeningSnapshotValue(snapshotDoc, compteId) {
+  if (!snapshotDoc || !snapshotDoc.exists || !compteId) {
+    return 0;
+  }
+  const data = snapshotDoc.data() || {};
+  const capitalizedId = compteId.charAt(0).toUpperCase() + compteId.slice(1);
+  const directKey = `opening${capitalizedId}`;
+  if (Object.prototype.hasOwnProperty.call(data, directKey)) {
+    return Number(data[directKey]) || 0;
+  }
+  if (data.openingBalances && Object.prototype.hasOwnProperty.call(data.openingBalances, compteId)) {
+    return Number(data.openingBalances[compteId]) || 0;
+  }
+  return 0;
+}
+
+function formatXof(amount) {
+  const numeric = Number(amount) || 0;
+  return 'XOF ' + numeric.toLocaleString('fr-FR');
+}
+
+function formatSignedXof(amount, signType) {
+  const numeric = Number(amount) || 0;
+  const absolute = Math.abs(numeric).toLocaleString('fr-FR');
+  if (signType === 'positive') {
+    return '+XOF ' + absolute;
+  }
+  if (signType === 'negative') {
+    return '-XOF ' + absolute;
+  }
+  return formatXof(numeric);
+}
+
+function openCompteDetail(compteId) {
+  if (!compteId) {
+    return;
+  }
+  currentCompteDetailId = compteId;
+  window.location.hash = 'tresorerie-compte';
+}
+
+function initCompteDetailScreen() {
+  const alertEl = document.getElementById('compte-detail-alert');
+  const summaryEl = document.getElementById('compte-detail-summary');
+  const loadingEl = document.getElementById('compte-detail-loading');
+  const titleEl = document.getElementById('compte-detail-name');
+  const dateInput = document.getElementById('compte-detail-date');
+
+  if (summaryEl) {
+    summaryEl.style.display = 'none';
+  }
+  if (loadingEl) {
+    loadingEl.style.display = 'none';
+  }
+
+  if (!currentCompteDetailId) {
+    if (alertEl) {
+      alertEl.textContent = 'Selectionnez un compte depuis la tresorerie.';
+      alertEl.style.display = 'block';
+    }
+    if (titleEl) {
+      titleEl.textContent = 'Compte';
+    }
+    return;
+  }
+
+  if (titleEl) {
+    titleEl.textContent = getCompteDisplayName(currentCompteDetailId);
+  }
+  if (alertEl) {
+    alertEl.style.display = 'none';
+  }
+
+  if (dateInput) {
+    if (!dateInput.value) {
+      const mainFilter = document.getElementById('treso-date-filter');
+      const fallbackDate = (mainFilter && mainFilter.value) || new Date().toISOString().split('T')[0];
+      dateInput.value = fallbackDate;
+    }
+    if (!dateInput.dataset.bound) {
+      dateInput.addEventListener('change', updateCompteDetailSummary);
+      dateInput.dataset.bound = 'true';
+    }
+  }
+
+  updateCompteDetailSummary();
+}
+
+function updateCompteDetailSummary() {
+  if (!currentCompteDetailId) {
+    return;
+  }
+
+  const summaryEl = document.getElementById('compte-detail-summary');
+  const loadingEl = document.getElementById('compte-detail-loading');
+  const alertEl = document.getElementById('compte-detail-alert');
+  const dateInput = document.getElementById('compte-detail-date');
+
+  if (!dateInput || !dateInput.value) {
+    return;
+  }
+
+  const selectedDate = dateInput.value;
+
+  if (loadingEl) {
+    loadingEl.style.display = 'block';
+  }
+  if (alertEl) {
+    alertEl.style.display = 'none';
+  }
+  if (summaryEl) {
+    summaryEl.style.display = 'none';
+  }
+
+  const dateLabel = document.getElementById('compte-detail-date-label');
+  if (dateLabel) {
+    const parsedDate = new Date(selectedDate + 'T00:00:00');
+    if (!isNaN(parsedDate.getTime())) {
+      dateLabel.textContent = parsedDate.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    } else {
+      dateLabel.textContent = selectedDate;
+    }
+  }
+
+  const compteRef = dbFirestore
+    .collection('tresorerie')
+    .doc('balance')
+    .collection('comptesTresorerie')
+    .doc(currentCompteDetailId);
+
+  Promise.all([
+    dbFirestore.collection('tresorerieSnapshots').doc(selectedDate).get(),
+    compteRef.collection('mouvements').where('dateString', '==', selectedDate).get()
+  ])
+    .then(([snapshotDoc, mouvementsSnap]) => {
+      const opening = getOpeningSnapshotValue(snapshotDoc, currentCompteDetailId);
+
+      let totalIn = 0;
+      let totalOut = 0;
+      let latestBalance = null;
+      let latestTimestamp = -Infinity;
+
+      mouvementsSnap.forEach(doc => {
+        const data = doc.data() || {};
+        const amount = Number(data.montant) || 0;
+        if (data.sens === 'in') {
+          totalIn += amount;
+        } else if (data.sens === 'out') {
+          totalOut += amount;
+        }
+
+        const ts = typeof data.timestamp === 'number'
+          ? data.timestamp
+          : data.timestamp && typeof data.timestamp.toMillis === 'function'
+            ? data.timestamp.toMillis()
+            : doc.updateTime && typeof doc.updateTime.toMillis === 'function'
+              ? doc.updateTime.toMillis()
+              : 0;
+
+        const balanceValue = typeof data.newBalance === 'number'
+          ? data.newBalance
+          : Number(data.newBalance);
+
+        if (!Number.isNaN(balanceValue) && ts >= latestTimestamp) {
+          latestTimestamp = ts;
+          latestBalance = balanceValue;
+        }
+      });
+
+      const finalBalance = latestBalance !== null ? latestBalance : opening + totalIn - totalOut;
+
+      const openingEl = document.getElementById('compte-detail-opening');
+      const entriesEl = document.getElementById('compte-detail-entries');
+      const expensesEl = document.getElementById('compte-detail-expenses');
+      const finalEl = document.getElementById('compte-detail-final');
+
+      if (openingEl) {
+        openingEl.textContent = formatXof(opening);
+      }
+      if (entriesEl) {
+        entriesEl.textContent = formatSignedXof(totalIn, 'positive');
+      }
+      if (expensesEl) {
+        expensesEl.textContent = formatSignedXof(totalOut, 'negative');
+      }
+      if (finalEl) {
+        finalEl.textContent = formatXof(finalBalance);
+      }
+
+      if (summaryEl) {
+        summaryEl.style.display = 'grid';
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement du detail du compte :', error);
+      if (alertEl) {
+        alertEl.textContent = 'Impossible de charger les mouvements du compte.';
+        alertEl.style.display = 'block';
+      }
+    })
+    .finally(() => {
+      if (loadingEl) {
+        loadingEl.style.display = 'none';
+      }
+    });
+}
+
 function loadComptes() {
   return dbFirestore
     .collection("tresorerie")
@@ -12840,23 +13225,44 @@ function majCartesTresorerie() {
   if (!container) return;
   container.innerHTML = '';
 
-  // Trie les comptes dans l'ordre : caisse → momo → banque
-  comptesCache.sort((a, b) => {
-    const ordre = ['caisse', 'momo', 'banque'];
-    return ordre.indexOf(a.nom.toLowerCase())
-         - ordre.indexOf(b.nom.toLowerCase());
-  });
+  if (!Array.isArray(comptesCache) || !comptesCache.length) {
+    const emptyChip = document.createElement('div');
+    emptyChip.className = 'account-chip account-chip-empty';
+    emptyChip.textContent = 'Aucun compte configure';
+    container.appendChild(emptyChip);
+    return;
+  }
 
-  comptesCache.forEach(c => {
-    const card = document.createElement('div');
-    card.className = 'account-card';
-    card.innerHTML = `
-      <h3>${c.nom}</h3>
-      <p>${c.solde.toLocaleString()} XOF</p>
-    `;
-    container.appendChild(card);
-  });
+  const ordre = ['caisse', 'momo', 'banque'];
+
+  comptesCache
+    .slice()
+    .sort((a, b) => {
+      const nameA = (a.nom || a.id || '').toLowerCase();
+      const nameB = (b.nom || b.id || '').toLowerCase();
+      const indexA = ordre.indexOf(nameA);
+      const indexB = ordre.indexOf(nameB);
+      if (indexA !== -1 || indexB !== -1) {
+        const posA = indexA === -1 ? ordre.length : indexA;
+        const posB = indexB === -1 ? ordre.length : indexB;
+        return posA - posB;
+      }
+      return nameA.localeCompare(nameB);
+    })
+    .forEach(compte => {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'account-chip';
+      chip.setAttribute('data-compte-id', compte.id);
+      chip.innerHTML = `
+        <span class="chip-label">${compte.nom || compte.id}</span>
+        <span class="chip-amount">${formatXof(compte.solde)}</span>
+      `;
+      chip.addEventListener('click', () => openCompteDetail(compte.id));
+      container.appendChild(chip);
+    });
 }
+
 
 
    firebase.auth().onAuthStateChanged(user => {
@@ -14968,5 +15374,3 @@ async function creerDettesDeVente(saleId, saleData) {
 <script src="livraison.js"></script>
 </body>
 </html>
-
-
