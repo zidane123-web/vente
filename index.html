@@ -11135,8 +11135,14 @@ async function enregistrerModificationClient() {
       } else {
         form.style.display = 'none';
         toggleBtn.style.display = 'inline-flex';
-        document.getElementById('newClientName')?.value = '';
-        document.getElementById('newClientPhone')?.value = '';
+        const nameField = document.getElementById('newClientName');
+        if (nameField) {
+          nameField.value = '';
+        }
+        const phoneField = document.getElementById('newClientPhone');
+        if (phoneField) {
+          phoneField.value = '';
+        }
       }
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -12203,6 +12209,7 @@ function renderSalaryScreen() {
 
     showScreenByHash(hash);
     }
+window.handleHashChange = handleHashChange;
 // Votre fonction enregistrerSnapshotDaily ici
 function enregistrerSnapshotDaily() {
   const today = new Date();
@@ -14047,6 +14054,7 @@ function updateCompteDetailSummary() {
       }
     });
 }
+window.updateBalanceDisplay = updateBalanceDisplay;
 
 function ensureCanauxPerformanceOptions(selectEl) {
   if (!selectEl) return;
