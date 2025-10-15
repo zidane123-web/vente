@@ -2265,12 +2265,12 @@ function generateInvoicePDF(sale) {
         doc.setFontSize(8);
         
         warrantyParagraphs.forEach(p => {
-            const isListItem = p.match(/^[a-z]\./);
+            const isListItem = /^[a-z]\./.test(p);
             const xPosition = isListItem ? 55 : 40; // Indentation pour les listes a,b,c
-            
+
             const lines = doc.splitTextToSize(p, 515);
             doc.text(lines, xPosition, footerY);
-            
+
             footerY += (lines.length * 10) + (isListItem ? 2 : 6); // On descend après chaque paragraphe
         });
 
