@@ -2302,6 +2302,167 @@ function generateInvoicePDF(sale) {
   </div>
 </section>
 
+<section id="screen-canaux-performance" class="screen">
+  <style>
+    .canaux-performance-container {
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .canaux-performance-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .canaux-performance-controls label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .canaux-performance-controls select,
+    .canaux-performance-controls input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #EEE;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    .canaux-performance-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .canaux-performance-card {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .canaux-performance-card span {
+      font-size: 12px;
+      color: #777;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .canaux-performance-card strong {
+      font-size: 20px;
+      color: var(--text-color);
+    }
+    .canaux-performance-loading {
+      font-size: 14px;
+      color: #555;
+    }
+    .canaux-performance-empty {
+      font-size: 14px;
+      color: #777;
+      text-align: center;
+      padding: 16px;
+      background: rgba(0,0,0,0.03);
+      border-radius: var(--border-radius);
+    }
+    .canaux-performance-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .canaux-performance-item {
+      background: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .canaux-performance-item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .canaux-performance-item-title {
+      font-weight: 600;
+      color: var(--text-color);
+    }
+    .canaux-performance-item-amount {
+      font-weight: 700;
+      color: #2e7d32;
+      font-size: 16px;
+    }
+    .canaux-performance-item-meta {
+      display: flex;
+      gap: 16px;
+      color: #777;
+      font-size: 13px;
+      flex-wrap: wrap;
+    }
+    .canaux-performance-item-profit {
+      color: #0d47a1;
+      font-weight: 600;
+    }
+    .canaux-performance-item-payments {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: #555;
+    }
+  </style>
+
+  <header>
+    <button class="back-btn" onclick="window.location.hash='menu'">
+      <i data-lucide="arrow-left"></i>
+    </button>
+    <h1>Performance des canaux</h1>
+  </header>
+
+  <div class="canaux-performance-container">
+    <div class="canaux-performance-controls">
+      <div>
+        <label for="canaux-performance-select">Canal</label>
+        <select id="canaux-performance-select"></select>
+      </div>
+      <div>
+        <label for="canaux-performance-start">Du</label>
+        <input type="date" id="canaux-performance-start">
+      </div>
+      <div>
+        <label for="canaux-performance-end">Au</label>
+        <input type="date" id="canaux-performance-end">
+      </div>
+    </div>
+
+    <div class="canaux-performance-summary">
+      <div class="canaux-performance-card">
+        <span>Nombre de ventes</span>
+        <strong id="canaux-performance-count">0</strong>
+      </div>
+      <div class="canaux-performance-card">
+        <span>Chiffre d'affaires</span>
+        <strong id="canaux-performance-revenue">0 FCFA</strong>
+      </div>
+      <div class="canaux-performance-card">
+        <span>Profit total</span>
+        <strong id="canaux-performance-profit">0 FCFA</strong>
+      </div>
+    </div>
+
+    <div id="canaux-performance-loading" class="canaux-performance-loading" style="display:none;">Chargement des ventes...</div>
+    <div id="canaux-performance-empty" class="canaux-performance-empty" style="display:none;">Aucune vente pour ce canal et cette période.</div>
+    <div id="canaux-performance-list" class="canaux-performance-list"></div>
+  </div>
+</section>
+
 <section id="screen-commande-reception" class="screen">
   <header>
     <button class="back-btn" onclick="fermerReceptionCommande()">
@@ -4572,6 +4733,10 @@ async function generateSupplierCreditPDF() {
                 <li class="menu-list-item" onclick="window.location.hash='rapports'">
                     <i data-lucide="file-text"></i>
                     <span>Rapports & Statistiques</span>
+                </li>
+                <li class="menu-list-item" onclick="window.location.hash='canaux-performance'">
+                    <i data-lucide="bar-chart-3"></i>
+                    <span>Performance des canaux</span>
                 </li>
                 <li class="menu-list-item" onclick="window.location.hash='profit'">
                     <i data-lucide="trending-up"></i>
@@ -11459,7 +11624,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs']);
+      const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs', 'canaux-performance']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -11579,6 +11744,9 @@ case 'article-detail':
     case 'rapports':
       // Appeler la fonction qui met à jour la section "Rapports & Statistiques"
       updateRapports();
+      break;
+    case 'canaux-performance':
+      initCanauxPerformanceScreen();
       break;
     case 'commande-reception':
       renderCommandeReceptionSummary();
@@ -13307,6 +13475,224 @@ function updateCompteDetailSummary() {
       if (loadingEl) {
         loadingEl.style.display = 'none';
       }
+    });
+}
+
+function ensureCanauxPerformanceOptions(selectEl) {
+  if (!selectEl) return;
+  if (selectEl.dataset.filled === 'true') return;
+  selectEl.innerHTML = '';
+
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = '- Sélectionnez un canal -';
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  selectEl.appendChild(placeholder);
+
+  CANAUX_VENTE.forEach(canal => {
+    const option = document.createElement('option');
+    option.value = canal;
+    option.textContent = canal;
+    selectEl.appendChild(option);
+  });
+
+  selectEl.dataset.filled = 'true';
+}
+
+function initCanauxPerformanceScreen() {
+  const selectEl = document.getElementById('canaux-performance-select');
+  const startInput = document.getElementById('canaux-performance-start');
+  const endInput = document.getElementById('canaux-performance-end');
+  if (!selectEl || !startInput || !endInput) return;
+
+  ensureCanauxPerformanceOptions(selectEl);
+
+  if (!selectEl.value && CANAUX_VENTE.length) {
+    selectEl.value = CANAUX_VENTE[0];
+  }
+
+  const today = new Date();
+  const todayIso = today.toISOString().split('T')[0];
+  if (!endInput.value) {
+    endInput.value = todayIso;
+  }
+  if (!startInput.value) {
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+    startInput.value = firstDay.toISOString().split('T')[0];
+  }
+
+  if (!selectEl.dataset.bound) {
+    const onDateChange = () => {
+      if (startInput.value && endInput.value && startInput.value > endInput.value) {
+        endInput.value = startInput.value;
+      }
+      updateCanauxPerformance();
+    };
+
+    selectEl.addEventListener('change', updateCanauxPerformance);
+    startInput.addEventListener('change', onDateChange);
+    endInput.addEventListener('change', onDateChange);
+    selectEl.dataset.bound = 'true';
+  }
+
+  updateCanauxPerformance();
+}
+
+function updateCanauxPerformance() {
+  const selectEl = document.getElementById('canaux-performance-select');
+  const startInput = document.getElementById('canaux-performance-start');
+  const endInput = document.getElementById('canaux-performance-end');
+  const loadingEl = document.getElementById('canaux-performance-loading');
+  const emptyEl = document.getElementById('canaux-performance-empty');
+  const listEl = document.getElementById('canaux-performance-list');
+  const countEl = document.getElementById('canaux-performance-count');
+  const revenueEl = document.getElementById('canaux-performance-revenue');
+  const profitEl = document.getElementById('canaux-performance-profit');
+
+  if (!selectEl || !startInput || !endInput || !listEl || !countEl || !revenueEl || !profitEl) {
+    return;
+  }
+
+  const canal = selectEl.value;
+  if (!canal) {
+    if (listEl) listEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = 'block';
+    if (emptyEl) emptyEl.textContent = 'Sélectionnez un canal pour afficher les ventes.';
+    if (countEl) countEl.textContent = '0';
+    if (revenueEl) revenueEl.textContent = '0 FCFA';
+    if (profitEl) profitEl.textContent = '0 FCFA';
+    if (loadingEl) loadingEl.style.display = 'none';
+    return;
+  }
+
+  if (loadingEl) loadingEl.style.display = 'block';
+  if (emptyEl) {
+    emptyEl.style.display = 'none';
+    emptyEl.textContent = 'Aucune vente pour ce canal et cette période.';
+  }
+  listEl.innerHTML = '';
+  countEl.textContent = '0';
+  revenueEl.textContent = '0 FCFA';
+  profitEl.textContent = '0 FCFA';
+
+  if (!startInput.value || !endInput.value) {
+    if (loadingEl) loadingEl.style.display = 'none';
+    if (emptyEl) {
+      emptyEl.style.display = 'block';
+      emptyEl.textContent = 'Définissez une période valide.';
+    }
+    return;
+  }
+
+  const startDate = new Date(startInput.value + 'T00:00:00');
+  let endDate = new Date(endInput.value + 'T23:59:59.999');
+  if (startDate > endDate) {
+    endDate = new Date(startDate);
+    endInput.value = endDate.toISOString().split('T')[0];
+  }
+
+  const startTimestamp = firebase.firestore.Timestamp.fromDate(startDate);
+  const endTimestamp = firebase.firestore.Timestamp.fromDate(endDate);
+
+  dbFirestore.collection('ventes')
+    .where('vendeur', '==', canal)
+    .where('timestamp', '>=', startTimestamp)
+    .where('timestamp', '<=', endTimestamp)
+    .get()
+    .then(snapshot => {
+      const sales = [];
+      let totalRevenue = 0;
+      let totalProfit = 0;
+
+      snapshot.forEach(doc => {
+        const data = doc.data() || {};
+        if (data.status === 'annulé') return;
+
+        const revenue = parseFloat(data.overallTotal) || 0;
+        const profit = parseFloat(data.totalProfit) || 0;
+        totalRevenue += revenue;
+        totalProfit += profit;
+
+        let saleDate = null;
+        if (data.timestamp) {
+          if (typeof data.timestamp.toDate === 'function') {
+            saleDate = data.timestamp.toDate();
+          } else if (typeof data.timestamp.toMillis === 'function') {
+            saleDate = new Date(data.timestamp.toMillis());
+          } else if (typeof data.timestamp === 'number') {
+            saleDate = new Date(data.timestamp);
+          }
+        }
+
+        sales.push({
+          id: doc.id,
+          date: saleDate,
+          revenue,
+          profit,
+          client: data.clientNom || 'Client inconnu',
+          numero: data.clientNumero || '',
+          payments: Array.isArray(data.paymentsDetails) ? data.paymentsDetails : []
+        });
+      });
+
+      countEl.textContent = sales.length.toString();
+      revenueEl.textContent = `${totalRevenue.toLocaleString('fr-FR')} FCFA`;
+      profitEl.textContent = `${totalProfit.toLocaleString('fr-FR')} FCFA`;
+
+      if (sales.length === 0) {
+        if (emptyEl) emptyEl.style.display = 'block';
+        return;
+      }
+
+      sales
+        .sort((a, b) => {
+          const dateA = a.date ? a.date.getTime() : 0;
+          const dateB = b.date ? b.date.getTime() : 0;
+          return dateB - dateA;
+        })
+        .forEach(sale => {
+          const item = document.createElement('div');
+          item.className = 'canaux-performance-item';
+
+          const dateLabel = sale.date
+            ? `${sale.date.toLocaleDateString('fr-FR')} ${sale.date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+            : 'Date inconnue';
+
+          const paymentsSummary = sale.payments
+            .map(p => {
+              const net = parseFloat(p.netEncaisse) || (parseFloat(p.montantEncaisse) || 0) - (parseFloat(p.monnaieRendue) || 0);
+              const label = net.toLocaleString('fr-FR');
+              const compte = p.compteNom || p.compteId || 'Compte';
+              return `${compte} : ${label} FCFA`;
+            })
+            .join(' · ');
+
+          item.innerHTML = `
+            <div class="canaux-performance-item-header">
+              <span class="canaux-performance-item-title">Vente ${sale.id}</span>
+              <span class="canaux-performance-item-amount">${sale.revenue.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            <div class="canaux-performance-item-meta">
+              <span>${dateLabel}</span>
+              <span>Client : ${sale.client}${sale.numero ? ' (' + sale.numero + ')' : ''}</span>
+              <span class="canaux-performance-item-profit">Profit : ${sale.profit.toLocaleString('fr-FR')} FCFA</span>
+            </div>
+            ${paymentsSummary ? `<div class="canaux-performance-item-payments">Encaissements : ${paymentsSummary}</div>` : ''}
+          `;
+
+          listEl.appendChild(item);
+        });
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement des ventes par canal :', error);
+      if (emptyEl) {
+        emptyEl.style.display = 'block';
+        emptyEl.textContent = 'Erreur lors du chargement des ventes.';
+      }
+    })
+    .finally(() => {
+      if (loadingEl) loadingEl.style.display = 'none';
     });
 }
 
