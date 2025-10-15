@@ -4952,6 +4952,65 @@ async function generateSupplierCreditPDF() {
       grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 12px;
     }
+    .compte-detail-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-color);
+      margin: 4px 0;
+    }
+    .compte-detail-movements {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .compte-detail-movement {
+      background-color: var(--card-bg);
+      border-radius: var(--border-radius);
+      padding: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .compte-detail-movement-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .compte-detail-movement-type {
+      font-weight: 600;
+      text-transform: capitalize;
+      color: #444;
+    }
+    .compte-detail-movement-amount {
+      font-weight: 700;
+      font-size: 16px;
+    }
+    .compte-detail-movement-amount.positive {
+      color: #2e7d32;
+    }
+    .compte-detail-movement-amount.negative {
+      color: #c62828;
+    }
+    .compte-detail-movement-meta {
+      display: flex;
+      justify-content: space-between;
+      color: #777;
+      font-size: 13px;
+    }
+    .compte-detail-movement-description {
+      color: #555;
+      font-size: 14px;
+    }
+    .compte-detail-empty {
+      font-size: 14px;
+      color: #777;
+      background: rgba(0,0,0,0.03);
+      border-radius: var(--border-radius);
+      padding: 12px;
+      text-align: center;
+    }
     .compte-detail-card {
       background-color: var(--card-bg);
       border-radius: var(--border-radius);
@@ -5011,6 +5070,12 @@ async function generateSupplierCreditPDF() {
         <span>Solde final</span>
         <strong id="compte-detail-final">XOF 0</strong>
       </div>
+    </div>
+
+    <div>
+      <h3 class="compte-detail-section-title">Mouvements de la journée</h3>
+      <div id="compte-detail-empty" class="compte-detail-empty" style="display:none;">Aucun mouvement enregistré pour cette date.</div>
+      <div id="compte-detail-movements" class="compte-detail-movements"></div>
     </div>
   </div>
 </section>
@@ -13068,6 +13133,8 @@ function updateCompteDetailSummary() {
   const loadingEl = document.getElementById('compte-detail-loading');
   const alertEl = document.getElementById('compte-detail-alert');
   const dateInput = document.getElementById('compte-detail-date');
+  const movementsContainer = document.getElementById('compte-detail-movements');
+  const emptyStateEl = document.getElementById('compte-detail-empty');
 
   if (!dateInput || !dateInput.value) {
     return;
@@ -13083,6 +13150,12 @@ function updateCompteDetailSummary() {
   }
   if (summaryEl) {
     summaryEl.style.display = 'none';
+  }
+  if (movementsContainer) {
+    movementsContainer.innerHTML = '';
+  }
+  if (emptyStateEl) {
+    emptyStateEl.style.display = 'none';
   }
 
   const dateLabel = document.getElementById('compte-detail-date-label');
@@ -13112,6 +13185,7 @@ function updateCompteDetailSummary() {
       let totalOut = 0;
       let latestBalance = null;
       let latestTimestamp = -Infinity;
+      const mouvements = [];
 
       mouvementsSnap.forEach(doc => {
         const data = doc.data() || {};
@@ -13138,6 +13212,16 @@ function updateCompteDetailSummary() {
           latestTimestamp = ts;
           latestBalance = balanceValue;
         }
+
+        mouvements.push({
+          id: doc.id,
+          type: data.type || '',
+          sens: data.sens || '',
+          montant: amount,
+          description: data.description || '',
+          timestamp: ts,
+          newBalance: Number.isNaN(balanceValue) ? null : balanceValue
+        });
       });
 
       const finalBalance = latestBalance !== null ? latestBalance : opening + totalIn - totalOut;
@@ -13162,6 +13246,50 @@ function updateCompteDetailSummary() {
 
       if (summaryEl) {
         summaryEl.style.display = 'grid';
+      }
+
+      if (movementsContainer) {
+        if (!mouvements.length) {
+          if (emptyStateEl) {
+            emptyStateEl.style.display = 'block';
+          }
+        } else {
+          mouvements
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .forEach(mv => {
+              const movementEl = document.createElement('div');
+              movementEl.className = 'compte-detail-movement';
+
+              const isIn = mv.sens === 'in';
+              const isOut = mv.sens === 'out';
+              const amountClass = isIn ? 'positive' : isOut ? 'negative' : '';
+              const amountLabel = isIn
+                ? formatSignedXof(mv.montant, 'positive')
+                : isOut
+                  ? formatSignedXof(mv.montant, 'negative')
+                  : formatXof(mv.montant);
+              const typeLabel = mv.type ? mv.type.replace(/[_-]/g, ' ') : (mv.sens === 'in' ? 'Entrée' : mv.sens === 'out' ? 'Sortie' : 'Mouvement');
+              const timeLabel = mv.timestamp
+                ? new Date(mv.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                : '--:--';
+              const balanceLabel = mv.newBalance !== null ? formatXof(mv.newBalance) : null;
+              const description = mv.description || 'Sans description';
+
+              movementEl.innerHTML = `
+                <div class="compte-detail-movement-header">
+                  <span class="compte-detail-movement-type">${typeLabel}</span>
+                  <span class="compte-detail-movement-amount ${amountClass}">${amountLabel}</span>
+                </div>
+                <div class="compte-detail-movement-description">${description}</div>
+                <div class="compte-detail-movement-meta">
+                  <span>${timeLabel}</span>
+                  <span>${balanceLabel ? 'Solde: ' + balanceLabel : ''}</span>
+                </div>
+              `;
+
+              movementsContainer.appendChild(movementEl);
+            });
+        }
       }
     })
     .catch(error => {
