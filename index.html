@@ -158,6 +158,142 @@
     .sale-step.active {
       display: block;
     }
+    .client-search-hint {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .client-search-mode {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .client-search-chip {
+      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(59,130,246,0.1);
+      color: #1d4ed8;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .client-search-chip.active {
+      background: #1d4ed8;
+      color: #fff;
+      border-color: #1d4ed8;
+    }
+    .client-search-chip:hover {
+      transform: translateY(-1px);
+    }
+    .client-search-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .client-search-bar input {
+      flex: 1 1 220px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      font-size: 15px;
+    }
+    .client-search-feedback {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 10px;
+    }
+    .client-search-results {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+    }
+    .client-search-result {
+      border: 1px solid #e2e8f0;
+      border-radius: var(--border-radius);
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      background: #fff;
+    }
+    .client-search-result:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.12);
+    }
+    .client-search-result.selected {
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 16px rgba(29,78,216,0.18);
+    }
+    .client-search-result h4 {
+      margin: 0;
+      font-size: 15px;
+      color: #1f2937;
+    }
+    .client-search-result span {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .client-selected-summary {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: var(--border-radius);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .client-selected-summary h3 {
+      margin: 0 0 6px 0;
+      font-size: 15px;
+      color: #166534;
+    }
+    .client-selected-summary p {
+      margin: 0;
+      font-size: 14px;
+      color: #14532d;
+    }
+    .client-search-actions {
+      margin-bottom: 10px;
+    }
+    .client-create-form {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: var(--border-radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 12px rgba(15,23,42,0.08);
+    }
+    .client-create-form h3 {
+      margin-top: 0;
+      margin-bottom: 12px;
+      font-size: 16px;
+      color: #1f2937;
+    }
+    .client-create-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .btn-link {
+      border: none;
+      background: none;
+      color: #2563eb;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .btn-link:hover {
+      text-decoration: underline;
+    }
     @keyframes slideIn {
       from { opacity: 0; transform: translateX(100%); }
       to { opacity: 1; transform: translateX(0); }
@@ -1246,19 +1382,58 @@
         </div>
         <!-- Étape 2 : Informations Client -->
         <div class="sale-step" id="step2">
-          <h2>Étape 2 : Informations Client</h2>
-          <form class="vente-form" onsubmit="event.preventDefault();">
-            <label for="clientNom">Nom du Client</label>
-            <div class="input-with-icon">
-              <i data-lucide="user"></i>
-              <input type="text" id="clientNom" placeholder="Nom du client" required />
+          <h2>Étape 2 : Sélectionner un client</h2>
+          <p class="client-search-hint">Recherchez un client existant ou créez-en un nouveau.</p>
+          <div class="client-search-mode">
+            <button type="button" class="client-search-chip active" data-mode="nom" onclick="setClientSearchMode('nom')">
+              Par nom
+            </button>
+            <button type="button" class="client-search-chip" data-mode="numero" onclick="setClientSearchMode('numero')">
+              Par numéro
+            </button>
+          </div>
+          <div class="client-search-bar">
+            <input
+              type="text"
+              id="clientSearchInput"
+              placeholder="Rechercher un client par nom"
+              onkeydown="if(event.key==='Enter'){event.preventDefault(); searchClientsVente();}"
+            />
+            <button type="button" class="btn-modern secondary" onclick="searchClientsVente()">
+              <i data-lucide="search"></i> Rechercher
+            </button>
+          </div>
+          <div id="clientSearchFeedback" class="client-search-feedback">
+            Saisissez au moins 2 caractères pour lancer la recherche.
+          </div>
+          <div id="clientSearchResults" class="client-search-results"></div>
+          <div id="clientSelectedSummary" class="client-selected-summary" style="display:none;">
+            <h3>Client sélectionné</h3>
+            <p id="clientSelectedText"></p>
+            <button type="button" class="btn-link" onclick="clearSelectedClient()">Changer de client</button>
+          </div>
+          <div class="client-search-actions">
+            <button type="button" class="btn-modern secondary" id="clientCreateToggleBtn" onclick="toggleClientCreateForm(true)">
+              <i data-lucide="user-plus"></i> Nouveau client
+            </button>
+          </div>
+          <div id="clientCreateForm" class="client-create-form" style="display:none;">
+            <h3>Nouveau client</h3>
+            <div class="vente-form">
+              <label for="newClientName">Nom</label>
+              <input type="text" id="newClientName" placeholder="Nom complet" />
+              <label for="newClientPhone">Numéro WhatsApp</label>
+              <input type="text" id="newClientPhone" placeholder="Numéro WhatsApp" />
             </div>
-            <label for="clientNumero">WhatsApp</label>
-            <div class="input-with-icon">
-              <i data-lucide="phone"></i>
-              <input type="text" id="clientNumero" placeholder="Numéro WhatsApp" required />
+            <div class="client-create-actions">
+              <button type="button" class="btn-modern secondary" onclick="toggleClientCreateForm(false)">Annuler</button>
+              <button type="button" class="btn-modern" onclick="createClientFromSale()">Enregistrer</button>
             </div>
-          </form>
+            <div id="clientCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+          </div>
+          <input type="hidden" id="clientNom">
+          <input type="hidden" id="clientNumero">
+          <input type="hidden" id="clientId">
           <div class="step-navigation">
             <button class="btn-modern secondary" onclick="prevStep()">
               <i data-lucide="arrow-left"></i> Retour
@@ -10739,6 +10914,287 @@ async function enregistrerModificationClient() {
       setTimeout(() => { toast.style.display = "none"; }, 3000);
     }
 
+    // Gestion des clients (étape vente)
+    let clientsCache = [];
+    let clientsCacheLoaded = false;
+    let clientsLoadingPromise = null;
+    let clientSearchMode = 'nom';
+    let selectedClientId = null;
+
+    function ensureClientsCache() {
+      if (clientsCacheLoaded) return Promise.resolve(clientsCache);
+      if (clientsLoadingPromise) return clientsLoadingPromise;
+      clientsLoadingPromise = dbFirestore.collection('clients')
+        .get()
+        .then(snapshot => {
+          clientsCache = [];
+          snapshot.forEach(doc => {
+            const data = doc.data() || {};
+            clientsCache.push({
+              id: doc.id,
+              nom: data.nom || data.name || '',
+              numero: data.numero || data.telephone || data.phone || '',
+              ...data
+            });
+          });
+          clientsCacheLoaded = true;
+          return clientsCache;
+        })
+        .catch(error => {
+          console.error('Erreur lors du chargement des clients :', error);
+          clientsCacheLoaded = true;
+          clientsCache = [];
+          return clientsCache;
+        })
+        .finally(() => {
+          clientsLoadingPromise = null;
+        });
+      return clientsLoadingPromise;
+    }
+
+    function setClientSearchMode(mode) {
+      if (mode !== 'nom' && mode !== 'numero') return;
+      clientSearchMode = mode;
+      const chips = document.querySelectorAll('.client-search-chip');
+      chips.forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.mode === mode);
+      });
+      const input = document.getElementById('clientSearchInput');
+      if (input) {
+        input.placeholder = mode === 'nom'
+          ? 'Rechercher un client par nom'
+          : 'Rechercher un client par numéro';
+        input.value = '';
+        input.focus();
+      }
+      const feedback = document.getElementById('clientSearchFeedback');
+      if (feedback) {
+        feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+      }
+      const results = document.getElementById('clientSearchResults');
+      if (results) results.innerHTML = '';
+    }
+
+    function initClientSearchStep() {
+      ensureClientsCache();
+      setClientSearchMode(clientSearchMode);
+      selectedClientId = document.getElementById('clientId')?.value || null;
+      updateClientSelectedSummary();
+      const input = document.getElementById('clientSearchInput');
+      if (input && !input.dataset.bound) {
+        input.dataset.bound = 'true';
+      }
+      toggleClientCreateForm(false);
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    function searchClientsVente() {
+      const input = document.getElementById('clientSearchInput');
+      const feedback = document.getElementById('clientSearchFeedback');
+      const resultsContainer = document.getElementById('clientSearchResults');
+      if (!input || !resultsContainer) return;
+
+      const query = input.value.trim();
+      if (query.length < 2) {
+        if (feedback) {
+          feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+          feedback.style.color = '#6b7280';
+        }
+        resultsContainer.innerHTML = '';
+        return;
+      }
+
+      ensureClientsCache().then(list => {
+        const normalized = clientSearchMode === 'numero'
+          ? query.replace(/\s+/g, '').toLowerCase()
+          : query.toLowerCase();
+
+        const filtered = list.filter(client => {
+          if (clientSearchMode === 'nom') {
+            return (client.nom || '').toLowerCase().includes(normalized);
+          }
+          const numero = (client.numero || '').replace(/\s+/g, '').toLowerCase();
+          return numero.includes(normalized);
+        }).slice(0, 30);
+
+        renderClientResults(filtered);
+        if (feedback) {
+          if (filtered.length === 0) {
+            feedback.textContent = 'Aucun client trouvé. Vous pouvez créer un nouveau client.';
+            feedback.style.color = '#b91c1c';
+          } else {
+            feedback.textContent = `${filtered.length} client(s) trouvé(s).`;
+            feedback.style.color = '#2563eb';
+          }
+        }
+      });
+    }
+
+    function renderClientResults(results) {
+      const container = document.getElementById('clientSearchResults');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!Array.isArray(results) || results.length === 0) return;
+
+      results.forEach(client => {
+        const item = document.createElement('div');
+        item.className = 'client-search-result';
+        item.dataset.clientId = client.id || '';
+        if (client.id && client.id === selectedClientId) {
+          item.classList.add('selected');
+        }
+        const numeroDisplay = client.numero ? client.numero : 'Numéro non renseigné';
+        item.innerHTML = `
+          <div>
+            <h4>${client.nom || 'Client sans nom'}</h4>
+            <span>${numeroDisplay}</span>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          selectClientForSale(client);
+        });
+        container.appendChild(item);
+      });
+    }
+
+    function selectClientForSale(client) {
+      if (!client) return;
+      selectedClientId = client.id || null;
+      const nomInput = document.getElementById('clientNom');
+      const numeroInput = document.getElementById('clientNumero');
+      const idInput = document.getElementById('clientId');
+      if (nomInput) nomInput.value = client.nom || '';
+      if (numeroInput) numeroInput.value = client.numero || '';
+      if (idInput) idInput.value = client.id || '';
+      updateClientSelectedSummary();
+      const items = document.querySelectorAll('.client-search-result');
+      items.forEach(item => {
+        item.classList.toggle('selected', item.dataset.clientId === (client.id || ''));
+      });
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      showToast(`Client ${client.nom || ''} sélectionné.`);
+    }
+
+    function updateClientSelectedSummary() {
+      const summary = document.getElementById('clientSelectedSummary');
+      const textEl = document.getElementById('clientSelectedText');
+      const nom = document.getElementById('clientNom')?.value.trim() || '';
+      const numero = document.getElementById('clientNumero')?.value.trim() || '';
+      if (!summary || !textEl) return;
+      if (nom) {
+        summary.style.display = 'block';
+        textEl.textContent = numero ? `${nom} (${numero})` : nom;
+      } else {
+        summary.style.display = 'none';
+        textEl.textContent = '';
+      }
+    }
+
+    function clearSelectedClient() {
+      selectedClientId = null;
+      const nomInput = document.getElementById('clientNom');
+      const numeroInput = document.getElementById('clientNumero');
+      const idInput = document.getElementById('clientId');
+      if (nomInput) nomInput.value = '';
+      if (numeroInput) numeroInput.value = '';
+      if (idInput) idInput.value = '';
+      updateClientSelectedSummary();
+      const items = document.querySelectorAll('.client-search-result');
+      items.forEach(item => item.classList.remove('selected'));
+      const input = document.getElementById('clientSearchInput');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+      const feedback = document.getElementById('clientSearchFeedback');
+      if (feedback) {
+        feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+        feedback.style.color = '#6b7280';
+      }
+      const results = document.getElementById('clientSearchResults');
+      if (results) results.innerHTML = '';
+    }
+
+    function toggleClientCreateForm(show) {
+      const form = document.getElementById('clientCreateForm');
+      const toggleBtn = document.getElementById('clientCreateToggleBtn');
+      const feedback = document.getElementById('clientCreateFeedback');
+      if (!form || !toggleBtn) return;
+      if (feedback) {
+        feedback.style.display = 'none';
+        feedback.textContent = '';
+      }
+      if (show) {
+        form.style.display = 'block';
+        toggleBtn.style.display = 'none';
+        setTimeout(() => document.getElementById('newClientName')?.focus(), 100);
+      } else {
+        form.style.display = 'none';
+        toggleBtn.style.display = 'inline-flex';
+        document.getElementById('newClientName')?.value = '';
+        document.getElementById('newClientPhone')?.value = '';
+      }
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    function createClientFromSale() {
+      const nameInput = document.getElementById('newClientName');
+      const phoneInput = document.getElementById('newClientPhone');
+      const feedback = document.getElementById('clientCreateFeedback');
+      if (!nameInput || !phoneInput) return;
+      const nom = nameInput.value.trim();
+      const numero = phoneInput.value.trim();
+      if (!nom) {
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.style.color = '#b91c1c';
+          feedback.textContent = 'Le nom du client est obligatoire.';
+        }
+        return;
+      }
+      if (!numero) {
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.style.color = '#b91c1c';
+          feedback.textContent = 'Le numéro du client est obligatoire.';
+        }
+        return;
+      }
+
+      const saveBtn = document.querySelector('#clientCreateForm .btn-modern:not(.secondary)');
+      if (saveBtn) saveBtn.disabled = true;
+      ensureClientsCache().then(() => {
+        return dbFirestore.collection('clients').add({
+          nom,
+          numero,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }).then(docRef => {
+        const newClient = { id: docRef.id, nom, numero };
+        clientsCache.push(newClient);
+        clientsCacheLoaded = true;
+        toggleClientCreateForm(false);
+        selectClientForSale(newClient);
+        searchClientsVente();
+        showToast('Client créé avec succès.');
+      }).catch(error => {
+        console.error('Erreur lors de la création du client :', error);
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.style.color = '#b91c1c';
+          feedback.textContent = 'Impossible de créer le client : ' + error.message;
+        }
+      }).finally(() => {
+        if (saveBtn) saveBtn.disabled = false;
+      });
+    }
+
     // Sale Loader Functions
     function showSaleLoader() {
       document.getElementById("saleLoader").style.display = "flex";
@@ -10760,6 +11216,9 @@ async function enregistrerModificationClient() {
       const progress = ((index + 1) / steps.length) * 100;
       document.getElementById("progressBar").style.width = progress + "%";
       document.getElementById("progressText").innerText = `Étape ${index + 1} / ${steps.length}`;
+      if (index === 1) {
+        initClientSearchStep();
+      }
       if (index === 2) {
         ensureVentePaymentsInitialized();
         rafraichirResumePaiementVente();
@@ -10769,6 +11228,14 @@ async function enregistrerModificationClient() {
       }
     }
     function nextStep() {
+  if (currentStep === 1) {
+    const nom = document.getElementById('clientNom')?.value.trim() || '';
+    const numero = document.getElementById('clientNumero')?.value.trim() || '';
+    if (!nom || !numero) {
+      showToast("Sélectionnez ou créez un client avant de continuer.");
+      return;
+    }
+  }
   if (currentStep === 2) {
     if (!validateVentePayments(true)) {
       return;
@@ -12265,6 +12732,7 @@ function continuerDepuisPanier() {
         heureVente,
         clientNom,
         clientNumero,
+        clientId: document.getElementById("clientId")?.value || null,
         vendeur,
         items: currentItems,
         overallTotal: overallTotal.toFixed(2),
@@ -12328,6 +12796,7 @@ function continuerDepuisPanier() {
 
         // Réinitialisation du formulaire et redirection
         resetVentePayments();
+        clearSelectedClient();
         currentItems = [];
         window.location.hash = 'historique';
         
