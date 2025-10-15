@@ -158,6 +158,70 @@
     .sale-step.active {
       display: block;
     }
+    #screen-accueil {
+      background: #f5f5fa;
+      padding: 15px;
+      min-height: 100vh;
+    }
+    .accueil-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .accueil-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .accueil-header h2 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--text-color);
+    }
+    .accueil-header p {
+      margin: 2px 0 0 0;
+      color: #6b7280;
+      font-size: 13px;
+    }
+    .accueil-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .accueil-card {
+      background: #fff;
+      border-radius: var(--border-radius);
+      padding: 16px;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .accueil-card span {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .accueil-card strong {
+      font-size: 22px;
+      color: var(--text-color);
+    }
+    .accueil-card small {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .accueil-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .accueil-actions .btn-modern {
+      flex: 1 1 160px;
+      justify-content: center;
+    }
     .client-search-hint {
       font-size: 14px;
       color: #666;
@@ -1332,7 +1396,57 @@
   
   <div id="app" style="display: none;">
     <!-- Screen 1: Nouvelle Vente - Multi-steps -->
-    <section id="screen-vendre" class="screen active">
+    
+<section id="screen-accueil" class="screen active">
+  <header>
+    <button class="back-btn" onclick="window.location.hash='menu'">
+      <i data-lucide="arrow-left"></i>
+    </button>
+    <h1>Accueil</h1>
+  </header>
+  <div class="accueil-container">
+    <div class="accueil-header">
+      <div>
+        <h2>Vue d'ensemble quotidienne</h2>
+        <p id="accueil-date">--</p>
+      </div>
+    </div>
+    <div class="accueil-grid">
+      <div class="accueil-card">
+        <span>Ventes du jour</span>
+        <strong id="accueil-ventes-count">0</strong>
+        <small id="accueil-ventes-livraison">0 livraisons en attente</small>
+      </div>
+      <div class="accueil-card">
+        <span>Chiffre d'affaires</span>
+        <strong id="accueil-ventes-ca">0 FCFA</strong>
+        <small id="accueil-ventes-profit">Profit : 0 FCFA</small>
+      </div>
+      <div class="accueil-card">
+        <span>Dépenses du jour</span>
+        <strong id="accueil-depenses">0 FCFA</strong>
+        <small>Charges enregistrées aujourd'hui</small>
+      </div>
+      <div class="accueil-card">
+        <span>Articles en stock</span>
+        <strong id="accueil-stock-items">0</strong>
+        <small id="accueil-stock-detail"></small>
+      </div>
+    </div>
+    <div class="accueil-actions">
+      <button type="button" class="btn-modern" onclick="window.location.hash='vendre'">
+        <i data-lucide="shopping-cart"></i> Nouvelle vente
+      </button>
+      <button type="button" class="btn-modern secondary" onclick="window.location.hash='approvisionnement'">
+        <i data-lucide="archive"></i> Enregistrer un achat
+      </button>
+      <button type="button" class="btn-modern secondary" onclick="window.location.hash='tresorerie'">
+        <i data-lucide="dollar-sign"></i> Voir trésorerie
+      </button>
+    </div>
+  </div>
+</section>
+<section id="screen-vendre" class="screen">
       <header>
         <!-- Entête retiré selon la demande -->
       </header>
@@ -4871,6 +4985,10 @@ async function generateSupplierCreditPDF() {
         <div class="menu-group">
             <h3 class="menu-group-title">Gestion Quotidienne</h3>
             <ul class="menu-list">
+                <li class="menu-list-item" onclick="window.location.hash='accueil'">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Accueil</span>
+                </li>
                 <li class="menu-list-item" onclick="window.location.hash='vendre'">
                     <i data-lucide="shopping-cart"></i>
                     <span>Nouvelle Vente</span>
@@ -10571,6 +10689,10 @@ async function annulerCommandeFournisseur(approId, event) {
 
     <!-- Bottom Navigation Modernisée (Navigation par hash) -->
     <nav class="bottom-nav-pro">
+      <div class="nav-item" id="nav-accueil" onclick="window.location.hash='accueil'">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Accueil</span>
+      </div>
       <div class="nav-item" id="nav-vendre" onclick="window.location.hash='vendre'">
         <i data-lucide="shopping-cart"></i>
         <span>Vente</span>
@@ -11198,6 +11320,98 @@ async function enregistrerModificationClient() {
         }
       }).finally(() => {
         if (saveBtn) saveBtn.disabled = false;
+      });
+    }
+
+        function updateAccueilSummary() {
+      const countEl = document.getElementById('accueil-ventes-count');
+      const revenueEl = document.getElementById('accueil-ventes-ca');
+      const profitEl = document.getElementById('accueil-ventes-profit');
+      const depenseEl = document.getElementById('accueil-depenses');
+      const stockEl = document.getElementById('accueil-stock-items');
+      const stockDetailEl = document.getElementById('accueil-stock-detail');
+      const livraisonsEl = document.getElementById('accueil-ventes-livraison');
+      const dateEl = document.getElementById('accueil-date');
+      if (!countEl || !revenueEl || !profitEl || !depenseEl || !stockEl || !livraisonsEl) {
+        return;
+      }
+
+      const now = new Date();
+      if (dateEl) {
+        dateEl.textContent = now.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      }
+
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const startTimestamp = firebase.firestore.Timestamp.fromDate(startOfDay);
+      const endTimestamp = firebase.firestore.Timestamp.fromDate(endOfDay);
+      const startMillis = startOfDay.getTime();
+      const endMillis = endOfDay.getTime();
+
+      const stockPromise = (Array.isArray(cachedStock) && cachedStock.length)
+        ? Promise.resolve(cachedStock)
+        : getAllStockFirestore();
+
+      Promise.all([
+        dbFirestore.collection('ventes')
+          .where('timestamp', '>=', startTimestamp)
+          .where('timestamp', '<=', endTimestamp)
+          .get()
+          .catch(err => { console.error('Erreur chargement ventes accueil:', err); return null; }),
+        dbFirestore.collection('depenses')
+          .where('timestamp', '>=', startMillis)
+          .where('timestamp', '<=', endMillis)
+          .get()
+          .catch(err => { console.error('Erreur chargement depenses accueil:', err); return null; }),
+        stockPromise.catch(err => { console.error('Erreur chargement stock accueil:', err); return []; })
+      ]).then(([ventesSnap, depensesSnap, stocks]) => {
+        let ventesCount = 0;
+        let totalCA = 0;
+        let totalProfit = 0;
+        let livraisonsEnAttente = 0;
+
+        if (ventesSnap && typeof ventesSnap.forEach === 'function') {
+          ventesSnap.forEach(doc => {
+            const data = doc.data() || {};
+            if (data.status === 'annulé') return;
+            ventesCount++;
+            totalCA += parseFloat(data.overallTotal) || 0;
+            totalProfit += parseFloat(data.totalProfit) || 0;
+            if (data.isDelivery && data.deliveryStatus !== 'réussie') {
+              livraisonsEnAttente++;
+            }
+          });
+        }
+
+        let depensesTotal = 0;
+        if (depensesSnap && typeof depensesSnap.forEach === 'function') {
+          depensesSnap.forEach(doc => {
+            depensesTotal += parseFloat(doc.data()?.montant) || 0;
+          });
+        }
+
+        let totalStock = 0;
+        let detailsStock = '';
+        if (Array.isArray(stocks) && stocks.length) {
+          const telephones = stocks
+            .filter(s => (s.category || '').toLowerCase() === 'telephones')
+            .reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
+          const accessoires = stocks
+            .filter(s => (s.category || '').toLowerCase() === 'accessoires')
+            .reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
+          totalStock = telephones + accessoires;
+          detailsStock = `T\u00E9l: ${telephones.toLocaleString('fr-FR')} \u00B7 Acc: ${accessoires.toLocaleString('fr-FR')}`;
+        }
+
+        countEl.textContent = ventesCount.toLocaleString('fr-FR');
+        revenueEl.textContent = `${totalCA.toLocaleString('fr-FR')} FCFA`;
+        profitEl.textContent = `Profit : ${totalProfit.toLocaleString('fr-FR')} FCFA`;
+        depenseEl.textContent = `${depensesTotal.toLocaleString('fr-FR')} FCFA`;
+        stockEl.textContent = totalStock.toLocaleString('fr-FR');
+        if (stockDetailEl) {
+          stockDetailEl.textContent = detailsStock || '---';
+        }
+        livraisonsEl.textContent = `${livraisonsEnAttente} livraisons en attente`;
       });
     }
 
@@ -12322,6 +12536,9 @@ case 'article-detail':
       break;
     case 'canaux-performance':
       initCanauxPerformanceScreen();
+      break;
+    case 'accueil':
+      updateAccueilSummary();
       break;
     case 'commande-reception':
       renderCommandeReceptionSummary();
@@ -14376,7 +14593,7 @@ function majCartesTresorerie() {
       
       // 1. Set the initial route if none exists
       if (!window.location.hash) {
-        window.location.hash = 'vendre';
+        window.location.hash = 'accueil';
       }
       
       // 2. Handle the initial screen display and attach the router listener
@@ -16470,3 +16687,21 @@ async function creerDettesDeVente(saleId, saleData) {
 <script src="livraison.js"></script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
