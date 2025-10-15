@@ -6251,6 +6251,21 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
         <h1>Nouvel Achat</h1>
     </header>
 
+    <div id="appro-mode-dialog" class="appro-mode-dialog" style="display:none;">
+        <div class="appro-mode-dialog-content">
+            <h2>Choisir le type d'achat</h2>
+            <p>Sélectionnez le type d'achat que vous souhaitez enregistrer.</p>
+            <div class="appro-mode-dialog-actions">
+                <button type="button" class="btn-modern secondary" onclick="selectApproMode('normal')">
+                    Achat direct
+                </button>
+                <button type="button" class="btn-modern" onclick="selectApproMode('commande')">
+                    Commande à recevoir
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="form-section">
         <h2>Détails de l'article</h2>
         <form class="vente-form" onsubmit="event.preventDefault(); ajouterApprovisionnementItem();">
@@ -6379,6 +6394,55 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
 #screen-approvisionnement {
     background-color: #f5f7fa;
     padding: 10px;
+}
+
+#screen-approvisionnement .appro-mode-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+#screen-approvisionnement .appro-mode-dialog-content {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    padding: 24px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#screen-approvisionnement .appro-mode-dialog-content h2 {
+    margin: 0;
+    font-size: 20px;
+    color: var(--text-color);
+}
+
+#screen-approvisionnement .appro-mode-dialog-content p {
+    margin: 0;
+    font-size: 14px;
+    color: #555;
+}
+
+#screen-approvisionnement .appro-mode-dialog-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#screen-approvisionnement .appro-mode-dialog-actions .btn-modern {
+    width: 100%;
 }
 
 #screen-approvisionnement header h1 {
@@ -6872,6 +6936,37 @@ function handlePurchaseTypeChange() {
     rafraichirResumePaiementAppro();
 }
 
+function showApproModeDialog() {
+    const dialog = document.getElementById('appro-mode-dialog');
+    if (!dialog) return;
+    dialog.style.display = 'flex';
+}
+
+function hideApproModeDialog() {
+    const dialog = document.getElementById('appro-mode-dialog');
+    if (!dialog) return;
+    dialog.style.display = 'none';
+}
+
+function selectApproMode(mode) {
+    const typeSelect = document.getElementById('typeAchatAppro');
+    if (typeSelect) {
+        if (mode === 'commande') {
+            typeSelect.value = 'commande';
+        } else {
+            typeSelect.value = 'normal';
+        }
+        typeSelect.dispatchEvent(new Event('change'));
+    }
+    hideApproModeDialog();
+    const focusTarget = mode === 'commande'
+        ? document.getElementById('commandeDatePrevue')
+        : document.getElementById('fournisseurAppro');
+    if (focusTarget) {
+        setTimeout(() => focusTarget.focus(), 150);
+    }
+}
+
 const typeAchatSelect = document.getElementById("typeAchatAppro");
 if (typeAchatSelect) {
     typeAchatSelect.addEventListener('change', handlePurchaseTypeChange);
@@ -6884,10 +6979,16 @@ if (purchasePaymentStatusSelect) {
 window.addEventListener('hashchange', () => {
     if (window.location.hash === '#approvisionnement') {
         handlePurchaseTypeChange();
+        showApproModeDialog();
+    } else {
+        hideApproModeDialog();
     }
 });
 
 handlePurchaseTypeChange();
+if (window.location.hash === '#approvisionnement') {
+    showApproModeDialog();
+}
 
   // Incrémenter/Décrémenter la quantité
   function decrementQuantityAppro() {
