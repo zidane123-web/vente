@@ -41,6 +41,20 @@
       display: none !important;
     }
 
+    body.role-employe #screen-accueil .accueil-grid {
+      display: none !important;
+    }
+
+    body.role-employe #screen-accueil .btn-accueil-achat,
+    body.role-employe #screen-accueil .btn-accueil-tresorerie {
+      display: none !important;
+    }
+
+    body.role-employe #screen-accueil .accueil-actions {
+      justify-content: center;
+      gap: 12px;
+    }
+
     body.role-employe #screen-menu .menu-list-item[onclick*=\'tresorerie\'],
     body.role-employe #screen-menu .menu-list-item[onclick*=\'approvisionnement\'] {
       display: none !important;
@@ -1531,16 +1545,16 @@
       </div>
     </div>
     <div class="accueil-actions">
-      <button type="button" class="btn-modern" onclick="ouvrirModalTypeVente()">
+      <button type="button" class="btn-modern btn-accueil-vente" onclick="ouvrirModalTypeVente()">
         <i data-lucide="shopping-cart"></i> Nouvelle vente
       </button>
-      <button type="button" class="btn-modern secondary" onclick="window.location.hash='approvisionnement'">
+      <button type="button" class="btn-modern secondary btn-accueil-achat" onclick="window.location.hash='approvisionnement'">
         <i data-lucide="archive"></i> Enregistrer un achat
       </button>
-      <button type="button" class="btn-modern secondary" onclick="window.location.hash='stock'">
+      <button type="button" class="btn-modern secondary btn-accueil-stock" onclick="window.location.hash='stock'">
         <i data-lucide="package"></i> Voir le stock
       </button>
-      <button type="button" class="btn-modern secondary" onclick="window.location.hash='tresorerie'">
+      <button type="button" class="btn-modern secondary btn-accueil-tresorerie" onclick="window.location.hash='tresorerie'">
         <i data-lucide="dollar-sign"></i> Voir trésorerie
       </button>
     </div>
