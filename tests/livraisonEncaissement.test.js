@@ -52,6 +52,7 @@ function setupLivraisonContext(overrides = {}) {
   win.populateLivraisonDetailView = () => {};
   win.filterSalesHistory = () => {};
   win.afficherLivraisons = () => {};
+  win.peutGererLivraisonCourante = () => true;
   win.comptesCache = [];
   win.firebase = { firestore: { FieldValue: { serverTimestamp: () => 'timestamp' } } };
 

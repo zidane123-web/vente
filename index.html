@@ -398,6 +398,16 @@ body.role-employe #screen-accueil .accueil-actions {
       flex-direction: column;
       gap: 6px;
     }
+    .accueil-card.accueil-card-link {
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .accueil-card.accueil-card-link:focus,
+    .accueil-card.accueil-card-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+      outline: none;
+    }
     .accueil-card span {
       font-size: 13px;
       color: #6b7280;
@@ -1729,6 +1739,11 @@ body.role-employe #screen-accueil .accueil-actions {
         <strong id="accueil-ventes-count">0</strong>
         <small id="accueil-ventes-livraison">0 livraisons en attente</small>
       </div>
+      <div class="accueil-card accueil-card-link" role="button" tabindex="0" onclick="ouvrirLivraisonsDepuisAccueil()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); ouvrirLivraisonsDepuisAccueil();}">
+        <span>Livraisons en cours</span>
+        <strong id="accueil-livraisons-count">0</strong>
+        <small id="accueil-livraisons-subtext">Cliquer pour consulter</small>
+      </div>
       <div class="accueil-card">
         <span>Chiffre d'affaires</span>
         <strong id="accueil-ventes-ca">0 FCFA</strong>
@@ -2027,14 +2042,20 @@ body.role-employe #screen-accueil .accueil-actions {
     
     <!-- Screen 2: Livraisons -->
     <section id="screen-livraisons" class="screen">
-      <header>
-        <h1>Historique des Livraisons</h1>
-        <div class="timestamp">
-          <span id="dateLivraison"></span>
-        </div>
-      </header>
-      <div id="livraisonsContainer" class="list-container"></div>
-    </section>
+  <header>
+    <h1>Historique des Livraisons</h1>
+    <div class="timestamp">
+      <span id="dateLivraison"></span>
+    </div>
+  </header>
+  <div class="livraisons-stats">
+    <div>
+      <span>Livraisons en cours</span>
+      <strong id="livraisons-header-count">0</strong>
+    </div>
+  </div>
+  <div id="livraisonsContainer" class="list-container"></div>
+</section>
 
     <!-- Screen 2b: Détail Livraison -->
     <section id="screen-livraison-detail" class="screen">
@@ -13040,10 +13061,29 @@ function updateLivraisonActionButtons(sale, totals) {
   const statusDesc = document.getElementById('livraisonDetailStatusDescription');
   const addPaymentBtn = document.querySelector('.delivery-add-payment-btn');
 
-  const isSuccess = sale.deliveryStatus === 'réussie';
-  const isFailed = sale.deliveryStatus === 'échouée';
+  const isSuccess = sale.deliveryStatus === 'r?ussie';
+  const isFailed = sale.deliveryStatus === '?chou?e';
   const outstanding = totals ? totals.outstanding : computeLivraisonTotals(sale).outstanding;
   const canClose = !isSuccess && !isFailed && outstanding <= 0.5;
+  const canManage = peutGererLivraison(sale);
+  window.__currentLivraisonCanManage = canManage;
+
+  if (!canManage) {
+    if (successBtn) {
+      successBtn.disabled = true;
+      successBtn.classList.remove('primary', 'success');
+    }
+    if (failBtn) {
+      failBtn.disabled = true;
+    }
+    if (addPaymentBtn) {
+      addPaymentBtn.disabled = true;
+    }
+    if (statusDesc) {
+      statusDesc.textContent = 'Consultation uniquement. Seul le redacteur de la livraison ou un responsable peut agir.';
+    }
+    return;
+  }
 
   if (successBtn) {
     successBtn.disabled = isSuccess;
@@ -13051,10 +13091,10 @@ function updateLivraisonActionButtons(sale, totals) {
     const label = successBtn.querySelector('.btn-label');
     if (isSuccess) {
       successBtn.classList.add('success');
-      if (label) label.textContent = 'Livraison finalisée';
+      if (label) label.textContent = 'Livraison finalis?e';
     } else if (canClose) {
       successBtn.classList.add('success');
-      if (label) label.textContent = 'Clôturer la livraison';
+      if (label) label.textContent = 'Cl?turer la livraison';
     } else {
       successBtn.classList.add('primary');
       if (label) label.textContent = 'Enregistrer un encaissement';
@@ -13063,30 +13103,39 @@ function updateLivraisonActionButtons(sale, totals) {
   if (failBtn) {
     failBtn.disabled = isFailed;
     const label = failBtn.querySelector('.btn-label');
-    if (label) label.textContent = isFailed ? 'Livraison échouée' : 'Marquer comme échouée';
+    if (label) label.textContent = isFailed ? 'Livraison ?chou?e' : 'Marquer comme ?chou?e';
   }
   if (addPaymentBtn) {
     addPaymentBtn.disabled = outstanding <= 0.5;
   }
   if (statusDesc) {
     if (isSuccess) {
-      statusDesc.textContent = 'Cette livraison est finalisée et intégrée au chiffre des ventes.';
+      statusDesc.textContent = 'Cette livraison est finalis?e et int?gr?e au chiffre des ventes.';
     } else if (isFailed) {
-      statusDesc.textContent = 'Livraison marquée comme échouée. Ajustez ou relancez si nécessaire.';
+      statusDesc.textContent = 'Livraison marqu?e comme ?chou?e. Ajustez ou relancez si n?cessaire.';
     } else if (outstanding > 0.5) {
-      statusDesc.textContent = `Encaissez ${formatXofAmount(outstanding)} avant de clôturer la livraison.`;
+      statusDesc.textContent = `Encaissez ${formatXofAmount(outstanding)} avant de cl?turer la livraison.`;
     } else {
-      statusDesc.textContent = 'Vous pouvez maintenant clôturer la livraison ou la marquer en échec.';
+      statusDesc.textContent = 'Vous pouvez maintenant cl?turer la livraison ou la marquer en ?chec.';
     }
   }
 }
 
 
+
 async function encaisserLivraisonRestante() {
+  if (!peutGererLivraisonCourante()) {
+    setLivraisonDetailAlert("Vous ne pouvez pas encaisser cette livraison.", 'warning');
+    return;
+  }
   ouvrirModalLivraisonEncaissement();
 }
 async function marquerLivraisonReussie() {
   if (!currentLivraisonData || !currentLivraisonId) return;
+  if (!peutGererLivraisonCourante()) {
+    setLivraisonDetailAlert("Vous ne pouvez pas modifier cette livraison.", 'warning');
+    return;
+  }
 
   const totals = computeLivraisonTotals(currentLivraisonData);
   if (totals.outstanding > 0.5) {
@@ -13114,6 +13163,10 @@ async function marquerLivraisonEchouee() {
     setLivraisonDetailAlert('La livraison est déjà marquée comme échouée.', 'info');
     return;
   }
+  if (!peutGererLivraisonCourante()) {
+    setLivraisonDetailAlert("Vous ne pouvez pas modifier cette livraison.", 'warning');
+    return;
+  }
   const raison = prompt("Indiquez la raison de l'échec (facultatif) :");
   showLivraisonDetailLoader(true);
   try {
@@ -13133,6 +13186,7 @@ async function marquerLivraisonEchouee() {
     setLivraisonDetailAlert('Livraison marquée comme échouée.', 'danger');
     filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
     afficherLivraisons();
+    updateAccueilSummary();
   } catch (error) {
     console.error('Erreur marquage échec livraison :', error);
     setLivraisonDetailAlert("Impossible de marquer la livraison comme échouée : " + error.message, 'danger');
@@ -13141,18 +13195,91 @@ async function marquerLivraisonEchouee() {
   }
 }
 
+function updateLivraisonQuickIndicators(count) {
+  const value = Number(count || 0);
+  const formatted = value.toLocaleString('fr-FR');
+  const badge = document.getElementById('livraisonsEnCoursBadge');
+  if (badge) {
+    badge.textContent = formatted;
+  }
+  const quickBtn = document.getElementById('livraisonsQuickButton');
+  if (quickBtn) {
+    quickBtn.style.display = value > 0 ? 'flex' : 'none';
+  }
+  const headerCount = document.getElementById('livraisons-header-count');
+  if (headerCount) {
+    headerCount.textContent = formatted;
+  }
+  const homeCardCount = document.getElementById('accueil-livraisons-count');
+  if (homeCardCount) {
+    homeCardCount.textContent = formatted;
+  }
+  const homeCardSub = document.getElementById('accueil-livraisons-subtext');
+  if (homeCardSub) {
+    homeCardSub.textContent = value === 1 ? '1 livraison à suivre' : `${formatted} livraisons à suivre`;
+  }
+}
+
+
+function ouvrirLivraisonsDepuisAccueil() {
+  window.location.hash = 'livraisons';
+  setTimeout(() => {
+    if (typeof afficherLivraisons === 'function') {
+      afficherLivraisons();
+    }
+  }, 80);
+}
+
+function ouvrirLivraisonsDepuisBadge() {
+  ouvrirLivraisonsDepuisAccueil();
+}
+
+function peutGererLivraison(sale) {
+  if (!sale) return false;
+  const auth = typeof firebase !== 'undefined' && typeof firebase.auth === 'function' ? firebase.auth() : null;
+  const currentUser = auth && auth.currentUser ? auth.currentUser : null;
+  const userUid = currentUser && currentUser.uid ? currentUser.uid : null;
+  if (!userUid) return false;
+
+  const privilegedRoles = new Set(['patron', 'admin', 'manager', 'gerant', 'superviseur']);
+  if (privilegedRoles.has(window.userRole)) {
+    return true;
+  }
+
+  const possibleOwners = [
+    sale.enregistreParUid,
+    sale.preparedByUid,
+    sale.createdByUid,
+    sale.captureUid,
+    sale.livreurUid,
+    sale.deliveryAgentUid
+  ].filter(Boolean);
+
+  if (!possibleOwners.length) {
+    return true;
+  }
+
+  return possibleOwners.includes(userUid);
+}
+
+function peutGererLivraisonCourante() {
+  return peutGererLivraison(currentLivraisonData || null);
+}
+
 function updateAccueilSummary() {
   const countEl = document.getElementById('accueil-ventes-count');
   const revenueEl = document.getElementById('accueil-ventes-ca');
   const profitEl = document.getElementById('accueil-ventes-profit');
   const depenseEl = document.getElementById('accueil-depenses');
-      const stockEl = document.getElementById('accueil-stock-items');
-      const stockDetailEl = document.getElementById('accueil-stock-detail');
-      const livraisonsEl = document.getElementById('accueil-ventes-livraison');
-      const dateEl = document.getElementById('accueil-date');
-      if (!countEl || !revenueEl || !profitEl || !depenseEl || !stockEl || !livraisonsEl) {
-        return;
-      }
+  const stockEl = document.getElementById('accueil-stock-items');
+  const stockDetailEl = document.getElementById('accueil-stock-detail');
+  const livraisonsEl = document.getElementById('accueil-ventes-livraison');
+  const livraisonCardCountEl = document.getElementById('accueil-livraisons-count');
+  const livraisonCardSubtextEl = document.getElementById('accueil-livraisons-subtext');
+  const dateEl = document.getElementById('accueil-date');
+  if (!countEl || !revenueEl || !profitEl || !depenseEl || !stockEl || !livraisonsEl) {
+    return;
+  }
 
       const now = new Date();
       if (dateEl) {
@@ -13229,11 +13356,17 @@ function updateAccueilSummary() {
         if (stockDetailEl) {
           stockDetailEl.textContent = detailsStock || '---';
         }
-        livraisonsEl.textContent = `${livraisonsEnAttente} livraisons en attente`;
-        const quickBadge = document.getElementById('livraisonsEnCoursBadge');
-        if (quickBadge) {
-          quickBadge.textContent = livraisonsEnAttente;
+        const livraisonsFormatted = livraisonsEnAttente.toLocaleString('fr-FR');
+        livraisonsEl.textContent = `${livraisonsFormatted} livraisons en attente`;
+        if (livraisonCardCountEl) {
+          livraisonCardCountEl.textContent = livraisonsFormatted;
         }
+        if (livraisonCardSubtextEl) {
+          livraisonCardSubtextEl.textContent = livraisonsEnAttente === 1
+            ? '1 livraison \u00E0 suivre'
+            : `${livraisonsFormatted} livraisons \u00E0 suivre`;
+        }
+        updateLivraisonQuickIndicators(livraisonsEnAttente);
       });
     }
 
@@ -19330,6 +19463,10 @@ function ouvrirModalLivraisonEncaissement() {
     setLivraisonDetailAlert("Sélectionnez une livraison avant d'encaisser.", 'danger');
     return;
   }
+  if (!peutGererLivraisonCourante()) {
+    setLivraisonDetailAlert("Vous ne pouvez pas encaisser cette livraison.", 'warning');
+    return;
+  }
   livraisonModalContext = {
     totals: computeLivraisonTotals(currentLivraisonData)
   };
@@ -19516,6 +19653,10 @@ function rafraichirResumePaiementLivraison() {
 
 async function validerEncaissementLivraison() {
   if (!currentLivraisonData || !currentLivraisonId || !livraisonModalContext) return;
+  if (!peutGererLivraisonCourante()) {
+    setLivraisonDetailAlert("Vous ne pouvez pas encaisser cette livraison.", 'warning');
+    return;
+  }
 
   const summary = rafraichirResumePaiementLivraison();
   const { stats, remaining } = summary;
@@ -19648,6 +19789,7 @@ async function finaliserLivraisonReussie() {
   setLivraisonDetailAlert('Livraison marquée comme réussie.', 'success');
   filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
   afficherLivraisons();
+  updateAccueilSummary();
 }
 </script>
 </body>
