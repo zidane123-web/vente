@@ -12955,13 +12955,12 @@ function continuerDepuisPanier() {
       const isDelivery = document.getElementById("isDelivery").checked;
       const deliveryFields = document.getElementById("deliveryFields");
       const btnValider = document.getElementById("btnValider");
-      if(isDelivery) {
-    deliveryFields.style.display = "block";
-    btnValider.textContent = "Valider Livraison";
-  } else {
-    deliveryFields.style.display = "none";
-    btnValider.textContent = "Valider Vente";
-  }
+      if (deliveryFields) {
+        deliveryFields.style.display = isDelivery ? "block" : "none";
+      }
+      if (btnValider) {
+        btnValider.textContent = isDelivery ? "Valider Livraison" : "Valider Vente";
+      }
   currentSaleMode = isDelivery ? 'delivery' : 'direct';
   mettreAJourBadgeTypeVente();
 }
