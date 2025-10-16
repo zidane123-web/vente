@@ -36,32 +36,77 @@
     }
 
     body.role-employe #nav-tresorerie,
-    body.role-employe #nav-menu,
-    body.role-employe #nav-appro-hist {
-      display: none !important;
-    }
+body.role-employe #nav-menu,
+body.role-employe #nav-appro-hist {
+  display: none !important;
+}
 
-    body.role-employe .delete-btn {
-      display: none !important;
-    }
+body.role-employe .delete-btn {
+  display: none !important;
+}
 
-    body.role-employe #screen-accueil .accueil-grid {
-      display: none !important;
-    }
+body.role-employe #screen-accueil .accueil-grid {
+  display: none !important;
+}
 
-    body.role-employe #screen-accueil .btn-accueil-achat,
-    body.role-employe #screen-accueil .btn-accueil-tresorerie {
-      display: none !important;
-    }
+body.role-employe #screen-accueil .btn-accueil-achat,
+body.role-employe #screen-accueil .btn-accueil-tresorerie {
+  display: none !important;
+}
 
-    body.role-employe #screen-accueil .accueil-actions {
-      justify-content: center;
-      gap: 12px;
-    }
+body.role-employe #screen-accueil .accueil-actions {
+  justify-content: center;
+  gap: 12px;
+}
 
-    .inventory-preview {
-      display: none;
-      background: var(--white);
+.performance-metrics {
+  display: grid;
+  gap: 16px;
+}
+
+.performance-card {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.performance-card h3 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.performance-card strong {
+  font-size: 26px;
+  color: var(--primary-color);
+}
+
+.performance-card small {
+  color: var(--secondary-color);
+}
+
+.performance-loader {
+  text-align: center;
+  padding: 20px 0;
+  color: var(--secondary-color);
+  font-style: italic;
+}
+
+.performance-empty {
+  text-align: center;
+  color: var(--secondary-color);
+  margin: 20px 0 0;
+}
+
+.inventory-preview {
+  display: none;
+  background: var(--white);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow);
       padding: 16px;
@@ -1631,6 +1676,9 @@
       </button>
       <button type="button" class="btn-modern secondary btn-accueil-tresorerie" onclick="window.location.hash='tresorerie'">
         <i data-lucide="dollar-sign"></i> Voir trésorerie
+      </button>
+      <button type="button" class="btn-modern secondary btn-accueil-performance" onclick="ouvrirPerformanceUtilisateur()">
+        <i data-lucide="trending-up"></i> Voir ma performance
       </button>
     </div>
   </div>
@@ -10942,6 +10990,17 @@ async function annulerCommandeFournisseur(approId, event) {
     </div>
   </div>
   
+  <!-- Modal: Performance utilisateur -->
+  <div id="modalPerformance" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fermerModalPerformance()">&times;</span>
+      <h2>Ma performance</h2>
+      <div id="performanceLoader" class="performance-loader">Calcul en cours...</div>
+      <div id="performanceMetrics" class="performance-metrics"></div>
+      <p id="performanceSummary" class="performance-empty"></p>
+    </div>
+  </div>
+  
   <!-- Modal: Détails d'une vente -->
   <div id="modalDetail" class="modal">
     <div class="modal-content">
@@ -12988,6 +13047,7 @@ let currentArticleId = null; // Variable pour garder l'ID de l'article sélectio
 let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
 let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
+const COMMISSION_PAR_TELEPHONE = 75;
 
 function ouvrirModalTypeVente() {
   const modal = document.getElementById('modalSaleType');
@@ -13038,6 +13098,130 @@ function mettreAJourBadgeTypeVente() {
   badge.innerHTML = `<i data-lucide="${iconName}"></i><span>${label}</span>`;
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
     lucide.createIcons();
+  }
+}
+
+function ouvrirPerformanceUtilisateur() {
+  const modal = document.getElementById('modalPerformance');
+  if (!modal) {
+    console.warn('Modal performance introuvable.');
+    return;
+  }
+  modal.style.display = 'flex';
+
+  const loader = document.getElementById('performanceLoader');
+  const metrics = document.getElementById('performanceMetrics');
+  const summary = document.getElementById('performanceSummary');
+
+  if (metrics) {
+    metrics.innerHTML = '';
+  }
+  if (summary) {
+    summary.textContent = '';
+    summary.style.display = 'none';
+  }
+  if (loader) {
+    loader.style.display = 'block';
+  }
+
+  chargerPerformanceUtilisateur();
+
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+}
+
+function fermerModalPerformance() {
+  const modal = document.getElementById('modalPerformance');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+async function chargerPerformanceUtilisateur() {
+  const metrics = document.getElementById('performanceMetrics');
+  const summary = document.getElementById('performanceSummary');
+  const loader = document.getElementById('performanceLoader');
+
+  if (!metrics || !summary) {
+    if (loader) {
+      loader.style.display = 'none';
+    }
+    return;
+  }
+
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    summary.textContent = "Vous devez être connecté pour voir votre performance.";
+    summary.style.display = 'block';
+    if (loader) {
+      loader.style.display = 'none';
+    }
+    return;
+  }
+
+  try {
+    const now = new Date();
+    const monthLabel = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const ventesSnapshot = await dbFirestore
+      .collection('ventes')
+      .where('enregistreParUid', '==', user.uid)
+      .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfMonth))
+      .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endOfMonth))
+      .get();
+
+    let totalPhones = 0;
+    let totalSales = 0;
+
+    ventesSnapshot.forEach(doc => {
+      const data = doc.data();
+      totalSales += 1;
+      const items = Array.isArray(data.items) ? data.items : [];
+      items.forEach(item => {
+        const category = (item.category || '').toLowerCase();
+        const quantity = Number(item.quantite) || 0;
+        if (category && category.startsWith('tel')) {
+          totalPhones += quantity;
+        }
+      });
+    });
+
+    const commission = totalPhones * COMMISSION_PAR_TELEPHONE;
+
+    metrics.innerHTML = `
+      <div class="performance-card">
+        <h3>Téléphones vendus</h3>
+        <strong>${totalPhones}</strong>
+        <small>Mois en cours (${monthLabel})</small>
+      </div>
+      <div class="performance-card">
+        <h3>Commission estimée</h3>
+        <strong>${commission.toLocaleString('fr-FR')} FCFA</strong>
+        <small>${COMMISSION_PAR_TELEPHONE.toLocaleString('fr-FR')} FCFA par téléphone</small>
+      </div>
+      <div class="performance-card">
+        <h3>Ventes enregistrées</h3>
+        <strong>${totalSales}</strong>
+        <small>Toutes catégories confondues</small>
+      </div>
+    `;
+
+    summary.textContent = totalPhones > 0
+      ? `Bravo ! Ces chiffres couvrent vos ventes du ${monthLabel}.`
+      : `Aucune vente de téléphones enregistrée pour ${monthLabel}.`;
+    summary.style.display = 'block';
+  } catch (error) {
+    console.error('Erreur lors du calcul de la performance :', error);
+    metrics.innerHTML = '';
+    summary.textContent = "Impossible de récupérer vos performances pour le moment.";
+    summary.style.display = 'block';
+  } finally {
+    if (loader) {
+      loader.style.display = 'none';
+    }
   }
 }
 
@@ -13590,6 +13774,9 @@ function continuerDepuisPanier() {
       }
       if (event.target === document.getElementById("modalSaleType")) {
         fermerModalTypeVente();
+      }
+      if (event.target === document.getElementById("modalPerformance")) {
+        fermerModalPerformance();
       }
     };
 
@@ -17147,6 +17334,7 @@ async function creerDettesDeVente(saleId, saleData) {
 <script src="livraison.js"></script>
 </body>
 </html>
+
 
 
 
