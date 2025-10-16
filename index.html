@@ -8896,7 +8896,7 @@ function retirerApproItem(index) {
         }
         approData.paymentsDetails = [];
         approData.paymentsTotalPaid = 0;
-        approData.remainingAmount = totalCostFromSupplier;
+        approData.remainingAmount = 0;
         approData.isPaid = false;
         if (typeAchat === 'depot') {
             approData.paymentMethod = 'depot';
@@ -8937,15 +8937,19 @@ function retirerApproItem(index) {
 
             const paidTotal = paymentStats ? paymentStats.totalPaid : paymentsDetails.reduce((sum, detail) => sum + detail.amount, 0);
             const dueTotal = paymentStats ? paymentStats.due : totalCostFromSupplier;
+            const baseDue = typeAchat === 'commande'
+                ? (approData.receivedTotalCost || 0)
+                : dueTotal;
 
             approData.paymentsDetails = paymentsDetails;
             approData.paymentsTotalPaid = paidTotal;
-            approData.remainingAmount = Math.max(0, dueTotal - paidTotal);
-            approData.isPaid = approData.remainingAmount <= 0;
-            if (typeAchat === 'normal') {
-                approData.paymentMethod = approData.isPaid ? 'paid' : 'credit';
+            approData.remainingAmount = Math.max(0, baseDue - paidTotal);
+            if (typeAchat === 'commande') {
+                approData.isPaid = false;
+                approData.paymentMethod = 'commande';
             } else {
-                approData.paymentMethod = approData.isPaid ? 'paid' : 'commande';
+                approData.isPaid = approData.remainingAmount <= 0;
+                approData.paymentMethod = approData.isPaid ? 'paid' : 'credit';
             }
 
             paymentsDetails.forEach(detail => {
@@ -8958,6 +8962,11 @@ function retirerApproItem(index) {
         } else if (typeAchat === 'normal') {
             approData.paymentMethod = 'credit';
             approData.remainingAmount = totalCostFromSupplier;
+            approData.isPaid = false;
+        } else if (typeAchat === 'commande') {
+            approData.paymentMethod = 'commande';
+            approData.remainingAmount = Math.max(0, (approData.receivedTotalCost || 0) - (approData.paymentsTotalPaid || 0));
+            approData.isPaid = false;
         }
         if (typeof approData.receivedTotalCost === 'undefined') {
             approData.receivedTotalCost = typeAchat === 'commande' ? 0 : totalCostFromSupplier;
@@ -10746,10 +10755,8 @@ async function soumettreReceptionCommande() {
             const newStatus = totalRemainingAfter > 0 ? 'reception_partielle' : 'reçu';
             const newReceivedTotalCost = existingReceivedTotalCost + receptionValue;
             const newTotalCostValue = totalCostValue + receptionValue;
-            const newRemainingAmount = Math.max(0, (orderTotalCost || newTotalCostValue) - paymentsTotal);
-            const paymentMethodResolved = newStatus === 'commande'
-                ? (approData.paymentMethod || 'commande')
-                : (newRemainingAmount > 0 ? 'credit' : 'paid');
+            const newRemainingAmount = Math.max(0, newReceivedTotalCost - paymentsTotal);
+            const paymentMethodResolved = newRemainingAmount > 0 ? 'credit' : 'paid';
             receptionRecord.balanceAfter = paymentsTotal - newReceivedTotalCost;
 
             tx.update(approRef, {
