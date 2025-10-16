@@ -131,6 +131,13 @@ service cloud.firestore {
       allow delete: if canDelete();
     }
 
+    /* Référentiel livreurs */
+    match /livreurs/{document=**} {
+      allow read: if canRead();
+      allow create, update: if canWrite();
+      allow delete: if canDelete();
+    }
+
     /* Toute autre collection reste bloquée par défaut */
   }
 }
