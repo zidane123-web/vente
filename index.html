@@ -15744,60 +15744,21 @@ document.getElementById('exportStockBtn')
     const comptesCol   = balanceDoc.collection('comptesTresorerie');
 
     const compteDoc    = comptesCol.doc(compteId);    // compte concerné
-    const compteCaisse = comptesCol.doc('caisse');
-    const compteMomo   = comptesCol.doc('momo');
-    const compteBanque = comptesCol.doc('banque');
-
-    const snapshotDoc  = dbFirestore
-                           .collection('tresorerieSnapshots')
-                           .doc(yyyy_mm_dd);
 
     /* 2) Lectures en parallèle --------------------------------------------- */
-    const [
-      snapSnap,
-      globalSnap,
-      compteSnap,
-      caisseSnap,
-      momoSnap,
-      banqueSnap
-    ] = await Promise.all([
-      tx.get(snapshotDoc),
-      tx.get(balanceDoc),
-      tx.get(compteDoc),
-      tx.get(compteCaisse),
-      tx.get(compteMomo),
-      tx.get(compteBanque)
-    ]);
+    const compteSnap = await tx.get(compteDoc);
 
-    /* 3) Soldes d'ouverture ------------------------------------------------- */
-    const openingCaisse = caisseSnap.exists ? (caisseSnap.data().solde || 0) : 0;
-    const openingMomo   = momoSnap.exists   ? (momoSnap.data().solde   || 0) : 0;
-    const openingBanque = banqueSnap.exists ? (banqueSnap.data().solde || 0) : 0;
-    const openingGlobal = openingCaisse + openingMomo + openingBanque;
-
-    /* 4) Calcul du nouveau solde du compte touché --------------------------- */
+    /* 3) Calcul du nouveau solde du compte touché --------------------------- */
     const delta          = sens === 'in' ?  montant : -montant;
     const oldSoldeCompte = compteSnap.exists ? (compteSnap.data().solde || 0) : 0;
     const newSoldeCompte = oldSoldeCompte + delta;
 
-    /* 5) Écritures ---------------------------------------------------------- */
+    /* 4) Écritures ---------------------------------------------------------- */
 
-    /* 5a) Snapshot quotidien : créé UNE fois par jour */
-    if (!snapSnap.exists) {
-      tx.set(snapshotDoc, {
-        dateString           : yyyy_mm_dd,
-        openingCaisse,
-        openingMomo,
-        openingBanque,
-        openingBalanceGlobal : openingGlobal,
-        createdAt            : firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-
-    /* 5b) Mise à jour du solde du sous-compte concerné */
+    /* 4a) Mise à jour du solde du sous-compte concerné */
     tx.set(compteDoc, { solde: newSoldeCompte }, { merge: true });
 
-    /* 5c) Enregistrement du mouvement dans la sous-collection */
+    /* 4b) Enregistrement du mouvement dans la sous-collection */
     tx.set(
       compteDoc.collection('mouvements').doc(),
       {
@@ -15812,7 +15773,7 @@ document.getElementById('exportStockBtn')
       }
     );
 
-    /* 5d) Mise à jour du solde global (document "tresorerie/balance") */
+    /* 4c) Mise à jour du solde global (document "tresorerie/balance") */
     tx.set(
       balanceDoc,
       { montant: firebase.firestore.FieldValue.increment(delta) },
