@@ -6545,6 +6545,10 @@ async function generateSupplierCreditPDF() {
 
     <div class="accounts-chips" id="accounts-balances" aria-label="Comptes de tresorerie"></div>
 
+    <button type="button" class="btn" id="btnVirementComptes" onclick="ouvrirModalVirementTresorerie()" style="width: 100%; margin-top: 0; margin-bottom: 12px;">
+      <i data-lucide="repeat"></i> Virement entre comptes
+    </button>
+
     <div class="section-title">Résumé des flux du jour</div>
     <div class="history-list">
         <div class="history-item">
@@ -12329,7 +12333,31 @@ async function enregistrerModificationClient() {
     </div>
   </div>
 
-  <!-- Overlay affiché lorsqu'on est hors ligne -->
+
+  <!-- Modal pour effectuer un virement entre comptes -->
+  <div id="modalVirementTresorerie" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fermerModalVirementTresorerie()">&times;</span>
+      <h2>Virement entre comptes</h2>
+      <form class="vente-form" id="formVirementTresorerie" onsubmit="soumettreVirementTresorerie(event)">
+        <label for="compteSelectSource">Depuis le compte</label>
+        <select id="compteSelectSource" required></select>
+
+        <label for="compteSelectDestination">Vers le compte</label>
+        <select id="compteSelectDestination" required></select>
+
+        <label for="montantVirement">Montant (FCFA)</label>
+        <input type="number" id="montantVirement" min="1" step="1" placeholder="Montant a transferer" required>
+
+        <label for="descriptionVirement">Observations</label>
+        <textarea id="descriptionVirement" placeholder="Note (facultatif)"></textarea>
+
+        <button type="submit" class="btn-modern">Valider le virement</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Overlay affiche lorsqu'on est hors ligne -->
   <div id="offlineOverlay" style="
   display: none;
   position: fixed;
@@ -15667,6 +15695,9 @@ function continuerDepuisPanier() {
       if (event.target === document.getElementById("modalLivraisonEncaissement")) {
         fermerModalLivraisonEncaissement();
       }
+      if (event.target === document.getElementById("modalVirementTresorerie")) {
+        fermerModalVirementTresorerie();
+      }
     };
 
 
@@ -17432,6 +17463,98 @@ function loadArticleDetail() {
       const description = document.getElementById("descriptionOperation").value;
       alert("Opération ajoutée : " + type + " de " + montant + " FCFA");
       fermerModalTresorerie();
+    }
+    function ouvrirModalVirementTresorerie() {
+      if (!Array.isArray(comptesCache) || comptesCache.length < 2) {
+        alert("Configurez au moins deux comptes de tresorerie avant un virement.");
+        return;
+      }
+      const form = document.getElementById("formVirementTresorerie");
+      if (form) {
+        form.reset();
+      }
+      const sourceSelect = document.getElementById("compteSelectSource");
+      const destinationSelect = document.getElementById("compteSelectDestination");
+      if (sourceSelect) {
+        remplirTousSelectComptes(sourceSelect);
+      }
+      if (destinationSelect) {
+        remplirTousSelectComptes(destinationSelect);
+      }
+      const modal = document.getElementById("modalVirementTresorerie");
+      if (modal) {
+        modal.style.display = "flex";
+      }
+    }
+    function fermerModalVirementTresorerie() {
+      const modal = document.getElementById("modalVirementTresorerie");
+      if (modal) {
+        modal.style.display = "none";
+      }
+      const form = document.getElementById("formVirementTresorerie");
+      if (form) {
+        form.reset();
+      }
+    }
+    async function soumettreVirementTresorerie(event) {
+      event.preventDefault();
+      const sourceSelect = document.getElementById("compteSelectSource");
+      const destinationSelect = document.getElementById("compteSelectDestination");
+      const montantInput = document.getElementById("montantVirement");
+      const descriptionInput = document.getElementById("descriptionVirement");
+
+      const sourceId = sourceSelect ? sourceSelect.value : "";
+      const destinationId = destinationSelect ? destinationSelect.value : "";
+      const montant = montantInput ? parseFloat(montantInput.value) : NaN;
+
+      if (!sourceId) {
+        alert("Selectionnez le compte a debiter.");
+        return;
+      }
+      if (!destinationId) {
+        alert("Selectionnez le compte a crediter.");
+        return;
+      }
+      if (sourceId === destinationId) {
+        alert("Choisissez deux comptes differents pour le virement.");
+        return;
+      }
+      if (Number.isNaN(montant) || montant <= 0) {
+        alert("Saisissez un montant de virement valide.");
+        return;
+      }
+
+      const note = descriptionInput ? descriptionInput.value.trim() : "";
+      const sourceLabel = getCompteDisplayName(sourceId);
+      const destinationLabel = getCompteDisplayName(destinationId);
+
+      try {
+        await enregistrerMouvementTresorerie({
+          compteId: sourceId,
+          type: "virement",
+          sens: "out",
+          montant,
+          description: note || `Virement vers ${destinationLabel}`
+        });
+
+        await enregistrerMouvementTresorerie({
+          compteId: destinationId,
+          type: "virement",
+          sens: "in",
+          montant,
+          description: note || `Virement depuis ${sourceLabel}`
+        });
+
+        fermerModalVirementTresorerie();
+        if (typeof showToast === "function") {
+          showToast(`Virement de ${formatXof(montant)} transfere de ${sourceLabel} vers ${destinationLabel}.`);
+        } else {
+          alert(`Virement de ${formatXof(montant)} transfere de ${sourceLabel} vers ${destinationLabel}.`);
+        }
+      } catch (error) {
+        console.error("Erreur lors du virement de tresorerie :", error);
+        alert("Erreur lors de l'enregistrement du virement : " + error.message);
+      }
     }
   </script>
 <script>
