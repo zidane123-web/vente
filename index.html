@@ -55,6 +55,77 @@
       gap: 12px;
     }
 
+    .inventory-preview {
+      display: none;
+      background: var(--white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 16px;
+      margin-top: 15px;
+    }
+
+    .inventory-preview.active {
+      display: block;
+    }
+
+    .inventory-preview h2,
+    .inventory-preview h3 {
+      margin: 0 0 8px;
+      color: var(--primary-color);
+      font-size: 18px;
+    }
+
+    .inventory-preview-subtitle {
+      margin: 0 0 12px;
+      color: var(--secondary-color);
+      font-size: 13px;
+    }
+
+    .inventory-preview table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .inventory-preview th,
+    .inventory-preview td {
+      border: 1px solid #e0e0e0;
+      padding: 8px;
+      font-size: 14px;
+    }
+
+    .inventory-preview th {
+      background: #f5f5f5;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .inventory-preview td.align-center {
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .inventory-preview tfoot td {
+      font-weight: 700;
+      background: #fafafa;
+    }
+
+    .inventory-preview .inventory-placeholder,
+    .inventory-preview .inventory-error {
+      margin: 0;
+      font-size: 14px;
+      color: var(--secondary-color);
+    }
+
+    .inventory-preview .inventory-error {
+      color: #d32f2f;
+    }
+
+    .inventory-preview .inventory-section {
+      margin-top: 16px;
+    }
+
     body.role-employe #screen-menu .menu-list-item[onclick*=\'tresorerie\'],
     body.role-employe #screen-menu .menu-list-item[onclick*=\'approvisionnement\'] {
       display: none !important;
@@ -2940,6 +3011,15 @@ function generateInvoicePDF(sale) {
     <i data-lucide="clipboard-list"></i> Exporter Fiche d'Inventaire
   </button>
 </div>
+        <div id="inventoryPreview" class="inventory-preview">
+          <div class="inventory-preview-header">
+            <h2>Fiche d'inventaire</h2>
+            <p class="inventory-preview-subtitle">
+              Visualisez directement le contenu de la fiche sans export.
+            </p>
+          </div>
+          <div id="inventoryPreviewContent"></div>
+        </div>
         
       </div>
       <div id="stock-category" style="display: none;">
@@ -12423,7 +12503,132 @@ function updateStockAfterSaleFirestore(items) {
         const totalAccessoires = stocks.filter(s => s.category === 'accessoires').reduce((sum, s) => sum + s.stock, 0);
         document.getElementById("total-telephones").innerText = totalTelephones;
         document.getElementById("total-accessoires").innerText = totalAccessoires;
+        renderInventoryPreview(stocks);
       }).catch(err => console.error("Erreur dans updateStockSummary : " + err.message));
+    }
+
+    function renderInventoryPreview(stocksData = null) {
+      const preview = document.getElementById('inventoryPreview');
+      const content = document.getElementById('inventoryPreviewContent');
+      if (!preview || !content) return;
+
+      const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+        (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+
+      if (!isEmployee) {
+        preview.classList.remove('active');
+        content.innerHTML = '';
+        return;
+      }
+
+      preview.classList.add('active');
+
+      const now = new Date();
+      const titleEl = preview.querySelector('h2');
+      if (titleEl) {
+        titleEl.textContent = `Fiche d'inventaire - ${now.toLocaleDateString('fr-FR')}`;
+      }
+
+      const subtitleEl = preview.querySelector('.inventory-preview-subtitle');
+      if (subtitleEl) {
+        subtitleEl.textContent = "Vue interne mise à jour automatiquement. Les exports sont désactivés pour votre profil.";
+      }
+
+      content.innerHTML = '<p class="inventory-placeholder">Chargement de l\'inventaire...</p>';
+
+      const stocksPromise = stocksData
+        ? Promise.resolve(stocksData)
+        : (Array.isArray(cachedStock) && cachedStock.length
+            ? Promise.resolve(cachedStock)
+            : getAllStockFirestore());
+
+      stocksPromise.then(stocks => {
+        if (!Array.isArray(stocks)) {
+          content.innerHTML = '<p class="inventory-error">Inventaire indisponible.</p>';
+          return;
+        }
+
+        const sanitizeText = (value) => String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+
+        const brandOrder = { 'tecno': 1, 'infinix': 2, 'itel': 3, 'redmi': 4, 'samsung': 5 };
+        const getBrand = (name) => (name ? name.split(' ')[0].toLowerCase() : '');
+
+        const telephones = stocks
+          .filter(item => item.category === 'telephones')
+          .sort((a, b) => {
+            const orderA = brandOrder[getBrand(a.name)] || 999;
+            const orderB = brandOrder[getBrand(b.name)] || 999;
+            if (orderA !== orderB) return orderA - orderB;
+            const brandA = getBrand(a.name);
+            const brandB = getBrand(b.name);
+            if (brandA !== brandB) return brandA.localeCompare(brandB);
+            return (a.name || '').localeCompare(b.name || '');
+          });
+
+        const accessories = stocks
+          .filter(item => item.category === 'accessoires')
+          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+        const buildSection = (title, items) => {
+          if (!items.length) return '';
+          let total = 0;
+          const rows = items.map(item => {
+            const currentStock = Number(item.stock) || 0;
+            total += currentStock;
+            return `
+              <tr>
+                <td>${sanitizeText(item.name)}</td>
+                <td class="align-center">${currentStock}</td>
+                <td class="align-center">-</td>
+              </tr>
+            `;
+          }).join('');
+
+          return `
+            <div class="inventory-section">
+              <h3>${sanitizeText(title)}</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Stock actuel</th>
+                    <th>Quantité comptée</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rows}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td>Total ${sanitizeText(title)}</td>
+                    <td class="align-center">${total}</td>
+                    <td class="align-center">-</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          `;
+        };
+
+        const sections = [
+          buildSection('Téléphones', telephones),
+          buildSection('Accessoires', accessories)
+        ].filter(Boolean);
+
+        if (sections.length === 0) {
+          content.innerHTML = '<p class="inventory-placeholder">Aucun article disponible dans l\'inventaire pour le moment.</p>';
+        } else {
+          content.innerHTML = sections.join('');
+        }
+      }).catch(err => {
+        console.error('Erreur lors du rendu de l\'inventaire :', err);
+        content.innerHTML = '<p class="inventory-error">Impossible de charger l\'inventaire. Veuillez réessayer plus tard.</p>';
+      });
     }
 
     // NOUVELLE VERSION CORRIGÉE
@@ -12626,6 +12831,7 @@ function voirHistoriqueStock(stockId, e) {
       break;
     case 'stock':
       updateStockSummary();
+      renderInventoryPreview();
       break;
     case 'livraisons':
       afficherLivraisons();
@@ -13366,6 +13572,15 @@ function continuerDepuisPanier() {
    ============================================================ */
 document.getElementById('exportInventoryBtn')
     .addEventListener('click', async () => {
+      if ((typeof window !== 'undefined' && window.userRole === 'employe') ||
+          (typeof document !== 'undefined' && document.body.classList.contains('role-employe'))) {
+        if (typeof showToast === 'function') {
+          showToast("L'export d'inventaire n'est pas autorisé pour votre profil.", "warning");
+        } else {
+          alert("L'export d'inventaire n'est pas autorisé pour votre profil.");
+        }
+        return;
+      }
       
       // --- Demander la date à l'utilisateur ---
       const dateInput = prompt(
@@ -14832,6 +15047,7 @@ function majCartesTresorerie() {
       const tresorerieMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='tresorerie']");
       const dettesMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='dettes-fournisseurs']");
       const exportStockBtn = document.getElementById("exportStockBtn");
+      const exportInventoryBtn = document.getElementById("exportInventoryBtn");
       const stockSummary = document.querySelector('#screen-stock .summary');
 
       if (navMenu) {
@@ -14858,6 +15074,9 @@ function majCartesTresorerie() {
       }
       if (exportStockBtn) {
         exportStockBtn.style.removeProperty('display');
+      }
+      if (exportInventoryBtn) {
+        exportInventoryBtn.style.removeProperty('display');
       }
 
       // Pour le menu de navigation
@@ -14893,6 +15112,9 @@ function majCartesTresorerie() {
         }
         if (exportStockBtn) {
           exportStockBtn.style.setProperty('display', 'none', 'important');
+        }
+        if (exportInventoryBtn) {
+          exportInventoryBtn.style.setProperty('display', 'none', 'important');
         }
         if (stockSummary) {
           stockSummary.style.setProperty('display', 'none', 'important');
@@ -14948,6 +15170,8 @@ function majCartesTresorerie() {
   
 
       }
+
+      renderInventoryPreview();
     }
 
 
@@ -15198,6 +15422,15 @@ function initEcranDepenses() {
 <script>
 document.getElementById('exportStockBtn')
     .addEventListener('click', () => {
+      if ((typeof window !== 'undefined' && window.userRole === 'employe') ||
+          (typeof document !== 'undefined' && document.body.classList.contains('role-employe'))) {
+        if (typeof showToast === 'function') {
+          showToast("L'export de stock n'est pas autorisé pour votre profil.", "warning");
+        } else {
+          alert("L'export de stock n'est pas autorisé pour votre profil.");
+        }
+        return;
+      }
       getAllStockFirestore()
         .then(stocks => {
           const phones = stocks.filter(s => s.category === 'telephones' && s.stock >= 1);
