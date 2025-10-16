@@ -874,6 +874,22 @@ body.role-employe #screen-accueil .accueil-actions {
     .modal .btn-modal-option:active {
       transform: scale(0.97);
     }
+    .modal-warning-list {
+      margin: 15px 0;
+      padding-left: 20px;
+      color: var(--text-color);
+      font-size: 15px;
+    }
+    .modal-warning-list li {
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 20px;
+    }
     /* Bottom Navigation Modernisée */
     .bottom-nav-pro {
       display: flex;
@@ -5591,7 +5607,7 @@ async function generateSupplierCreditPDF() {
             <div class="amount" id="treso-daily-profit">XOF 0</div>
         </div>
         </div>
-        <button id="btnCloseDay" class="btn" onclick="closeDayAndPrint()" style="width: 100%; margin-top: 10px;">
+        <button id="btnCloseDay" class="btn" onclick="ouvrirModalCloseDay()" style="width: 100%; margin-top: 10px;">
           <i data-lucide="moon-star"></i> Cloturer la journée & imprimer
         </button>
 
@@ -11000,6 +11016,30 @@ async function annulerCommandeFournisseur(approId, event) {
       <p id="performanceSummary" class="performance-empty"></p>
     </div>
   </div>
+
+  <!-- Modal: Confirmation clôture -->
+  <div id="modalCloseDay" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fermerModalCloseDay()">&times;</span>
+      <h2>Clôturer la journée</h2>
+      <p style="color: var(--secondary-color); margin-bottom: 12px;">
+        Cette action va exécuter plusieurs opérations irréversibles :
+      </p>
+      <ul class="modal-warning-list">
+        <li>Enregistrer le snapshot de trésorerie avec les soldes du jour.</li>
+        <li>Préparer les soldes d’ouverture du lendemain.</li>
+        <li>Capturer l’inventaire des téléphones pour l’ouverture de demain.</li>
+        <li>Générer et lancer l’impression du rapport PDF de clôture.</li>
+      </ul>
+      <p style="color: var(--text-color); font-size: 14px;">
+        Assurez-vous d’avoir saisi toutes les ventes, dépenses et mouvements avant de valider.
+      </p>
+      <div class="modal-actions">
+        <button class="btn-modern secondary" onclick="fermerModalCloseDay()">Annuler</button>
+        <button class="btn-modern" onclick="validerClotureJournee()">Valider maintenant</button>
+      </div>
+    </div>
+  </div>
   
   <!-- Modal: Détails d'une vente -->
   <div id="modalDetail" class="modal">
@@ -13099,6 +13139,28 @@ function mettreAJourBadgeTypeVente() {
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
     lucide.createIcons();
   }
+}
+
+function ouvrirModalCloseDay() {
+  if (closeDayInProgress) {
+    return;
+  }
+  const modal = document.getElementById('modalCloseDay');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function fermerModalCloseDay() {
+  const modal = document.getElementById('modalCloseDay');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function validerClotureJournee() {
+  fermerModalCloseDay();
+  closeDayAndPrint();
 }
 
 function ouvrirPerformanceUtilisateur() {
@@ -15722,9 +15784,7 @@ document.getElementById('exportStockBtn')
         });
     });
 /* ============================================================
-   MOUVEMENT DE TRESORERIE – NOUVELLE VERSION COMPLÈTE
-   (gère aussi le snapshot quotidien avec les soldes d'ouverture
-    caisse / momo / banque + solde global)
+   MOUVEMENT DE TRÉSORERIE - MISE À JOUR DES SOLDES
    ============================================================ */
    async function enregistrerMouvementTresorerie({
   compteId,      // 'caisse' | 'momo' | 'banque'
@@ -16317,10 +16377,6 @@ async function closeDayAndPrint() {
   }
 
   const formattedDate = parsedDate.toLocaleDateString('fr-FR');
-  const confirmClose = confirm(`Cloturer la journée du ${formattedDate} et générer le rapport ?`);
-  if (!confirmClose) {
-    return;
-  }
 
   const closeButton = document.getElementById('btnCloseDay');
   let originalHtml = null;
@@ -16335,6 +16391,12 @@ async function closeDayAndPrint() {
   try {
     const closingInfo = await finalizeTresorerieForDate(targetDateString);
 
+    const stockSnapshot = await enregistrerSnapshotStockPourDate(
+      closingInfo.nextDateString,
+      null,
+      { preparedFrom: targetDateString }
+    );
+
     await exportDailyReportPDFForDate(targetDateString, {
       includeProfitDetail: true,
       autoPrint: true,
@@ -16342,7 +16404,10 @@ async function closeDayAndPrint() {
     });
 
     if (typeof showToast === 'function') {
-      showToast(`Clôture du ${formattedDate} enregistrée. Solde final : ${fmt(closingInfo.closingBalanceGlobal)} FCFA.`);
+      const stockInfo = stockSnapshot
+        ? ` | Stock téléphones demain : ${stockSnapshot.units} u.`
+        : '';
+      showToast(`Clôture du ${formattedDate} enregistrée. Solde final : ${fmt(closingInfo.closingBalanceGlobal)} FCFA${stockInfo}.`);
     }
   } catch (error) {
     console.error('Erreur lors de la clôture quotidienne :', error);
@@ -16552,40 +16617,54 @@ async function exportMonthlyReportPDF(month) {
   doc.save(`Rapport_${month}.pdf`);
 }
 
-async function startDay() {
-  const today = new Date().toISOString().slice(0, 10);   // AAAA-MM-JJ
-
-  // 1) Lecture du stock à téléphones à en base
+async function lireEtatStockTelephones() {
   const snap = await dbFirestore
     .collection("stock")
     .where("category", "==", "telephones")
     .get();
 
-  // 2) Agrégation : unités + valeur monétaire
-  let openingUnits  = 0;
-  let openingValue  = 0;                // en FCFA
+  let units = 0;
+  let value = 0;
 
   snap.forEach(doc => {
-    const d       = doc.data();
-    const qty     = parseFloat(d.stock) || 0;
-    const price   = parseFloat(d.price) || 0;  // prix d'achat moyen
-    openingUnits += qty;
-    openingValue += qty * price;
+    const data  = doc.data();
+    const qty   = parseFloat(data.stock) || 0;
+    const price = parseFloat(data.price) || 0;
+    units += qty;
+    value += qty * price;
   });
 
-  // 3) Écriture (ou mise à jour) du snapshot quotidien
+  return { units, value };
+}
+
+async function enregistrerSnapshotStockPourDate(dateString, stockState = null, options = {}) {
+  const target = (dateString || "").trim();
+  if (!target) {
+    throw new Error("Date de snapshot invalide.");
+  }
+
+  const state = stockState || await lireEtatStockTelephones();
+  const preparedFrom = options.preparedFrom || options.sourceDate || dateString;
+
   await dbFirestore
     .collection("stockSnapshots")
-    .doc(today)
+    .doc(target)
     .set({
-      openingStock      : openingUnits,        // unités
-      openingStockValue : openingValue         // FCFA
+      openingStock      : state.units,
+      openingStockValue : state.value,
+      preparedAt        : firebase.firestore.FieldValue.serverTimestamp(),
+      preparedFrom
     }, { merge: true });
 
-  // 4) Feedback & navigation
+  return state;
+}
+
+async function startDay() {
+  const today = new Date().toISOString().slice(0, 10);
+  const snapshot = await enregistrerSnapshotStockPourDate(today);
+
   showToast(
-    `Stock initial : ${openingUnits} u. – ` +
-    `${openingValue.toLocaleString()} FCFA`
+    `Stock initial : ${snapshot.units} u. - ${snapshot.value.toLocaleString()} FCFA`
   );
   window.location.hash = 'vendre';
 }
@@ -17295,6 +17374,8 @@ async function creerDettesDeVente(saleId, saleData) {
 <script src="livraison.js"></script>
 </body>
 </html>
+
+
 
 
 
