@@ -7819,12 +7819,6 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
                 <label for="commandeNotes">Notes internes</label>
                 <textarea id="commandeNotes" rows="2" placeholder="Instructions, conditions, etc."></textarea>
 
-                <div class="commande-flags">
-                    <label class="checkbox-inline">
-                        <input type="checkbox" id="commandeAllowPartial" checked />
-                        Réception partielle autorisée
-                    </label>
-                </div>
             </div>
             
 
@@ -8760,7 +8754,6 @@ function retirerApproItem(index) {
     const commandeDatePrevue = document.getElementById("commandeDatePrevue") ? document.getElementById("commandeDatePrevue").value : '';
     const commandeReference = document.getElementById("commandeReference") ? document.getElementById("commandeReference").value.trim() : '';
     const commandeNotes = document.getElementById("commandeNotes") ? document.getElementById("commandeNotes").value.trim() : '';
-    const commandeAllowPartial = document.getElementById("commandeAllowPartial") ? document.getElementById("commandeAllowPartial").checked : true;
 
     // Validation spécifique pour l'achat normal
         let purchasePaymentStatus = 'no';
@@ -8896,8 +8889,7 @@ function retirerApproItem(index) {
             approData.commandeMeta = {
                 expectedDate: commandeDatePrevue || null,
                 reference: commandeReference || null,
-                notes: commandeNotes || '',
-                partialAllowed: !!commandeAllowPartial
+                notes: commandeNotes || ''
             };
         } else {
             approData.receivedTotalCost = totalCostFromSupplier;
@@ -9075,10 +9067,6 @@ function retirerApproItem(index) {
         const commandeNotesField = document.getElementById("commandeNotes");
         if (commandeNotesField) {
             commandeNotesField.value = "";
-        }
-        const commandeAllowPartialField = document.getElementById("commandeAllowPartial");
-        if (commandeAllowPartialField) {
-            commandeAllowPartialField.checked = true;
         }
 
         resetApproPayments();
