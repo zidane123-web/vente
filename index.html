@@ -41,6 +41,10 @@
       display: none !important;
     }
 
+    body.role-employe .delete-btn {
+      display: none !important;
+    }
+
     body.role-employe #screen-accueil .accueil-grid {
       display: none !important;
     }
@@ -12633,6 +12637,18 @@ function updateStockAfterSaleFirestore(items) {
 
     // NOUVELLE VERSION CORRIGÉE
 async function demanderAnnulation(id) {
+  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+    (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+  if (isEmployee) {
+    const message = "Les employés ne sont pas autorisés à annuler une vente.";
+    if (typeof showToast === 'function') {
+      showToast(message, 'warning');
+    } else {
+      alert(message);
+    }
+    return;
+  }
+
   const motDePasse = prompt("Veuillez saisir le mot de passe pour annuler cette vente :");
   if (motDePasse !== "zizou") {
     alert("Mot de passe incorrect !");
@@ -12641,16 +12657,27 @@ async function demanderAnnulation(id) {
 
   if (confirm("Voulez-vous vraiment annuler cette vente ? Le stock et la trésorerie seront ajustés.")) {
     showSaleLoader(); // Affiche le spinner
-    await annulerVente(id); // Appelle notre nouvelle fonction sécurisée
-    
-    // Rafraîchir l'affichage de l'historique
-    const currentStatusFilter = document.getElementById('sales-tabs').value || 'all';
-    filterSalesHistory(currentStatusFilter);
-    
-    // Rafraîchir les autres affichages
-    updateBalanceDisplay();
-    updateStockSummary();
-    hideSaleLoader(); // Cache le spinner
+    try {
+      await annulerVente(id); // Appelle notre nouvelle fonction sécurisée
+
+      // Rafraîchir l'affichage de l'historique
+      const currentStatusFilter = document.getElementById('sales-tabs').value || 'all';
+      filterSalesHistory(currentStatusFilter);
+
+      // Rafraîchir les autres affichages
+      updateBalanceDisplay();
+      updateStockSummary();
+    } catch (err) {
+      console.error("Erreur lors de l'annulation de la vente :", err);
+      const message = err && err.message ? err.message : "Impossible d'annuler la vente.";
+      if (typeof showToast === 'function') {
+        showToast(message, 'error');
+      } else {
+        alert(message);
+      }
+    } finally {
+      hideSaleLoader(); // Cache le spinner
+    }
   }
 }
 
@@ -16702,6 +16729,10 @@ function annulerAchatTransaction(approId, approData) {
  * @param {string} saleId - L'ID de la vente à annuler.
  */
 async function annulerVente(saleId) {
+    if ((typeof window !== 'undefined' && window.userRole === 'employe') ||
+        (typeof document !== 'undefined' && document.body.classList.contains('role-employe'))) {
+        throw new Error("Permission refusée : vous ne pouvez pas annuler cette vente.");
+    }
     const saleRef = dbFirestore.collection("ventes").doc(saleId);
 
     try {
