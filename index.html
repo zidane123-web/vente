@@ -2039,14 +2039,24 @@ body.role-employe #screen-accueil .accueil-actions {
     <!-- Screen 2b: Détail Livraison -->
     <section id="screen-livraison-detail" class="screen">
       <div class="delivery-detail-header">
-        <button type="button" class="btn-modern secondary delivery-back-btn" onclick="window.location.hash='historique'">
-          <i data-lucide="arrow-left"></i> Retour
-        </button>
-        <div class="delivery-detail-heading">
-          <h1 id="livraisonDetailTitle">Livraison</h1>
-          <p id="livraisonDetailSubtitle" class="delivery-detail-subtitle"></p>
+        <div class="delivery-detail-left">
+          <button type="button" class="btn-modern secondary delivery-back-btn" onclick="window.location.hash='historique'">
+            <i data-lucide="arrow-left"></i> Retour
+          </button>
+          <div class="delivery-detail-heading">
+            <h1 id="livraisonDetailTitle">Livraison</h1>
+            <p id="livraisonDetailSubtitle" class="delivery-detail-subtitle"></p>
+          </div>
         </div>
-        <div id="livraisonDetailStatusPill" class="delivery-status-pill">--</div>
+        <div class="delivery-detail-actions">
+          <button type="button" class="btn-modern success" id="livraisonMarkSuccessBtn" onclick="marquerLivraisonReussie()">
+            <i data-lucide="check-circle-2"></i> Marquer comme réussie
+          </button>
+          <button type="button" class="btn-modern danger" id="livraisonMarkFailedBtn" onclick="marquerLivraisonEchouee()">
+            <i data-lucide="x-circle"></i> Marquer comme échouée
+          </button>
+          <div id="livraisonDetailStatusPill" class="delivery-status-pill">--</div>
+        </div>
       </div>
       <div class="delivery-detail-content">
         <div id="livraisonDetailAlert" class="delivery-detail-alert" style="display:none;"></div>
@@ -2109,33 +2119,12 @@ body.role-employe #screen-accueil .accueil-actions {
               <strong id="livraisonDetailOutstanding">0 FCFA</strong>
             </div>
           </div>
-          <div class="delivery-payment-form">
-            <div class="form-row">
-              <label for="livraisonEncaisseAmount">Montant à encaisser</label>
-              <input type="number" id="livraisonEncaisseAmount" min="0" step="0.01" placeholder="0" />
-            </div>
-            <div class="form-row">
-              <label for="compteSelectLivraison">Compte de trésorerie</label>
-              <select id="compteSelectLivraison"></select>
-            </div>
-            <button type="button" class="btn-modern" id="livraisonEncaisseBtn" onclick="encaisserLivraisonRestante()">
-              <i data-lucide="wallet"></i> Encaisser
-            </button>
-          </div>
           <div id="livraisonPaymentsHistory" class="delivery-payments-history"></div>
         </div>
 
         <div class="delivery-card delivery-actions-card">
           <h2>Statut de la livraison</h2>
           <p id="livraisonDetailStatusDescription" class="delivery-status-description">Sélectionnez une action pour mettre à jour la livraison.</p>
-          <div class="delivery-actions-buttons">
-            <button type="button" class="btn-modern success" id="livraisonMarkSuccessBtn" onclick="marquerLivraisonReussie()">
-              <i data-lucide="check-circle-2"></i> Marquer comme réussie
-            </button>
-            <button type="button" class="btn-modern danger" id="livraisonMarkFailedBtn" onclick="marquerLivraisonEchouee()">
-              <i data-lucide="x-circle"></i> Marquer comme échouée
-            </button>
-          </div>
         </div>
       </div>
       <div id="livraisonDetailLoader" class="delivery-detail-loader" style="display:none;">
@@ -2452,6 +2441,64 @@ body.role-employe #screen-accueil .accueil-actions {
     #ventesContainerList ion-item .delivery-details div + div {
         margin-top: 4px;
     }
+    .delivery-detail-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+    .delivery-detail-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .delivery-detail-actions .btn-modern {
+        min-width: 0;
+        white-space: nowrap;
+    }
+    .delivery-detail-actions .delivery-status-pill {
+        margin-left: 4px;
+    }
+    .modal-livraison {
+        max-width: 620px;
+        width: 95%;
+    }
+    .modal-subtitle {
+        text-align: center;
+        font-size: 14px;
+        color: #64748b;
+        margin-bottom: 16px;
+    }
+    .livraison-payments-block {
+        margin-top: 12px;
+    }
+    .livraison-count-btn {
+        width: calc(100% - 32px);
+        margin: 12px 16px 0;
+        border: none;
+        border-radius: 16px;
+        padding: 14px 18px;
+        background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.22));
+        color: #1d4ed8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .livraison-count-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 30px rgba(59,130,246,0.18);
+    }
+    .livraison-count-btn i {
+        font-size: 20px;
+    }
+    .livraison-count-btn strong {
+        font-size: 18px;
+    }
 
     #screen-livraison-detail {
         background: #f5f7fb;
@@ -2610,12 +2657,6 @@ body.role-employe #screen-accueil .accueil-actions {
     }
     .delivery-payments-history p {
         margin: 4px 0;
-    }
-    .delivery-actions-card .delivery-actions-buttons {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 16px;
     }
     .delivery-detail-alert {
         padding: 14px 18px;
@@ -11516,6 +11557,11 @@ async function annulerCommandeFournisseur(approId, event) {
     
 </section>
 
+    <button id="livraisonsQuickButton" class="livraison-count-btn" onclick="window.location.hash='livraisons'">
+      <i data-lucide="truck"></i>
+      <span>Livraisons en cours : <strong id="livraisonsEnCoursBadge">0</strong></span>
+    </button>
+
     <!-- Bottom Navigation Modernisée (Navigation par hash) -->
     <nav class="bottom-nav-pro">
       <div class="nav-item" id="nav-accueil" onclick="window.location.hash='accueil'">
@@ -11559,6 +11605,41 @@ async function annulerCommandeFournisseur(approId, event) {
         <button type="button" class="btn-modal-option delivery" onclick="selectionnerTypeVente('delivery')">
           <i data-lucide="truck"></i>
           Livraison
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Encaissement livraison -->
+  <div id="modalLivraisonEncaissement" class="modal">
+    <div class="modal-content modal-livraison">
+      <span class="close" onclick="fermerModalLivraisonEncaissement()">&times;</span>
+      <h2>Encaisser la livraison</h2>
+      <p class="modal-subtitle">Ajustez les encaissements avant de clôturer la livraison.</p>
+      <div class="vente-payments-block livraison-payments-block">
+
+        <div class="vente-payments-header">
+          <span>Encaissements</span>
+          <button type="button" class="btn-modern secondary" onclick="ajouterLignePaiementLivraison()">
+            <i data-lucide="plus-circle"></i> Ajouter un encaissement
+          </button>
+        </div>
+
+        <div id="livraisonPaymentsContainer" class="vente-payments-container"></div>
+
+        <div class="vente-payments-summary">
+          <p>Montant à encaisser : <strong id="livraison-summary-total-due">0 FCFA</strong></p>
+          <p>Total encaissé : <strong id="livraison-summary-total-paid">0 FCFA</strong></p>
+          <p>Monnaie rendue : <strong id="livraison-summary-total-change">0 FCFA</strong></p>
+          <p>Net encaissé : <strong id="livraison-summary-net">0 FCFA</strong></p>
+          <p id="livraison-payment-warning" class="vente-payment-warning"></p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-modern secondary" onclick="fermerModalLivraisonEncaissement()">Annuler</button>
+        <button class="btn-modern" onclick="validerEncaissementLivraison()">
+          <i data-lucide="check-circle"></i> Valider l'encaissement
         </button>
       </div>
     </div>
@@ -12219,7 +12300,7 @@ function showLivraisonDetailLoader(show) {
 }
 
 function resetLivraisonDetailScreen() {
-  const fields = {
+  const defaults = {
     livraisonDetailTitle: 'Livraison',
     livraisonDetailSubtitle: 'Sélectionnez une livraison dans la liste.',
     livraisonDetailClientName: '—',
@@ -12234,7 +12315,7 @@ function resetLivraisonDetailScreen() {
     livraisonDetailOutstanding: '0 FCFA',
     livraisonDetailStatusDescription: 'Sélectionnez une action pour mettre à jour la livraison.'
   };
-  Object.entries(fields).forEach(([id, value]) => {
+  Object.entries(defaults).forEach(([id, value]) => {
     const el = document.getElementById(id);
     if (el) el.textContent = value;
   });
@@ -12249,12 +12330,8 @@ function resetLivraisonDetailScreen() {
   }
   const paymentsHistory = document.getElementById('livraisonPaymentsHistory');
   if (paymentsHistory) {
-    paymentsHistory.innerHTML = '';
+    paymentsHistory.innerHTML = '<p style="color:#94a3b8;">Aucun encaissement enregistré pour cette livraison.</p>';
   }
-  const amountInput = document.getElementById('livraisonEncaisseAmount');
-  if (amountInput) amountInput.value = '';
-  const compteSelect = document.getElementById('compteSelectLivraison');
-  if (compteSelect) compteSelect.value = '';
   const successBtn = document.getElementById('livraisonMarkSuccessBtn');
   const failBtn = document.getElementById('livraisonMarkFailedBtn');
   if (successBtn) successBtn.disabled = true;
@@ -12319,6 +12396,7 @@ function populateLivraisonDetailView(sale) {
     resetLivraisonDetailScreen();
     return;
   }
+
   const title = document.getElementById('livraisonDetailTitle');
   const subtitle = document.getElementById('livraisonDetailSubtitle');
   if (title) title.textContent = sale.clientNom ? `Livraison - ${sale.clientNom}` : 'Livraison';
@@ -12341,17 +12419,17 @@ function populateLivraisonDetailView(sale) {
   const statusPill = document.getElementById('livraisonDetailStatusPill');
   if (statusPill) {
     statusPill.classList.remove('success', 'danger', 'warning');
-    let label = 'En cours';
+    let label = 'Livraison en cours';
     if (sale.deliveryStatus === 'réussie') {
-      label = 'Réussie';
+      label = 'Livraison réussie';
       statusPill.classList.add('success');
     } else if (sale.deliveryStatus === 'échouée') {
-      label = 'Échouée';
+      label = 'Livraison échouée';
       statusPill.classList.add('danger');
     } else {
       statusPill.classList.add('warning');
     }
-    statusPill.textContent = `Livraison ${label}`;
+    statusPill.textContent = label;
   }
 
   const itemsBody = document.getElementById('livraisonDetailItems');
@@ -12372,6 +12450,21 @@ function populateLivraisonDetailView(sale) {
     }
   }
 
+  const paymentsHistory = document.getElementById('livraisonPaymentsHistory');
+  if (paymentsHistory) {
+    if (Array.isArray(sale.paymentsDetails) && sale.paymentsDetails.length) {
+      paymentsHistory.innerHTML = sale.paymentsDetails.map(p => {
+        const montant = (parseFloat(p.montantEncaisse) || 0).toLocaleString('fr-FR');
+        const monnaie = parseFloat(p.monnaieRendue) || 0;
+        const changeText = monnaie > 0 ? ` (monnaie ${monnaie.toLocaleString('fr-FR')} FCFA)` : '';
+        const compte = p.compteNom || p.compteId || 'Compte';
+        return `<p><strong>${compte} :</strong> ${montant} FCFA${changeText}</p>`;
+      }).join('');
+    } else {
+      paymentsHistory.innerHTML = '<p style="color:#94a3b8;">Aucun encaissement enregistré pour cette livraison.</p>';
+    }
+  }
+
   const totals = computeLivraisonTotals(sale);
   const totalEl = document.getElementById('livraisonDetailTotalAmount');
   const paidEl = document.getElementById('livraisonDetailTotalPaid');
@@ -12380,33 +12473,8 @@ function populateLivraisonDetailView(sale) {
   if (paidEl) paidEl.textContent = formatXofAmount(totals.net);
   if (outstandingEl) outstandingEl.textContent = formatXofAmount(totals.outstanding);
 
-  const paymentsHistory = document.getElementById('livraisonPaymentsHistory');
-  if (paymentsHistory) {
-    if (Array.isArray(sale.paymentsDetails) && sale.paymentsDetails.length) {
-      paymentsHistory.innerHTML = sale.paymentsDetails.map(p => {
-        const montant = (parseFloat(p.montantEncaisse) || 0).toLocaleString('fr-FR');
-        const compte = p.compteNom || p.compteId || 'Compte';
-        return `<p><strong>${compte} :</strong> ${montant} FCFA</p>`;
-      }).join('');
-    } else {
-      paymentsHistory.innerHTML = '<p style="color:#94a3b8;">Aucun encaissement enregistré pour cette livraison.</p>';
-    }
-  }
-
-  const amountInput = document.getElementById('livraisonEncaisseAmount');
-  if (amountInput) {
-    amountInput.value = totals.outstanding > 0 ? totals.outstanding.toFixed(2) : '';
-  }
-
-  const compteSelect = document.getElementById('compteSelectLivraison');
-  if (compteSelect) {
-    remplirTousSelectComptes(compteSelect);
-    if (currentLivraisonData && currentLivraisonData.principalCompteId) {
-      compteSelect.value = currentLivraisonData.principalCompteId;
-    }
-  }
-
   updateLivraisonActionButtons(sale, totals);
+
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
     lucide.createIcons();
   }
@@ -12415,18 +12483,14 @@ function populateLivraisonDetailView(sale) {
 function updateLivraisonActionButtons(sale, totals) {
   const successBtn = document.getElementById('livraisonMarkSuccessBtn');
   const failBtn = document.getElementById('livraisonMarkFailedBtn');
-  const paymentBtn = document.getElementById('livraisonEncaisseBtn');
   const statusDesc = document.getElementById('livraisonDetailStatusDescription');
 
   const isSuccess = sale.deliveryStatus === 'réussie';
   const isFailed = sale.deliveryStatus === 'échouée';
   const outstanding = totals ? totals.outstanding : computeLivraisonTotals(sale).outstanding;
 
-  if (paymentBtn) {
-    paymentBtn.disabled = outstanding <= 0;
-  }
   if (successBtn) {
-    successBtn.disabled = isSuccess || outstanding > 0;
+    successBtn.disabled = isSuccess;
   }
   if (failBtn) {
     failBtn.disabled = isFailed;
@@ -12435,16 +12499,18 @@ function updateLivraisonActionButtons(sale, totals) {
     if (isSuccess) {
       statusDesc.textContent = 'Cette livraison est finalisée et intégrée au chiffre des ventes.';
     } else if (isFailed) {
-      statusDesc.textContent = 'Livraison marquée comme échouée. Aucune sortie de stock n’a été appliquée.';
-    } else if (outstanding > 0) {
-      statusDesc.textContent = `Encaissez ${formatXofAmount(outstanding)} avant de finaliser la livraison.`;
+      statusDesc.textContent = 'Livraison marquée comme échouée. Ajustez ou relancez si nécessaire.';
+    } else if (outstanding > 0.5) {
+      statusDesc.textContent = `Encaissez ${formatXofAmount(outstanding)} avant de clôturer la livraison.`;
     } else {
-      statusDesc.textContent = 'Encaissement validé. Vous pouvez marquer la livraison comme réussie.';
+      statusDesc.textContent = 'Vous pouvez maintenant clôturer la livraison ou la marquer en échec.';
     }
   }
 }
 
 async function encaisserLivraisonRestante() {
+  ouvrirModalLivraisonEncaissement();
+  return;
   if (!currentLivraisonData || !currentLivraisonId) return;
   const amountInput = document.getElementById('livraisonEncaisseAmount');
   const compteSelect = document.getElementById('compteSelectLivraison');
@@ -12527,42 +12593,9 @@ async function encaisserLivraisonRestante() {
   }
 }
 
-async function marquerLivraisonReussie() {
-  if (!currentLivraisonData || !currentLivraisonId) return;
-  if (currentLivraisonData.deliveryStatus === 'réussie') {
-    setLivraisonDetailAlert('La livraison est déjà marquée comme réussie.', 'info');
-    return;
-  }
-  const totals = computeLivraisonTotals(currentLivraisonData);
-  if (totals.outstanding > 0.5) {
-    setLivraisonDetailAlert('Encaissez le solde avant de marquer la livraison comme réussie.', 'danger');
-    return;
-  }
-
-  showLivraisonDetailLoader(true);
-  try {
-    if (!currentLivraisonData.convertedToSale) {
-      await updateStockAfterSaleFirestore(currentLivraisonData.items || []);
-    }
-    await updateSaleFirestore(currentLivraisonId, {
-      deliveryStatus: 'réussie',
-      convertedToSale: true,
-      deliveryClosedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    currentLivraisonData.deliveryStatus = 'réussie';
-    currentLivraisonData.convertedToSale = true;
-    populateLivraisonDetailView(currentLivraisonData);
-    setLivraisonDetailAlert('Livraison marquée comme réussie.', 'success');
-    filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
-    afficherLivraisons();
-  } catch (error) {
-    console.error('Erreur validation livraison :', error);
-    setLivraisonDetailAlert("Impossible de valider la livraison : " + error.message, 'danger');
-  } finally {
-    showLivraisonDetailLoader(false);
-  }
+function marquerLivraisonReussie() {
+  ouvrirModalLivraisonEncaissement();
 }
-
 async function marquerLivraisonEchouee() {
   if (!currentLivraisonData || !currentLivraisonId) return;
   if (currentLivraisonData.deliveryStatus === 'échouée') {
@@ -12685,6 +12718,10 @@ function updateAccueilSummary() {
           stockDetailEl.textContent = detailsStock || '---';
         }
         livraisonsEl.textContent = `${livraisonsEnAttente} livraisons en attente`;
+        const quickBadge = document.getElementById('livraisonsEnCoursBadge');
+        if (quickBadge) {
+          quickBadge.textContent = livraisonsEnAttente;
+        }
       });
     }
 
@@ -14078,6 +14115,9 @@ let livreurSearchMode = 'nom';
 let selectedLivreurId = null;
 let currentLivraisonId = null;
 let currentLivraisonData = null;
+let livraisonModalContext = null;
+let livraisonPayments = [];
+let livraisonPaymentAutoId = 0;
 
 function ensureLivreursCache(force = false) {
   if (livreursCacheLoaded && !force) return Promise.resolve(livreursCache);
@@ -15135,6 +15175,9 @@ function continuerDepuisPanier() {
       }
       if (event.target === document.getElementById("modalPerformance")) {
         fermerModalPerformance();
+      }
+      if (event.target === document.getElementById("modalLivraisonEncaissement")) {
+        fermerModalLivraisonEncaissement();
       }
     };
 
@@ -18691,3 +18734,328 @@ async function creerDettesDeVente(saleId, saleData) {
 
 
 
+
+function ouvrirModalLivraisonEncaissement() {
+  if (!currentLivraisonData || !currentLivraisonId) {
+    setLivraisonDetailAlert("Sélectionnez une livraison avant d'encaisser.", 'danger');
+    return;
+  }
+  livraisonModalContext = {
+    totals: computeLivraisonTotals(currentLivraisonData)
+  };
+  const modal = document.getElementById('modalLivraisonEncaissement');
+  if (!modal) return;
+  resetLivraisonPayments(livraisonModalContext.totals.outstanding);
+  rafraichirResumePaiementLivraison();
+  modal.style.display = 'flex';
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+}
+
+function fermerModalLivraisonEncaissement() {
+  const modal = document.getElementById('modalLivraisonEncaissement');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+  const warningEl = document.getElementById('livraison-payment-warning');
+  if (warningEl) {
+    warningEl.textContent = '';
+  }
+  livraisonModalContext = null;
+}
+
+function resetLivraisonPayments(defaultAmount = 0) {
+  livraisonPayments = [];
+  livraisonPaymentAutoId = 0;
+  const preset = defaultAmount > 0 ? { montantEncaisse: defaultAmount.toFixed(2) } : {};
+  ajouterLignePaiementLivraison(preset);
+}
+
+function ajouterLignePaiementLivraison(initialData) {
+  const payload = initialData || {};
+  livraisonPayments.push({
+    id: ++livraisonPaymentAutoId,
+    compteId: payload.compteId || '',
+    montantEncaisse: payload.montantEncaisse || '',
+    monnaieRendue: payload.monnaieRendue || ''
+  });
+  renderLivraisonPayments();
+}
+
+function renderLivraisonPayments() {
+  const container = document.getElementById('livraisonPaymentsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  livraisonPayments.forEach(payment => {
+    const row = document.createElement('div');
+    row.className = 'vente-payment-row';
+    row.dataset.paymentId = payment.id;
+
+    const compteSelect = document.createElement('select');
+    compteSelect.id = `compteSelectLivraisonModal-${payment.id}`;
+    compteSelect.className = 'vente-payment-account';
+    compteSelect.addEventListener('change', event => {
+      onLivraisonPaymentFieldChange(payment.id, 'compteId', event.target.value);
+    });
+    row.appendChild(compteSelect);
+
+    const amountInput = document.createElement('input');
+    amountInput.type = 'number';
+    amountInput.min = '0';
+    amountInput.step = '100';
+    amountInput.placeholder = 'Montant encaissé';
+    amountInput.value = payment.montantEncaisse || '';
+    amountInput.addEventListener('input', event => {
+      onLivraisonPaymentFieldChange(payment.id, 'montantEncaisse', event.target.value);
+    });
+    row.appendChild(amountInput);
+
+    const changeInput = document.createElement('input');
+    changeInput.type = 'number';
+    changeInput.min = '0';
+    changeInput.step = '100';
+    changeInput.placeholder = 'Monnaie rendue';
+    changeInput.value = payment.monnaieRendue || '';
+    changeInput.addEventListener('input', event => {
+      onLivraisonPaymentFieldChange(payment.id, 'monnaieRendue', event.target.value);
+    });
+    row.appendChild(changeInput);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'vente-payment-remove btn-modern secondary';
+    removeBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+    removeBtn.addEventListener('click', () => supprimerLignePaiementLivraison(payment.id));
+    row.appendChild(removeBtn);
+
+    container.appendChild(row);
+
+    remplirTousSelectComptes(compteSelect);
+    compteSelect.value = payment.compteId || '';
+  });
+
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+
+  rafraichirResumePaiementLivraison();
+}
+
+function onLivraisonPaymentFieldChange(paymentId, field, value) {
+  const payment = livraisonPayments.find(p => p.id === paymentId);
+  if (!payment) return;
+  payment[field] = value;
+  rafraichirResumePaiementLivraison();
+}
+
+function supprimerLignePaiementLivraison(paymentId) {
+  if (livraisonPayments.length <= 1) {
+    const unique = livraisonPayments[0];
+    if (unique) {
+      unique.compteId = '';
+      unique.montantEncaisse = '';
+      unique.monnaieRendue = '';
+    }
+    renderLivraisonPayments();
+    return;
+  }
+  livraisonPayments = livraisonPayments.filter(p => p.id !== paymentId);
+  renderLivraisonPayments();
+}
+
+function analyserPaiementsLivraison() {
+  let totalEncaisse = 0;
+  let totalChange = 0;
+  let message = '';
+  let valid = true;
+
+  for (const payment of livraisonPayments) {
+    if (!valid) break;
+    const encaisse = parseFloat(payment.montantEncaisse) || 0;
+    const change = parseFloat(payment.monnaieRendue) || 0;
+
+    if (encaisse < 0 || change < 0) {
+      valid = false;
+      message = 'Les montants encaissés ou rendus ne peuvent pas être négatifs.';
+      break;
+    }
+
+    if ((encaisse > 0 || change > 0) && !payment.compteId) {
+      valid = false;
+      message = 'Sélectionnez un compte de trésorerie pour chaque encaissement.';
+      break;
+    }
+
+    totalEncaisse += encaisse;
+    totalChange += change;
+  }
+
+  const net = totalEncaisse - totalChange;
+  if (valid && net < 0) {
+    valid = false;
+    message = 'Le net encaissé ne peut pas être négatif.';
+  }
+
+  return { valid, message, totalEncaisse, totalChange, net };
+}
+
+function rafraichirResumePaiementLivraison() {
+  const totals = livraisonModalContext ? livraisonModalContext.totals : { due: 0, totalEncaisse: 0, totalChange: 0, net: 0, outstanding: 0 };
+  const stats = analyserPaiementsLivraison();
+  const totalEncaisseGlobal = totals.totalEncaisse + stats.totalEncaisse;
+  const totalChangeGlobal = totals.totalChange + stats.totalChange;
+  const netGlobal = totals.net + stats.net;
+  const remaining = Math.max(0, totals.due - netGlobal);
+
+  const dueEl = document.getElementById('livraison-summary-total-due');
+  const paidEl = document.getElementById('livraison-summary-total-paid');
+  const changeEl = document.getElementById('livraison-summary-total-change');
+  const netEl = document.getElementById('livraison-summary-net');
+  const warningEl = document.getElementById('livraison-payment-warning');
+
+  if (dueEl) dueEl.textContent = formatXofAmount(totals.due);
+  if (paidEl) paidEl.textContent = formatXofAmount(totalEncaisseGlobal - totalChangeGlobal);
+  if (changeEl) changeEl.textContent = formatXofAmount(totalChangeGlobal);
+  if (netEl) netEl.textContent = formatXofAmount(netGlobal);
+  if (warningEl) warningEl.textContent = stats.valid ? '' : (stats.message || '');
+
+  return { stats, totals, totalEncaisseGlobal, totalChangeGlobal, netGlobal, remaining };
+}
+
+async function validerEncaissementLivraison() {
+  if (!currentLivraisonData || !currentLivraisonId || !livraisonModalContext) return;
+
+  const summary = rafraichirResumePaiementLivraison();
+  const { stats, remaining } = summary;
+  const warningEl = document.getElementById('livraison-payment-warning');
+
+  if (!stats.valid) {
+    if (warningEl) warningEl.textContent = stats.message || 'Veuillez vérifier les encaissements.';
+    return;
+  }
+
+  if (remaining > 0.5) {
+    if (warningEl) warningEl.textContent = `Il reste ${formatXofAmount(remaining)} à encaisser avant de clôturer.`;
+    return;
+  }
+
+  const newPayments = livraisonPayments
+    .map(payment => {
+      const montant = parseFloat(payment.montantEncaisse) || 0;
+      const monnaie = parseFloat(payment.monnaieRendue) || 0;
+      if (montant === 0 && monnaie === 0) {
+        return null;
+      }
+      const compteId = payment.compteId;
+      const compteInfo = Array.isArray(comptesCache) ? comptesCache.find(c => c.id === compteId) || {} : {};
+      return {
+        compteId,
+        compteNom: compteInfo.nom || compteId,
+        montantEncaisse: montant,
+        monnaieRendue: monnaie,
+        netEncaisse: montant - monnaie
+      };
+    })
+    .filter(Boolean);
+
+  if (warningEl) warningEl.textContent = '';
+
+  showLivraisonDetailLoader(true);
+  try {
+    if (newPayments.length) {
+      await appliquerEncaissementsLivraison(newPayments);
+    }
+    await finaliserLivraisonReussie();
+    fermerModalLivraisonEncaissement();
+  } catch (error) {
+    console.error('Erreur validation livraison :', error);
+    setLivraisonDetailAlert("Impossible de finaliser la livraison : " + error.message, 'danger');
+  } finally {
+    showLivraisonDetailLoader(false);
+  }
+}
+
+async function appliquerEncaissementsLivraison(newPayments) {
+  if (!newPayments || !newPayments.length) return;
+
+  const sumEncaisse = newPayments.reduce((acc, p) => acc + (parseFloat(p.montantEncaisse) || 0), 0);
+  const sumChange = newPayments.reduce((acc, p) => acc + (parseFloat(p.monnaieRendue) || 0), 0);
+  const netAdditionnel = sumEncaisse - sumChange;
+
+  const updatedPayments = Array.isArray(currentLivraisonData.paymentsDetails)
+    ? [...currentLivraisonData.paymentsDetails, ...newPayments]
+    : [...newPayments];
+
+  const payload = {
+    paymentsDetails: updatedPayments,
+    paymentsTotalEncaisse: (parseFloat(currentLivraisonData.paymentsTotalEncaisse) || 0) + sumEncaisse,
+    paymentsTotalChange: (parseFloat(currentLivraisonData.paymentsTotalChange) || 0) + sumChange,
+    paymentsNetEncaisse: (parseFloat(currentLivraisonData.paymentsNetEncaisse) || 0) + netAdditionnel,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  if (!currentLivraisonData.principalCompteId) {
+    const netPositif = newPayments.find(p => (p.netEncaisse || 0) > 0);
+    if (netPositif) {
+      payload.principalCompteId = netPositif.compteId;
+      payload.compteId = netPositif.compteId;
+    }
+  }
+
+  await updateSaleFirestore(currentLivraisonId, payload);
+
+  for (const payment of newPayments) {
+    if (payment.montantEncaisse > 0) {
+      await enregistrerMouvementTresorerie({
+        compteId: payment.compteId,
+        type: 'livraison_encaissement',
+        sens: 'in',
+        montant: payment.montantEncaisse,
+        description: `Encaissement livraison ${currentLivraisonData.clientNom || ''}`,
+        refId: currentLivraisonId
+      });
+    }
+    if (payment.monnaieRendue > 0) {
+      await enregistrerMouvementTresorerie({
+        compteId: payment.compteId,
+        type: 'livraison_change',
+        sens: 'out',
+        montant: payment.monnaieRendue,
+        description: `Monnaie rendue livraison ${currentLivraisonData.clientNom || ''}`,
+        refId: currentLivraisonId
+      });
+    }
+  }
+
+  currentLivraisonData.paymentsDetails = updatedPayments;
+  currentLivraisonData.paymentsTotalEncaisse = payload.paymentsTotalEncaisse;
+  currentLivraisonData.paymentsTotalChange = payload.paymentsTotalChange;
+  currentLivraisonData.paymentsNetEncaisse = payload.paymentsNetEncaisse;
+  if (payload.principalCompteId) {
+    currentLivraisonData.principalCompteId = payload.principalCompteId;
+    currentLivraisonData.compteId = payload.principalCompteId;
+  }
+}
+
+async function finaliserLivraisonReussie() {
+  if (!currentLivraisonData || !currentLivraisonId) return;
+
+  if (!currentLivraisonData.convertedToSale) {
+    await updateStockAfterSaleFirestore(currentLivraisonData.items || []);
+  }
+
+  await updateSaleFirestore(currentLivraisonId, {
+    deliveryStatus: 'réussie',
+    convertedToSale: true,
+    deliveryClosedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+
+  currentLivraisonData.deliveryStatus = 'réussie';
+  currentLivraisonData.convertedToSale = true;
+  populateLivraisonDetailView(currentLivraisonData);
+  setLivraisonDetailAlert('Livraison marquée comme réussie.', 'success');
+  filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
+  afficherLivraisons();
+}
