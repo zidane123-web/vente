@@ -706,6 +706,40 @@
       color: var(--text-color);
       cursor: pointer;
     }
+    .modal .sale-type-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .modal .btn-modal-option {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .modal .btn-modal-option i {
+      font-size: 22px;
+    }
+    .modal .btn-modal-option.direct {
+      background: var(--primary-color);
+      color: var(--white);
+    }
+    .modal .btn-modal-option.delivery {
+      background: #fbe9d7;
+      color: #c56812;
+    }
+    .modal .btn-modal-option:active {
+      transform: scale(0.97);
+    }
     /* Bottom Navigation Modernisée */
     .bottom-nav-pro {
       display: flex;
@@ -1145,6 +1179,38 @@
   height: 100vh;
 }
 
+#screen-panier .sale-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  margin-bottom: 15px;
+  background: #e3f2fd;
+  color: #0d47a1;
+}
+
+#screen-panier .sale-type-badge.badge-direct {
+  background: #e3f2fd;
+  color: #0d47a1;
+  border-color: #90caf9;
+}
+
+#screen-panier .sale-type-badge.badge-delivery {
+  background: #fff3e0;
+  color: #ef6c00;
+  border-color: #ffcc80;
+}
+
+#screen-panier .sale-type-badge i {
+  font-size: 18px;
+}
+
 #screen-panier header {
   display: flex;
   align-items: center;
@@ -1443,7 +1509,7 @@
       </div>
     </div>
     <div class="accueil-actions">
-      <button type="button" class="btn-modern" onclick="window.location.hash='panier'">
+      <button type="button" class="btn-modern" onclick="ouvrirModalTypeVente()">
         <i data-lucide="shopping-cart"></i> Nouvelle vente
       </button>
       <button type="button" class="btn-modern secondary" onclick="window.location.hash='approvisionnement'">
@@ -4998,7 +5064,7 @@ async function generateSupplierCreditPDF() {
                     <i data-lucide="layout-dashboard"></i>
                     <span>Accueil</span>
                 </li>
-                <li class="menu-list-item" onclick="window.location.hash='panier'">
+                <li class="menu-list-item" onclick="ouvrirModalTypeVente()">
                     <i data-lucide="shopping-cart"></i>
                     <span>Nouvelle Vente</span>
                 </li>
@@ -10509,6 +10575,10 @@ async function annulerCommandeFournisseur(approId, event) {
   </header>
 
   <div style="padding: 15px;">
+    <div id="panierSaleTypeBadge" class="sale-type-badge badge-direct">
+      <i data-lucide="shopping-cart"></i>
+      <span>Vente directe</span>
+    </div>
     <!-- articles injectés par JS -->
     <div id="panierContainer" class="list-container"></div>
 
@@ -10723,8 +10793,29 @@ async function annulerCommandeFournisseur(approId, event) {
       <div class="nav-item" id="nav-menu" onclick="window.location.hash='menu'">
         <i data-lucide="menu"></i>
         <span>Menu</span>
-      </div>
+  </div>
     </nav>
+  </div>
+
+  <!-- Modal: Choix du type de vente -->
+  <div id="modalSaleType" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="fermerModalTypeVente()">&times;</span>
+      <h2>Quel type de vente ?</h2>
+      <p style="text-align:center; color: var(--text-color); margin-bottom: 10px;">
+        Choisissez le mode d'enregistrement.
+      </p>
+      <div class="sale-type-options">
+        <button type="button" class="btn-modal-option direct" onclick="selectionnerTypeVente('direct')">
+          <i data-lucide="shopping-cart"></i>
+          Vente directe
+        </button>
+        <button type="button" class="btn-modal-option delivery" onclick="selectionnerTypeVente('delivery')">
+          <i data-lucide="truck"></i>
+          Livraison
+        </button>
+      </div>
+    </div>
   </div>
   
   <!-- Modal: Détails d'une vente -->
@@ -12572,6 +12663,7 @@ case 'article-detail':
 
       case 'panier':
   updatePanierPage();
+  mettreAJourBadgeTypeVente();
   break;
        
   case 'stock-history':
@@ -12622,6 +12714,59 @@ if (!navigator.onLine) {
 let currentArticleId = null; // Variable pour garder l'ID de l'article sélectionné
 let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
+let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
+
+function ouvrirModalTypeVente() {
+  const modal = document.getElementById('modalSaleType');
+  if (modal) {
+    modal.style.display = 'flex';
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+      lucide.createIcons();
+    }
+  }
+}
+
+function fermerModalTypeVente() {
+  const modal = document.getElementById('modalSaleType');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function selectionnerTypeVente(mode) {
+  currentSaleMode = mode === 'delivery' ? 'delivery' : 'direct';
+  mettreAJourBadgeTypeVente();
+  appliquerTypeVenteAuFormulaire();
+  fermerModalTypeVente();
+  window.location.hash = 'panier';
+  updatePanierPage();
+  updateCartFooter();
+}
+
+function appliquerTypeVenteAuFormulaire() {
+  const isDeliveryCheckbox = document.getElementById('isDelivery');
+  const shouldDelivery = currentSaleMode === 'delivery';
+  if (isDeliveryCheckbox) {
+    if (isDeliveryCheckbox.checked !== shouldDelivery) {
+      isDeliveryCheckbox.checked = shouldDelivery;
+    }
+    toggleDeliveryFields();
+  }
+}
+
+function mettreAJourBadgeTypeVente() {
+  const badge = document.getElementById('panierSaleTypeBadge');
+  if (!badge) return;
+  const isDelivery = currentSaleMode === 'delivery';
+  badge.classList.toggle('badge-delivery', isDelivery);
+  badge.classList.toggle('badge-direct', !isDelivery);
+  const iconName = isDelivery ? 'truck' : 'shopping-cart';
+  const label = isDelivery ? 'Livraison' : 'Vente directe';
+  badge.innerHTML = `<i data-lucide="${iconName}"></i><span>${label}</span>`;
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+}
 
 /* --- MÀJ DU FOOTER PANIER ---------------------------------- */
 function updateCartFooter () {
@@ -12655,6 +12800,7 @@ function updateSearchCartBadge() {
 document.getElementById('searchCartIcon').addEventListener('click', () => {
   window.location.hash = 'panier';
   updatePanierPage();
+  mettreAJourBadgeTypeVente();
 });
 
 /* Ajoute un produit ou incrémente sa quantité ------------------ */
@@ -12791,12 +12937,14 @@ function ouvrirPanier(){
   window.location.hash = 'panier';
   updatePanierPage();
   updateSearchCartBadge();
+  mettreAJourBadgeTypeVente();
 
 }
 
 /* Bouton "Suivant" depuis l'écran Panier --------------------- */
 function continuerDepuisPanier() {
   if (currentItems.length === 0) return;
+  appliquerTypeVenteAuFormulaire();
   window.location.hash = 'vendre';   // retour au wizard
   currentStep = 1;                   // Étape 2 : infos client
   showStep(currentStep);
@@ -12808,13 +12956,15 @@ function continuerDepuisPanier() {
       const deliveryFields = document.getElementById("deliveryFields");
       const btnValider = document.getElementById("btnValider");
       if(isDelivery) {
-        deliveryFields.style.display = "block";
-        btnValider.textContent = "Valider Livraison";
-      } else {
-        deliveryFields.style.display = "none";
-        btnValider.textContent = "Valider Vente";
-      }
-    }
+    deliveryFields.style.display = "block";
+    btnValider.textContent = "Valider Livraison";
+  } else {
+    deliveryFields.style.display = "none";
+    btnValider.textContent = "Valider Vente";
+  }
+  currentSaleMode = isDelivery ? 'delivery' : 'direct';
+  mettreAJourBadgeTypeVente();
+}
     function getValidationMessage() {
       return document.getElementById("isDelivery").checked ? "Valider la livraison ?" : "Valider la vente ?";
     }
@@ -13160,6 +13310,9 @@ function continuerDepuisPanier() {
       }
       if (event.target === document.getElementById("modalAjoutOperation")) {
         fermerModalTresorerie();
+      }
+      if (event.target === document.getElementById("modalSaleType")) {
+        fermerModalTypeVente();
       }
     };
 
