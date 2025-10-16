@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "sw.js",
   "scripts": {
-    "test": "node tests/saleFlow.test.js"
+    "test": "node tests/runAll.js"
   },
   "repository": {
     "type": "git",

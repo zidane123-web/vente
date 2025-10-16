@@ -18936,8 +18936,6 @@ async function creerDettesDeVente(saleId, saleData) {
     console.log("Traitement des dettes de consignation terminé.");
 }
 
-
-
 /**
  * Gère l'affichage principal du Hub Dépôts.
  */
@@ -19197,32 +19195,18 @@ async function creerDettesDeVente(saleId, saleData) {
     await batch.commit();
     console.log("Traitement des dettes de consignation terminé.");
 }
+
+
+
+
+
+
+
+
+
 </script>
 <script src="livraison.js"></script>
-</body>
-</html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+<script>
 function ouvrirModalLivraisonEncaissement() {
   if (!currentLivraisonData || !currentLivraisonId) {
     setLivraisonDetailAlert("Sélectionnez une livraison avant d'encaisser.", 'danger');
@@ -19547,3 +19531,6 @@ async function finaliserLivraisonReussie() {
   filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
   afficherLivraisons();
 }
+</script>
+</body>
+</html>
