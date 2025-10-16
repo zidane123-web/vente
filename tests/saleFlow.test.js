@@ -69,8 +69,21 @@ function testAppliquerTypeVenteSansChamps() {
       <div id="searchCartIcon"></div>
       <div id="searchCartCount"></div>
       <div id="panierContainer"></div>
-      <input type="checkbox" id="isDelivery">
+      <div id="deliveryCard" style="display:none"></div>
+      <div id="deliveryPaymentHint" style="display:none"></div>
       <button id="btnValider"></button>
+      <p id="saleModeSummary"></p>
+      <span id="deliveryModeBadge"></span>
+      <input id="livreurId">
+      <input id="livreurNom">
+      <input id="livreurNumero">
+      <div id="livreurSelectedSummary" style="display:none"><p id="livreurSelectedText"></p></div>
+      <div id="livreurSearchResults"></div>
+      <div id="livreurSearchFeedback"></div>
+      <input id="livreurSearchInput">
+      <div id="livreurCreateForm"><button class="btn-modern"></button></div>
+      <button id="livreurCreateToggleBtn"></button>
+      <input id="lieuLivraison">
       <span id="footerQuantity"></span>
       <span id="footerTotal"></span>
       <button id="footerCheckout"></button>
@@ -91,11 +104,20 @@ function testSelectionFlux() {
       <div id="searchCartCount"></div>
       <div id="miniPanier"></div>
       <div id="panierContainer"></div>
-      <div id="deliveryFields" style="display:none"></div>
-      <input type="checkbox" id="isDelivery">
+      <div id="deliveryCard" style="display:none"></div>
+      <div id="deliveryPaymentHint" style="display:none"></div>
+      <p id="saleModeSummary"></p>
+      <span id="deliveryModeBadge"></span>
+      <div id="livreurSelectedSummary" style="display:none"><p id="livreurSelectedText"></p></div>
+      <div id="livreurSearchResults"></div>
+      <div id="livreurSearchFeedback"></div>
+      <input id="livreurSearchInput">
+      <div id="livreurCreateForm"><button class="btn-modern"></button></div>
+      <button id="livreurCreateToggleBtn"></button>
       <input id="livreurNom">
       <input id="livreurNumero">
       <input id="lieuLivraison">
+      <input id="livreurId">
       <button id="btnValider"></button>
       <span id="footerQuantity"></span>
       <span id="footerTotal"></span>
@@ -111,7 +133,7 @@ function testSelectionFlux() {
   // Sélection livraison
   context.selectionnerTypeVente('delivery');
   assert.strictEqual(getCurrentSaleMode(), 'delivery', 'Le mode courant doit être "delivery"');
-  assert.strictEqual(dom.window.document.getElementById('deliveryFields').style.display, 'block', 'Les champs livraison doivent être visibles');
+  assert.strictEqual(dom.window.document.getElementById('deliveryCard').style.display, 'flex', 'Le panneau livraison doit être visible');
   assert.strictEqual(dom.window.document.getElementById('btnValider').textContent, 'Valider Livraison');
   assert.match(dom.window.document.getElementById('panierSaleTypeBadge').textContent.trim(), /Livraison/, 'Le badge doit afficher Livraison');
   assert.strictEqual(dom.window.location.hash, '#panier', 'Le hash doit basculer vers #panier');
@@ -119,7 +141,7 @@ function testSelectionFlux() {
   // Sélection directe
   context.selectionnerTypeVente('direct');
   assert.strictEqual(getCurrentSaleMode(), 'direct', 'Le mode courant doit revenir à "direct"');
-  assert.strictEqual(dom.window.document.getElementById('deliveryFields').style.display, 'none', 'Les champs livraison doivent être cachés');
+  assert.strictEqual(dom.window.document.getElementById('deliveryCard').style.display, 'none', 'Le panneau livraison doit être caché');
   assert.strictEqual(dom.window.document.getElementById('btnValider').textContent, 'Valider Vente');
   assert.match(dom.window.document.getElementById('panierSaleTypeBadge').textContent.trim(), /Vente directe/, 'Le badge doit afficher Vente directe');
 

@@ -292,6 +292,71 @@ body.role-employe #screen-accueil .accueil-actions {
     .sale-step.active {
       display: block;
     }
+    .step-intro {
+      font-size: 15px;
+      color: #475569;
+      margin: 6px 0 22px;
+    }
+    .step-two-layout {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .step-two-layout .info-card {
+      flex: 1 1 320px;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.22);
+      padding: 22px;
+      box-shadow: 0 25px 45px rgba(15, 23, 42, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .info-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .info-card-header h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--text-color);
+    }
+    .info-card-header p {
+      margin: 4px 0 0 0;
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .info-badge {
+      background: rgba(59,130,246,0.12);
+      color: #1d4ed8;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      align-self: flex-start;
+    }
+    .livraison-lieu label {
+      font-weight: 600;
+      display: block;
+      color: #1f2937;
+      margin-bottom: 6px;
+    }
+    .livraison-lieu input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 15px;
+    }
+    .livraison-lieu small {
+      display: block;
+      margin-top: 6px;
+      color: #6b7280;
+      font-size: 12px;
+    }
     #screen-accueil {
       background: #f5f5fa;
       padding: 15px;
@@ -1749,70 +1814,132 @@ body.role-employe #screen-accueil .accueil-actions {
         </div>
         <!-- Étape 2 : Informations Client -->
         <div class="sale-step" id="step2">
-          <h2>Étape 2 : Sélectionner un client</h2>
-          <p class="client-search-hint">Recherchez un client existant ou créez-en un nouveau.</p>
-          <div class="client-search-mode">
-            <button type="button" class="client-search-chip active" data-mode="nom" onclick="setClientSearchMode('nom')">
-              Par nom
-            </button>
-            <button type="button" class="client-search-chip" data-mode="numero" onclick="setClientSearchMode('numero')">
-              Par numéro
-            </button>
-          </div>
-          <div class="client-search-bar">
-            <input
-              type="text"
-              id="clientSearchInput"
-              placeholder="Rechercher un client par nom"
-              onkeydown="if(event.key==='Enter'){event.preventDefault(); searchClientsVente();}"
-            />
-            <button type="button" class="btn-modern secondary" onclick="searchClientsVente()">
-              <i data-lucide="search"></i> Rechercher
-            </button>
-          </div>
-          <div id="clientSearchFeedback" class="client-search-feedback">
-            Saisissez au moins 2 caractères pour lancer la recherche.
-          </div>
-          <div id="clientSearchResults" class="client-search-results"></div>
-          <div id="clientSelectedSummary" class="client-selected-summary" style="display:none;">
-            <h3>Client sélectionné</h3>
-            <p id="clientSelectedText"></p>
-            <button type="button" class="btn-link" onclick="clearSelectedClient()">Changer de client</button>
-          </div>
-          <div class="client-search-actions">
-            <button type="button" class="btn-modern secondary" id="clientCreateToggleBtn" onclick="toggleClientCreateForm(true)">
-              <i data-lucide="user-plus"></i> Nouveau client
-            </button>
-          </div>
-          <div id="clientCreateForm" class="client-create-form" style="display:none;">
-            <h3>Nouveau client</h3>
-            <div class="vente-form">
-              <label for="newClientName">Nom</label>
-              <input type="text" id="newClientName" placeholder="Nom complet" />
-              <label for="newClientPhone">Numéro WhatsApp</label>
-              <input type="text" id="newClientPhone" placeholder="Numéro WhatsApp" />
-            </div>
-            <div class="client-create-actions">
-              <button type="button" class="btn-modern secondary" onclick="toggleClientCreateForm(false)">Annuler</button>
-              <button type="button" class="btn-modern" onclick="createClientFromSale()">Enregistrer</button>
-            </div>
-            <div id="clientCreateFeedback" class="client-search-feedback" style="display:none;"></div>
-          </div>
-          <div id="deliveryFields" class="delivery-section" style="display:none; margin-top:20px; border:1px solid #e0e0e0; border-radius:8px; padding:16px; background:#f9fafb;">
-            <h3>Informations livraison</h3>
-            <div class="vente-form">
-              <label for="livreurNom">Nom du livreur</label>
-              <input type="text" id="livreurNom" placeholder="Nom du livreur" />
-              <label for="livreurNumero">Numero du livreur</label>
-              <input type="text" id="livreurNumero" placeholder="Contact du livreur" />
-              <label for="lieuLivraison">Lieu de livraison</label>
-              <input type="text" id="lieuLivraison" placeholder="Lieu de livraison" />
-            </div>
-            <p class="delivery-section-hint" style="margin-top:12px; font-size:0.9em; color:#6b7280;">Ces informations sont requises uniquement pour les livraisons.</p>
+          <h2>Étape 2 : Client & Livraison</h2>
+          <p class="step-intro">Identifiez clairement le client et, si nécessaire, préparez la livraison avant de passer aux paiements.</p>
+          <div class="step-two-layout">
+            <section class="info-card client-card" id="clientCard">
+              <header class="info-card-header">
+                <div>
+                  <h3>Client</h3>
+                  <p>Recherchez un client existant ou enregistrez-en un nouveau.</p>
+                </div>
+              </header>
+              <div class="client-search-mode">
+                <button type="button" class="client-search-chip active" data-mode="nom" onclick="setClientSearchMode('nom')">
+                  Par nom
+                </button>
+                <button type="button" class="client-search-chip" data-mode="numero" onclick="setClientSearchMode('numero')">
+                  Par numéro
+                </button>
+              </div>
+              <div class="client-search-bar">
+                <input
+                  type="text"
+                  id="clientSearchInput"
+                  placeholder="Rechercher un client par nom"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); searchClientsVente();}"
+                />
+                <button type="button" class="btn-modern secondary" onclick="searchClientsVente()">
+                  <i data-lucide="search"></i> Rechercher
+                </button>
+              </div>
+              <div id="clientSearchFeedback" class="client-search-feedback">
+                Saisissez au moins 2 caractères pour lancer la recherche.
+              </div>
+              <div id="clientSearchResults" class="client-search-results"></div>
+              <div id="clientSelectedSummary" class="client-selected-summary" style="display:none;">
+                <h3>Client sélectionné</h3>
+                <p id="clientSelectedText"></p>
+                <button type="button" class="btn-link" onclick="clearSelectedClient()">Changer de client</button>
+              </div>
+              <div class="client-search-actions">
+                <button type="button" class="btn-modern secondary" id="clientCreateToggleBtn" onclick="toggleClientCreateForm(true)">
+                  <i data-lucide="user-plus"></i> Nouveau client
+                </button>
+              </div>
+              <div id="clientCreateForm" class="client-create-form" style="display:none;">
+                <h3>Nouveau client</h3>
+                <div class="vente-form">
+                  <label for="newClientName">Nom</label>
+                  <input type="text" id="newClientName" placeholder="Nom complet" />
+                  <label for="newClientPhone">Numéro WhatsApp</label>
+                  <input type="text" id="newClientPhone" placeholder="Numéro WhatsApp" />
+                </div>
+                <div class="client-create-actions">
+                  <button type="button" class="btn-modern secondary" onclick="toggleClientCreateForm(false)">Annuler</button>
+                  <button type="button" class="btn-modern" onclick="createClientFromSale()">Enregistrer</button>
+                </div>
+                <div id="clientCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+              </div>
+            </section>
+            <section class="info-card livreur-card" id="deliveryCard" style="display:none;">
+              <header class="info-card-header">
+                <div>
+                  <h3>Livreur</h3>
+                  <p>Assignez un livreur enregistré pour suivre la course.</p>
+                </div>
+                <span class="info-badge" id="deliveryModeBadge" style="display:none;">Livraison active</span>
+              </header>
+              <div class="client-search-mode livreur-search-mode">
+                <button type="button" class="client-search-chip active" data-mode="nom" onclick="setLivreurSearchMode('nom')">
+                  Par nom
+                </button>
+                <button type="button" class="client-search-chip" data-mode="numero" onclick="setLivreurSearchMode('numero')">
+                  Par numéro
+                </button>
+              </div>
+              <div class="client-search-bar livreur-search-bar">
+                <input
+                  type="text"
+                  id="livreurSearchInput"
+                  placeholder="Rechercher un livreur par nom"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); searchLivreurs();}"
+                />
+                <button type="button" class="btn-modern secondary" onclick="searchLivreurs()">
+                  <i data-lucide="search"></i> Rechercher
+                </button>
+              </div>
+              <div id="livreurSearchFeedback" class="client-search-feedback">
+                Saisissez au moins 2 caractères pour lancer la recherche.
+              </div>
+              <div id="livreurSearchResults" class="client-search-results"></div>
+              <div id="livreurSelectedSummary" class="client-selected-summary" style="display:none;">
+                <h3>Livreur sélectionné</h3>
+                <p id="livreurSelectedText"></p>
+                <button type="button" class="btn-link" onclick="clearSelectedLivreur()">Changer de livreur</button>
+              </div>
+              <div class="client-search-actions livreur-search-actions">
+                <button type="button" class="btn-modern secondary" id="livreurCreateToggleBtn" onclick="toggleLivreurCreateForm(true)">
+                  <i data-lucide="user-plus"></i> Nouveau livreur
+                </button>
+              </div>
+              <div id="livreurCreateForm" class="client-create-form" style="display:none;">
+                <h3>Nouveau livreur</h3>
+                <div class="vente-form">
+                  <label for="newLivreurName">Nom</label>
+                  <input type="text" id="newLivreurName" placeholder="Nom complet" />
+                  <label for="newLivreurPhone">Numéro</label>
+                  <input type="text" id="newLivreurPhone" placeholder="Contact principal" />
+                </div>
+                <div class="client-create-actions">
+                  <button type="button" class="btn-modern secondary" onclick="toggleLivreurCreateForm(false)">Annuler</button>
+                  <button type="button" class="btn-modern" onclick="createLivreurFromSale()">Enregistrer</button>
+                </div>
+                <div id="livreurCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+              </div>
+              <div class="livraison-lieu">
+                <label for="lieuLivraison">Lieu de livraison</label>
+                <input type="text" id="lieuLivraison" placeholder="Adresse, quartier, point de repère" />
+                <small>Indiquez le lieu exact pour faciliter la livraison.</small>
+              </div>
+            </section>
           </div>
           <input type="hidden" id="clientNom">
           <input type="hidden" id="clientNumero">
           <input type="hidden" id="clientId">
+          <input type="hidden" id="livreurId">
+          <input type="hidden" id="livreurNom">
+          <input type="hidden" id="livreurNumero">
           <div class="step-navigation">
             <button class="btn-modern secondary" onclick="prevStep()">
               <i data-lucide="arrow-left"></i> Retour
@@ -11392,7 +11519,7 @@ async function enregistrerModificationClient() {
     function setClientSearchMode(mode) {
       if (mode !== 'nom' && mode !== 'numero') return;
       clientSearchMode = mode;
-      const chips = document.querySelectorAll('.client-search-chip');
+      const chips = document.querySelectorAll('#clientCard .client-search-chip');
       chips.forEach(chip => {
         chip.classList.toggle('active', chip.dataset.mode === mode);
       });
@@ -11506,7 +11633,7 @@ async function enregistrerModificationClient() {
       if (numeroInput) numeroInput.value = client.numero || '';
       if (idInput) idInput.value = client.id || '';
       updateClientSelectedSummary();
-      const items = document.querySelectorAll('.client-search-result');
+      const items = document.querySelectorAll('#clientSearchResults .client-search-result');
       items.forEach(item => {
         item.classList.toggle('selected', item.dataset.clientId === (client.id || ''));
       });
@@ -11540,7 +11667,7 @@ async function enregistrerModificationClient() {
       if (numeroInput) numeroInput.value = '';
       if (idInput) idInput.value = '';
       updateClientSelectedSummary();
-      const items = document.querySelectorAll('.client-search-result');
+      const items = document.querySelectorAll('#clientSearchResults .client-search-result');
       items.forEach(item => item.classList.remove('selected'));
       const input = document.getElementById('clientSearchInput');
       if (input) {
@@ -13109,6 +13236,290 @@ let cachedStock  = [];              // stock en mémoire (déjà chargé)
 let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
 const COMMISSION_PAR_TELEPHONE = 75;
 
+// Gestion des livreurs (section livraison)
+let livreursCache = [];
+let livreursCacheLoaded = false;
+let livreursLoadingPromise = null;
+let livreurSearchMode = 'nom';
+let selectedLivreurId = null;
+
+function ensureLivreursCache(force = false) {
+  if (livreursCacheLoaded && !force) return Promise.resolve(livreursCache);
+  if (livreursLoadingPromise && !force) return livreursLoadingPromise;
+  if (typeof dbFirestore === 'undefined' || !dbFirestore || typeof dbFirestore.collection !== 'function') {
+    livreursCacheLoaded = true;
+    livreursCache = [];
+    return Promise.resolve(livreursCache);
+  }
+  livreursLoadingPromise = dbFirestore.collection('livreurs')
+    .get()
+    .then(snapshot => {
+      livreursCache = [];
+      snapshot.forEach(doc => {
+        const data = doc.data() || {};
+        livreursCache.push({
+          id: doc.id,
+          nom: data.nom || data.name || '',
+          numero: data.numero || data.telephone || data.phone || '',
+          zone: data.zone || data.secteur || '',
+          ...data
+        });
+      });
+      livreursCacheLoaded = true;
+      return livreursCache;
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement des livreurs :', error);
+      livreursCacheLoaded = true;
+      livreursCache = [];
+      return livreursCache;
+    })
+    .finally(() => {
+      livreursLoadingPromise = null;
+    });
+  return livreursLoadingPromise;
+}
+
+function setLivreurSearchMode(mode, options = {}) {
+  if (mode !== 'nom' && mode !== 'numero') return;
+  livreurSearchMode = mode;
+  const chips = document.querySelectorAll('#deliveryCard .client-search-chip');
+  chips.forEach(chip => {
+    chip.classList.toggle('active', chip.dataset.mode === mode);
+  });
+  const input = document.getElementById('livreurSearchInput');
+  if (input && !options.skipInputReset) {
+    input.placeholder = mode === 'nom'
+      ? 'Rechercher un livreur par nom'
+      : 'Rechercher un livreur par numéro';
+    input.value = '';
+    input.focus();
+  }
+  const feedback = document.getElementById('livreurSearchFeedback');
+  if (feedback && !options.preserveFeedback) {
+    feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+    feedback.style.color = '#6b7280';
+  }
+  const results = document.getElementById('livreurSearchResults');
+  if (results && !options.preserveResults) {
+    results.innerHTML = '';
+  }
+}
+
+function initLivreurSection() {
+  if (currentSaleMode !== 'delivery') return;
+  ensureLivreursCache();
+  setLivreurSearchMode(livreurSearchMode, { skipInputReset: true, preserveResults: true, preserveFeedback: true });
+  selectedLivreurId = document.getElementById('livreurId')?.value || null;
+  updateLivreurSelectedSummary();
+}
+
+function searchLivreurs() {
+  const input = document.getElementById('livreurSearchInput');
+  const feedback = document.getElementById('livreurSearchFeedback');
+  const resultsContainer = document.getElementById('livreurSearchResults');
+  if (!input || !resultsContainer) return;
+
+  const query = input.value.trim();
+  if (query.length < 2) {
+    if (feedback) {
+      feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+      feedback.style.color = '#6b7280';
+    }
+    resultsContainer.innerHTML = '';
+    return;
+  }
+
+  ensureLivreursCache().then(list => {
+    const normalized = livreurSearchMode === 'numero'
+      ? query.replace(/\s+/g, '').toLowerCase()
+      : query.toLowerCase();
+
+    const filtered = list.filter(livreur => {
+      if (livreurSearchMode === 'nom') {
+        return (livreur.nom || '').toLowerCase().includes(normalized);
+      }
+      const numero = (livreur.numero || '').replace(/\s+/g, '').toLowerCase();
+      return numero.includes(normalized);
+    }).slice(0, 30);
+
+    renderLivreurResults(filtered);
+    if (feedback) {
+      if (filtered.length === 0) {
+        feedback.textContent = 'Aucun livreur trouvé. Vous pouvez en créer un.';
+        feedback.style.color = '#b91c1c';
+      } else {
+        feedback.textContent = `${filtered.length} livreur(s) trouvé(s).`;
+        feedback.style.color = '#2563eb';
+      }
+    }
+  });
+}
+
+function renderLivreurResults(results) {
+  const container = document.getElementById('livreurSearchResults');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!Array.isArray(results) || results.length === 0) return;
+
+  results.forEach(livreur => {
+    const item = document.createElement('div');
+    item.className = 'client-search-result';
+    item.dataset.livreurId = livreur.id || '';
+    if (livreur.id && livreur.id === selectedLivreurId) {
+      item.classList.add('selected');
+    }
+    const numeroDisplay = livreur.numero ? livreur.numero : 'Numéro non renseigné';
+    const zoneLine = livreur.zone ? `<small style="color:#64748b;">Zone : ${livreur.zone}</small>` : '';
+    item.innerHTML = `
+      <div>
+        <h4>${livreur.nom || 'Livreur sans nom'}</h4>
+        <span>${numeroDisplay}</span>
+        ${zoneLine}
+      </div>
+    `;
+    item.addEventListener('click', () => {
+      selectLivreurForSale(livreur);
+    });
+    container.appendChild(item);
+  });
+}
+
+function selectLivreurForSale(livreur) {
+  if (!livreur) return;
+  selectedLivreurId = livreur.id || null;
+  const idInput = document.getElementById('livreurId');
+  const nomInput = document.getElementById('livreurNom');
+  const numeroInput = document.getElementById('livreurNumero');
+  if (idInput) idInput.value = livreur.id || '';
+  if (nomInput) nomInput.value = livreur.nom || '';
+  if (numeroInput) numeroInput.value = livreur.numero || '';
+  updateLivreurSelectedSummary();
+  const items = document.querySelectorAll('#livreurSearchResults .client-search-result');
+  items.forEach(item => {
+    item.classList.toggle('selected', item.dataset.livreurId === (livreur.id || ''));
+  });
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+  if (typeof showToast === 'function' && livreur.nom) {
+    showToast(`Livreur ${livreur.nom} sélectionné.`);
+  }
+}
+
+function updateLivreurSelectedSummary() {
+  const summary = document.getElementById('livreurSelectedSummary');
+  const textEl = document.getElementById('livreurSelectedText');
+  const nom = document.getElementById('livreurNom')?.value.trim() || '';
+  const numero = document.getElementById('livreurNumero')?.value.trim() || '';
+  if (!summary || !textEl) return;
+  if (nom) {
+    summary.style.display = 'block';
+    textEl.textContent = numero ? `${nom} (${numero})` : nom;
+  } else {
+    summary.style.display = 'none';
+    textEl.textContent = '';
+  }
+}
+
+function clearSelectedLivreur(silent = false) {
+  selectedLivreurId = null;
+  ['livreurId', 'livreurNom', 'livreurNumero'].forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) field.value = '';
+  });
+  const results = document.querySelectorAll('#livreurSearchResults .client-search-result');
+  results.forEach(item => item.classList.remove('selected'));
+  updateLivreurSelectedSummary();
+  if (!silent && typeof showToast === 'function') {
+    showToast('Livreur désélectionné.');
+  }
+}
+
+function toggleLivreurCreateForm(show) {
+  const form = document.getElementById('livreurCreateForm');
+  const toggleBtn = document.getElementById('livreurCreateToggleBtn');
+  if (!form || !toggleBtn) return;
+  if (show) {
+    form.style.display = 'block';
+    toggleBtn.style.display = 'none';
+    setTimeout(() => document.getElementById('newLivreurName')?.focus(), 100);
+  } else {
+    form.style.display = 'none';
+    toggleBtn.style.display = 'inline-flex';
+    const nameField = document.getElementById('newLivreurName');
+    const phoneField = document.getElementById('newLivreurPhone');
+    if (nameField) nameField.value = '';
+    if (phoneField) phoneField.value = '';
+    const feedback = document.getElementById('livreurCreateFeedback');
+    if (feedback) feedback.style.display = 'none';
+  }
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+function createLivreurFromSale() {
+  const nameInput = document.getElementById('newLivreurName');
+  const phoneInput = document.getElementById('newLivreurPhone');
+  const feedback = document.getElementById('livreurCreateFeedback');
+  if (!nameInput || !phoneInput) return;
+  const nom = nameInput.value.trim();
+  const numero = phoneInput.value.trim();
+  if (!nom) {
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#b91c1c';
+      feedback.textContent = 'Le nom du livreur est obligatoire.';
+    }
+    return;
+  }
+  if (!numero) {
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#b91c1c';
+      feedback.textContent = 'Le numéro du livreur est obligatoire.';
+    }
+    return;
+  }
+  if (feedback) {
+    feedback.style.display = 'none';
+  }
+
+  const saveBtn = document.querySelector('#livreurCreateForm .btn-modern:not(.secondary)');
+  if (saveBtn) saveBtn.disabled = true;
+
+  ensureLivreursCache().then(() => {
+    if (typeof dbFirestore === 'undefined' || !dbFirestore || typeof dbFirestore.collection !== 'function') {
+      throw new Error("Base de données indisponible");
+    }
+    return dbFirestore.collection('livreurs').add({
+      nom,
+      numero,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }).then(docRef => {
+    const newLivreur = { id: docRef.id, nom, numero };
+    livreursCache.push(newLivreur);
+    livreursCacheLoaded = true;
+    toggleLivreurCreateForm(false);
+    selectLivreurForSale(newLivreur);
+    searchLivreurs();
+    if (typeof showToast === 'function') {
+      showToast('Livreur créé avec succès.');
+    }
+  }).catch(error => {
+    console.error('Erreur lors de la création du livreur :', error);
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.color = '#b91c1c';
+      feedback.textContent = 'Impossible de créer le livreur : ' + error.message;
+    }
+  }).finally(() => {
+    if (saveBtn) saveBtn.disabled = false;
+  });
+}
+
 function ouvrirModalTypeVente() {
   const modal = document.getElementById('modalSaleType');
   if (modal) {
@@ -13491,19 +13902,24 @@ function continuerDepuisPanier() {
     // Gestion de la livraison dans la vente
     function toggleDeliveryFields() {
       const isDelivery = currentSaleMode === 'delivery';
-      const deliveryFields = document.getElementById("deliveryFields");
+      const deliveryCard = document.getElementById("deliveryCard");
       const paymentHint = document.getElementById("deliveryPaymentHint");
       const btnValider = document.getElementById("btnValider");
       const saleModeSummary = document.getElementById("saleModeSummary");
-      if (deliveryFields) {
-        deliveryFields.style.display = isDelivery ? "block" : "none";
-        if (!isDelivery) {
-          ["livreurNom", "livreurNumero", "lieuLivraison"].forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-              field.value = "";
-            }
-          });
+      const deliveryBadge = document.getElementById("deliveryModeBadge");
+      if (deliveryCard) {
+        deliveryCard.style.display = isDelivery ? "flex" : "none";
+        if (isDelivery) {
+          initLivreurSection();
+        } else {
+          clearSelectedLivreur(true);
+          if (typeof toggleLivreurCreateForm === 'function') {
+            toggleLivreurCreateForm(false);
+          }
+          const lieuInput = document.getElementById("lieuLivraison");
+          if (lieuInput) {
+            lieuInput.value = "";
+          }
         }
       }
       if (paymentHint) {
@@ -13514,6 +13930,9 @@ function continuerDepuisPanier() {
       }
       if (saleModeSummary) {
         saleModeSummary.textContent = isDelivery ? "Mode de vente : Livraison" : "Mode de vente : Vente directe";
+      }
+      if (deliveryBadge) {
+        deliveryBadge.style.display = isDelivery ? "inline-flex" : "none";
       }
     }
     function getValidationMessage() {
@@ -13544,27 +13963,29 @@ function continuerDepuisPanier() {
       const photoFile = document.getElementById("photoFacture").files[0];
       const observationsVendeur = document.getElementById("observationsVendeur").value.trim();
       const isDelivery = currentSaleMode === 'delivery';
+      let livreurId = "";
       let livreurNom = "";
       let livreurNumero = "";
       let lieuLivraison = "";
       if(isDelivery) {
-        livreurNom = document.getElementById("livreurNom").value.trim();
-        livreurNumero = document.getElementById("livreurNumero").value.trim();
-        lieuLivraison = document.getElementById("lieuLivraison").value.trim();
-        if(!livreurNom || !livreurNumero || !lieuLivraison) {
-          alert("Veuillez remplir toutes les informations de livraison.");
+        livreurId = document.getElementById("livreurId")?.value.trim() || "";
+        livreurNom = document.getElementById("livreurNom")?.value.trim() || "";
+        livreurNumero = document.getElementById("livreurNumero")?.value.trim() || "";
+        lieuLivraison = document.getElementById("lieuLivraison")?.value.trim() || "";
+        if(!livreurId || !livreurNom || !livreurNumero || !lieuLivraison) {
+          alert("Sélectionnez un livreur et complétez le lieu de livraison.");
           return;
         }
       }
       if(photoFile) {
         compressImage(photoFile, 800, 800, 0.7, function(compressedData) {
-          finaliserVente(clientNom, clientNumero, vendeur, compressedData, observationsVendeur, isDelivery, livreurNom, livreurNumero, lieuLivraison);
+          finaliserVente(clientNom, clientNumero, vendeur, compressedData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
         });
       } else {
-        finaliserVente(clientNom, clientNumero, vendeur, null, observationsVendeur, isDelivery, livreurNom, livreurNumero, lieuLivraison);
+        finaliserVente(clientNom, clientNumero, vendeur, null, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
       }
     }
- async function finaliserVente(clientNom, clientNumero, vendeur, photoData, observationsVendeur, isDelivery, livreurNom, livreurNumero, lieuLivraison) {
+ async function finaliserVente(clientNom, clientNumero, vendeur, photoData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
     const user = firebase.auth().currentUser;
     if (!user) {
       alert("Erreur: Utilisateur non connecté. Reconnexion nécessaire.");
@@ -13667,6 +14088,7 @@ function continuerDepuisPanier() {
         observationsVendeur,
         isDelivery,
         deliveryStatus: isDelivery ? "en cours" : null,
+        livreurId: isDelivery ? (livreurId || null) : null,
         livreurNom: isDelivery ? livreurNom : null,
         livreurNumero: isDelivery ? livreurNumero : null,
         lieuLivraison: isDelivery ? lieuLivraison : null,
