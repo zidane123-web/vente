@@ -1141,6 +1141,10 @@
   /* si besoin, limiter la largeur max : */
   max-width: 120px;
 }
+#screen-panier {
+  height: 100vh;
+}
+
 #screen-panier header {
   display: flex;
   align-items: center;
@@ -1233,6 +1237,11 @@
 }
 /* Cache la bottom-nav quand l'écran #screen-start-day est actif */
 #screen-start-day.active ~ .bottom-nav-pro {
+  display: none;
+}
+
+/* Cache la bottom-nav quand l'ecran panier est actif */
+#screen-panier.active ~ .bottom-nav-pro {
   display: none;
 }
 
@@ -10693,16 +10702,6 @@ async function annulerCommandeFournisseur(approId, event) {
         <i data-lucide="layout-dashboard"></i>
         <span>Accueil</span>
       </div>
-      <div class="nav-item" id="nav-vendre" onclick="window.location.hash='vendre'">
-        <i data-lucide="shopping-cart"></i>
-        <span>Vente</span>
-      </div>
-      <div class="nav-item" id="nav-panier" onclick="window.location.hash='panier'" style="position: relative;">
-  <i data-lucide="shopping-bag"></i>
-  <span>Panier</span>
-</div>
-
-      
       <div class="nav-item" id="nav-stock" onclick="window.location.hash='stock'">
         <i data-lucide="package"></i>
         <span>Stock</span>
