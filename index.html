@@ -1214,6 +1214,7 @@
 #screen-panier header {
   display: flex;
   align-items: center;
+  gap: 12px;
   padding: 15px;
   /* si vous voulez une ligne en dessous : */
   border-bottom: 1px solid #e0e0e0;
@@ -1222,9 +1223,30 @@
   margin: 0;
   font-size: 20px;
   color: var(--primary-color);
+  flex: 1;
+  text-align: center;
 }
 #screen-panier .header-icons {
   margin-left: auto;    /* pousse les icônes tout à droite */
+}
+#screen-panier .btn-back-panier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  color: var(--primary-color);
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+}
+#screen-panier .btn-back-panier:hover {
+  background-color: rgba(0, 96, 100, 0.08);
+}
+#screen-panier .btn-back-panier i {
+  font-size: 20px;
 }
 #screen-panier .header-icons i {
   font-size: 24px;
@@ -1514,6 +1536,9 @@
       </button>
       <button type="button" class="btn-modern secondary" onclick="window.location.hash='approvisionnement'">
         <i data-lucide="archive"></i> Enregistrer un achat
+      </button>
+      <button type="button" class="btn-modern secondary" onclick="window.location.hash='stock'">
+        <i data-lucide="package"></i> Voir le stock
       </button>
       <button type="button" class="btn-modern secondary" onclick="window.location.hash='tresorerie'">
         <i data-lucide="dollar-sign"></i> Voir trésorerie
@@ -10566,6 +10591,11 @@ async function annulerCommandeFournisseur(approId, event) {
 <!-- Screen X : Panier -->
 <section id="screen-panier" class="screen">
   <header>
+    <button class="btn-back-panier" onclick="retourAccueilDepuisPanier()">
+      <i data-lucide="arrow-left"></i>
+      <span>Accueil</span>
+    </button>
+    <h1>Panier</h1>
     <div class="header-icons">
       <i data-lucide="list"></i>
       <button class="btn-search">
@@ -10771,10 +10801,6 @@ async function annulerCommandeFournisseur(approId, event) {
       <div class="nav-item" id="nav-accueil" onclick="window.location.hash='accueil'">
         <i data-lucide="layout-dashboard"></i>
         <span>Accueil</span>
-      </div>
-      <div class="nav-item" id="nav-stock" onclick="window.location.hash='stock'">
-        <i data-lucide="package"></i>
-        <span>Stock</span>
       </div>
       <div class="nav-item" id="nav-tresorerie" onclick="window.location.hash='tresorerie'">
   <i data-lucide="dollar-sign"></i> <span>Trésorerie</span>
@@ -12939,6 +12965,11 @@ function ouvrirPanier(){
   updateSearchCartBadge();
   mettreAJourBadgeTypeVente();
 
+}
+
+function retourAccueilDepuisPanier() {
+  window.location.hash = 'accueil';
+  mettreAJourBadgeTypeVente();
 }
 
 /* Bouton "Suivant" depuis l'écran Panier --------------------- */
