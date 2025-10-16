@@ -2035,6 +2035,114 @@ body.role-employe #screen-accueil .accueil-actions {
       </header>
       <div id="livraisonsContainer" class="list-container"></div>
     </section>
+
+    <!-- Screen 2b: Détail Livraison -->
+    <section id="screen-livraison-detail" class="screen">
+      <div class="delivery-detail-header">
+        <button type="button" class="btn-modern secondary delivery-back-btn" onclick="window.location.hash='historique'">
+          <i data-lucide="arrow-left"></i> Retour
+        </button>
+        <div class="delivery-detail-heading">
+          <h1 id="livraisonDetailTitle">Livraison</h1>
+          <p id="livraisonDetailSubtitle" class="delivery-detail-subtitle"></p>
+        </div>
+        <div id="livraisonDetailStatusPill" class="delivery-status-pill">--</div>
+      </div>
+      <div class="delivery-detail-content">
+        <div id="livraisonDetailAlert" class="delivery-detail-alert" style="display:none;"></div>
+
+        <div class="delivery-card delivery-summary-card">
+          <h2>Résumé</h2>
+          <div class="delivery-summary-grid">
+            <div>
+              <h3>Client</h3>
+              <p id="livraisonDetailClientName">—</p>
+              <small id="livraisonDetailClientPhone">—</small>
+            </div>
+            <div>
+              <h3>Livreur</h3>
+              <p id="livraisonDetailLivreur">—</p>
+              <small id="livraisonDetailLivreurPhone">—</small>
+            </div>
+            <div>
+              <h3>Lieu</h3>
+              <p id="livraisonDetailLieu">—</p>
+            </div>
+            <div>
+              <h3>Créée le</h3>
+              <p id="livraisonDetailDate">—</p>
+              <small id="livraisonDetailHeure">—</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="delivery-card">
+          <h2>Articles</h2>
+          <table class="delivery-items-table">
+            <thead>
+              <tr>
+                <th>Article</th>
+                <th>Qté</th>
+                <th>Prix</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="livraisonDetailItems">
+              <tr><td colspan="4" style="text-align:center; color:#94a3b8;">Aucun article</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="delivery-card">
+          <h2>Encaissements</h2>
+          <div class="delivery-amounts">
+            <div>
+              <span>Total vente</span>
+              <strong id="livraisonDetailTotalAmount">0 FCFA</strong>
+            </div>
+            <div>
+              <span>Total encaissé</span>
+              <strong id="livraisonDetailTotalPaid">0 FCFA</strong>
+            </div>
+            <div>
+              <span>Montant restant</span>
+              <strong id="livraisonDetailOutstanding">0 FCFA</strong>
+            </div>
+          </div>
+          <div class="delivery-payment-form">
+            <div class="form-row">
+              <label for="livraisonEncaisseAmount">Montant à encaisser</label>
+              <input type="number" id="livraisonEncaisseAmount" min="0" step="0.01" placeholder="0" />
+            </div>
+            <div class="form-row">
+              <label for="compteSelectLivraison">Compte de trésorerie</label>
+              <select id="compteSelectLivraison"></select>
+            </div>
+            <button type="button" class="btn-modern" id="livraisonEncaisseBtn" onclick="encaisserLivraisonRestante()">
+              <i data-lucide="wallet"></i> Encaisser
+            </button>
+          </div>
+          <div id="livraisonPaymentsHistory" class="delivery-payments-history"></div>
+        </div>
+
+        <div class="delivery-card delivery-actions-card">
+          <h2>Statut de la livraison</h2>
+          <p id="livraisonDetailStatusDescription" class="delivery-status-description">Sélectionnez une action pour mettre à jour la livraison.</p>
+          <div class="delivery-actions-buttons">
+            <button type="button" class="btn-modern success" id="livraisonMarkSuccessBtn" onclick="marquerLivraisonReussie()">
+              <i data-lucide="check-circle-2"></i> Marquer comme réussie
+            </button>
+            <button type="button" class="btn-modern danger" id="livraisonMarkFailedBtn" onclick="marquerLivraisonEchouee()">
+              <i data-lucide="x-circle"></i> Marquer comme échouée
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="livraisonDetailLoader" class="delivery-detail-loader" style="display:none;">
+        <div class="sale-loader-spinner"></div>
+        <p>Chargement...</p>
+      </div>
+    </section>
     
     <!-- Screen 3: Historique des Ventes -->
      <section id="screen-historique" class="screen">
@@ -2307,6 +2415,294 @@ body.role-employe #screen-accueil .accueil-actions {
         text-transform: uppercase;
         font-weight: 500;
     }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+        color: #1d4ed8;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery ion-icon {
+        font-size: 16px;
+        margin-bottom: 2px;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery span {
+        font-weight: 600;
+        letter-spacing: 0.08em;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery small {
+        font-size: 11px;
+        color: #2563eb;
+        text-transform: none;
+    }
+    #ventesContainerList ion-item .sale-actions-line {
+        margin-top: 10px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    #ventesContainerList ion-item .delivery-details {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: rgba(37, 99, 235, 0.05);
+        border-radius: 8px;
+        font-size: 13px;
+        color: #334155;
+    }
+    #ventesContainerList ion-item .delivery-details div + div {
+        margin-top: 4px;
+    }
+
+    #screen-livraison-detail {
+        background: #f5f7fb;
+        min-height: 100vh;
+        padding-bottom: 40px;
+    }
+    .delivery-detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 20px;
+        background: #ffffff;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .delivery-detail-heading h1 {
+        margin: 0;
+        font-size: 22px;
+        color: #1e293b;
+    }
+    .delivery-detail-subtitle {
+        margin: 4px 0 0 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+    .delivery-status-pill {
+        background: rgba(59,130,246,0.12);
+        color: #1d4ed8;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        font-size: 12px;
+    }
+    .delivery-status-pill.success {
+        background: rgba(34,197,94,0.15);
+        color: #15803d;
+    }
+    .delivery-status-pill.danger {
+        background: rgba(248,113,113,0.18);
+        color: #b91c1c;
+    }
+    .delivery-status-pill.warning {
+        background: rgba(251,191,36,0.18);
+        color: #92400e;
+    }
+    .delivery-detail-content {
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        position: relative;
+    }
+    .delivery-card {
+        background: #ffffff;
+        border-radius: 20px;
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+        padding: 24px;
+    }
+    .delivery-card h2 {
+        margin: 0 0 16px;
+        font-size: 18px;
+        color: #0f172a;
+    }
+    .delivery-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+    .delivery-summary-grid h3 {
+        margin: 0 0 6px;
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        letter-spacing: 0.08em;
+    }
+    .delivery-summary-grid p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+    }
+    .delivery-summary-grid small {
+        color: #64748b;
+        font-size: 13px;
+    }
+    .delivery-items-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .delivery-items-table th,
+    .delivery-items-table td {
+        padding: 10px 12px;
+        font-size: 14px;
+        text-align: left;
+    }
+    .delivery-items-table thead {
+        background: #f8fafc;
+        color: #475569;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .delivery-items-table tbody tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    .delivery-amounts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    .delivery-amounts span {
+        display: block;
+        color: #94a3b8;
+        font-size: 13px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+        letter-spacing: 0.08em;
+    }
+    .delivery-amounts strong {
+        font-size: 20px;
+        color: #0f172a;
+    }
+    .delivery-payment-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        align-items: end;
+    }
+    .delivery-payment-form .form-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .delivery-payment-form label {
+        font-size: 13px;
+        text-transform: uppercase;
+        color: #94a3b8;
+        letter-spacing: 0.08em;
+    }
+    .delivery-payment-form input,
+    .delivery-payment-form select {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #dbe3f0;
+        font-size: 15px;
+        background: #fff;
+    }
+    .delivery-payments-history {
+        margin-top: 16px;
+        font-size: 13px;
+        color: #475569;
+        border-top: 1px solid #e2e8f0;
+        padding-top: 14px;
+    }
+    .delivery-payments-history p {
+        margin: 4px 0;
+    }
+    .delivery-actions-card .delivery-actions-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .delivery-detail-alert {
+        padding: 14px 18px;
+        border-radius: 12px;
+        background: rgba(251, 191, 36, 0.15);
+        color: #92400e;
+        font-size: 14px;
+    }
+    .delivery-detail-alert.success {
+        background: rgba(34, 197, 94, 0.12);
+        color: #166534;
+    }
+    .delivery-detail-alert.danger {
+        background: rgba(248, 113, 113, 0.15);
+        color: #7f1d1d;
+    }
+    .delivery-detail-loader {
+        position: absolute;
+        inset: 0;
+        background: rgba(255, 255, 255, 0.78);
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        border-radius: 12px;
+        z-index: 10;
+    }
+    .sale-loader-spinner {
+        width: 44px;
+        height: 44px;
+        border: 4px solid rgba(148, 163, 184, 0.5);
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+    }
+    .btn-modern.success {
+        background: #16a34a;
+        color: #fff;
+    }
+    .btn-modern.success:hover {
+        background: #15803d;
+    }
+    .btn-modern.danger {
+        background: #dc2626;
+        color: #fff;
+    }
+    .btn-modern.danger:hover {
+        background: #b91c1c;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 2px;
+        color: #1d4ed8;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery ion-icon {
+        font-size: 16px;
+        margin-bottom: 2px;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery span {
+        font-weight: 600;
+        letter-spacing: 0.08em;
+    }
+    #ventesContainerList ion-item .sale-status-text.sale-status-delivery small {
+        font-size: 11px;
+        color: #2563eb;
+        text-transform: none;
+    }
+    #ventesContainerList ion-item .sale-actions-line {
+        margin-top: 10px;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+    #ventesContainerList ion-item .delivery-details {
+        margin-top: 10px;
+        padding: 10px 12px;
+        background: rgba(37, 99, 235, 0.05);
+        border-radius: 8px;
+        font-size: 13px;
+        color: #334155;
+    }
+    #ventesContainerList ion-item .delivery-details div + div {
+        margin-top: 4px;
+    }
 
     /* Styles pour les liens "Détails" et "Facture" */
     #ventesContainerList ion-item .details-btn-link ion-icon {
@@ -2441,32 +2837,36 @@ async function populateUserFilters() {
     salesList.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
     salesList.forEach(sale => {
-        // Crée l'élément principal <ion-item-sliding>
         const slidingItem = document.createElement('ion-item-sliding');
 
-        let isCancelled = sale.status === 'annulé';
-        let statusClass = 'status-vente-directe';
-        let statusText = 'Vente directe';
+        const isCancelled = sale.status === 'annulé';
+        const isDelivery = !!sale.isDelivery;
+        const deliveryStatus = sale.deliveryStatus || null;
 
-        if (sale.isDelivery) {
-            switch (sale.deliveryStatus) {
+        let statusClass = 'status-vente-directe';
+        let statusLabel = 'Vente directe';
+        let deliveryDescriptor = '';
+
+        if (isDelivery) {
+            switch (deliveryStatus) {
                 case 'réussie':
                     statusClass = 'status-reussie';
-                    statusText = 'Livraison réussie';
+                    deliveryDescriptor = 'Réussie';
                     break;
                 case 'échouée':
                     statusClass = 'status-echouee';
-                    statusText = 'Livraison échouée';
+                    deliveryDescriptor = 'Échouée';
                     break;
                 default:
                     statusClass = 'status-en-cours';
-                    statusText = 'Livraison en cours';
+                    deliveryDescriptor = 'En cours';
                     break;
             }
+            statusLabel = 'Livraison';
         }
-        
-        const clientName = sale.clientNom || 'Client Inconnu';
-        const displayClientName = clientName.length > 30 ? clientName.substring(0, 27) + '...' : clientName;
+
+        const clientName = sale.clientNom || 'Client inconnu';
+        const displayClientName = clientName.length > 30 ? clientName.substring(0, 27) + '…' : clientName;
         const initials = clientName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
         const avatarBgColor = getAvatarColor(clientName);
         const totalFormatted = parseFloat(sale.overallTotal || 0).toLocaleString('fr-FR');
@@ -2482,55 +2882,59 @@ async function populateUserFilters() {
         if (sale.items && Array.isArray(sale.items)) {
             sale.items.forEach(item => {
                 const itemName = item.produit || 'Article inconnu';
-                const displayItemName = itemName.length > 35 ? itemName.substring(0, 32) + '...' : itemName;
+                const displayItemName = itemName.length > 35 ? itemName.substring(0, 32) + '…' : itemName;
                 itemListHTML += `<p class="item-line">${item.quantite} x ${displayItemName} - ${parseFloat(item.prix || 0).toLocaleString('fr-FR')} FCFA</p>`;
             });
         } else {
             itemListHTML = '<p class="item-line" style="color: #888;">Aucun article</p>';
         }
 
-        // Structure HTML interne avec ion-item et ion-item-options
+        const statusBadge = isDelivery
+            ? `<div class="sale-status-text sale-status-delivery"><ion-icon name="cube-outline"></ion-icon><span>Livraison</span><small>${deliveryDescriptor || 'Non défini'}</small></div>`
+            : `<div class="sale-status-text">${statusLabel}</div>`;
+
+        const detailLabel = isDelivery ? 'Gérer la livraison' : 'Détails';
+        const deliveryDetailsSection = isDelivery ? `
+            <div class="delivery-details">
+                <div><strong>Livreur :</strong> ${sale.livreurNom || 'Non renseigné'} (${sale.livreurNumero || '-'})</div>
+                <div><strong>Lieu :</strong> ${sale.lieuLivraison || 'Non renseigné'}</div>
+            </div>` : '';
+
         slidingItem.innerHTML = `
-            <ion-item class="${statusClass}" button="true" lines="none" style="${isCancelled ? 'opacity: 0.6; text-decoration: line-through; background-color: #ffebee;' : ''}">
+            <ion-item class="${statusClass} sale-history-item" data-sale-id="${sale.id}" data-is-delivery="${isDelivery ? '1' : '0'}" data-delivery-status="${deliveryStatus || ''}" button="true" lines="none" style="${isCancelled ? 'opacity:0.6; text-decoration: line-through; background-color:#ffebee;' : ''}">
                 <ion-label style="padding: 12px 16px;">
-                    <div class="main-content-wrapper" style="display: flex; align-items: center; width: 100%;">
-                        <div class="avatar-circle" style="background-color: ${avatarBgColor};">
+                    <div class="main-content-wrapper" style="display:flex; align-items:center; width:100%;">
+                        <div class="avatar-circle" style="background-color:${avatarBgColor};">
                             ${initials}
                         </div>
-                        <div class="left-info" style="flex-grow: 1;">
-                          
+                        <div class="left-info" style="flex-grow:1;">
                             <div class="supplier-name">${displayClientName}</div>
                             <div class="purchase-date">${displayDateTime}</div>
                             <div class="item-list-container">${itemListHTML}</div>
-                            ${sale.isDelivery ? `
-                            <div class="delivery-details">
-                                <div><strong>Livraison :</strong> ${sale.livreurNom || 'Non renseigne'} (${sale.livreurNumero || '-'})</div>
-                                <div><strong>Lieu :</strong> ${sale.lieuLivraison || 'Non renseigne'}</div>
-                            </div>` : ''}
-                            <div style="margin-top: 10px; display: flex; gap: 15px;">
-                                <a class="details-btn-link" onclick="ouvrirDetails('${sale.id}')">
-                                    <ion-icon name="information-circle-outline"></ion-icon> Détails
+                            ${deliveryDetailsSection}
+                            <div class="sale-actions-line">
+                                <a class="details-btn-link" data-action="${isDelivery ? 'delivery' : 'sale'}" data-sale-id="${sale.id}">
+                                    <ion-icon name="information-circle-outline"></ion-icon> ${detailLabel}
                                 </a>
                                 <a class="details-btn-link download-invoice-btn" data-sale-id="${sale.id}" title="Télécharger la facture">
                                     <ion-icon name="download-outline"></ion-icon> Facture
                                 </a>
                             </div>
                             <div class="recorded-by-tag">
-                            Saisi par : <strong>${sale.enregistreParNom || 'N/A'}</strong>
-                         </div>
+                                Saisi par : <strong>${sale.enregistreParNom || 'N/A'}</strong>
                             </div>
+                        </div>
                         <div class="right-info">
                             <div class="total-amount">XOF ${totalFormatted}</div>
-                            <div class="sale-status-text">${statusText}</div>
+                            ${statusBadge}
                         </div>
                     </div>
                 </ion-label>
                 <ion-ripple-effect></ion-ripple-effect>
-                 <button class="edit-client-btn" onclick="event.stopPropagation(); preparerModificationClient('${sale.id}', '${sale.clientNom}', '${sale.clientNumero || ''}')" title="Modifier le client">
+                <button class="edit-client-btn" onclick="event.stopPropagation(); preparerModificationClient('${sale.id}', '${sale.clientNom}', '${sale.clientNumero || ''}')" title="Modifier le client">
                     <i data-lucide="square-pen"></i>
                 </button>
             </ion-item>
-
             <ion-item-options side="end">
                 <ion-item-option color="danger" expandable onclick="preparerAnnulationVente('${sale.id}', event)">
                     <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
@@ -2542,11 +2946,32 @@ async function populateUserFilters() {
         container.appendChild(slidingItem);
     });
 
-    // Attacher les écouteurs pour les détails et les factures
-    container.querySelectorAll('ion-item').forEach(item => {
+    container.querySelectorAll('.sale-history-item').forEach(item => {
         item.addEventListener('click', (event) => {
-            const saleId = item.closest('ion-item-sliding').querySelector('.download-invoice-btn')?.getAttribute('data-sale-id');
-            if (saleId && !event.target.closest('.download-invoice-btn') && !event.target.closest('.edit-client-btn')) {
+            if (event.target.closest('.download-invoice-btn') || event.target.closest('.edit-client-btn')) {
+                return;
+            }
+            const saleId = item.dataset.saleId;
+            const isDelivery = item.dataset.isDelivery === '1';
+            if (!saleId) return;
+            if (isDelivery) {
+                ouvrirLivraisonDetail(saleId);
+            } else {
+                ouvrirDetails(saleId);
+            }
+        });
+    });
+
+    container.querySelectorAll('.details-btn-link[data-action]').forEach(link => {
+        link.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const saleId = link.dataset.saleId;
+            const action = link.dataset.action;
+            if (!saleId) return;
+            if (action === 'delivery') {
+                ouvrirLivraisonDetail(saleId);
+            } else {
                 ouvrirDetails(saleId);
             }
         });
@@ -2554,6 +2979,7 @@ async function populateUserFilters() {
 
     container.querySelectorAll('.download-invoice-btn').forEach(button => {
         button.addEventListener('click', (event) => {
+            event.preventDefault();
             event.stopPropagation();
             const saleId = event.currentTarget.getAttribute('data-sale-id');
             const saleData = salesList.find(s => s.id === saleId);
@@ -2565,8 +2991,7 @@ async function populateUserFilters() {
             }
         });
     });
-    
-    // Pour que les nouvelles icônes Lucide soient bien rendues
+
     lucide.createIcons();
 }
 
@@ -2660,18 +3085,22 @@ async function filterSalesHistory(statusFilter = 'all') {
 
             querySnapshot.forEach(doc => {
                 const sale = doc.data();
-                totalSalesValue += parseFloat(sale.overallTotal) || 0;
-                
-                // ================== MODIFICATION PRINCIPALE ==================
-                // Si la vente a le statut 'annulé', on l'ignore complètement.
-                // Le `return` ici agit comme un `continue` dans une boucle forEach.
+
                 if (sale.status === 'annulé') {
                     return;
                 }
-                // ===========================================================
+
+                const isDelivery = !!sale.isDelivery;
+                const deliveryStatus = sale.deliveryStatus || null;
+
+                if (statusFilter === 'all' && isDelivery && deliveryStatus !== 'réussie') {
+                    return;
+                }
 
                 sale.id = doc.id;
                 salesList.push(sale);
+
+                totalSalesValue += parseFloat(sale.overallTotal) || 0;
 
                 if (sale.items && Array.isArray(sale.items)) {
                     sale.items.forEach(item => {
@@ -11713,11 +12142,11 @@ async function enregistrerModificationClient() {
       }
     }
 
-    function createClientFromSale() {
-      const nameInput = document.getElementById('newClientName');
-      const phoneInput = document.getElementById('newClientPhone');
-      const feedback = document.getElementById('clientCreateFeedback');
-      if (!nameInput || !phoneInput) return;
+function createClientFromSale() {
+  const nameInput = document.getElementById('newClientName');
+  const phoneInput = document.getElementById('newClientPhone');
+  const feedback = document.getElementById('clientCreateFeedback');
+  if (!nameInput || !phoneInput) return;
       const nom = nameInput.value.trim();
       const numero = phoneInput.value.trim();
       if (!nom) {
@@ -11760,16 +12189,418 @@ async function enregistrerModificationClient() {
           feedback.style.color = '#b91c1c';
           feedback.textContent = 'Impossible de créer le client : ' + error.message;
         }
-      }).finally(() => {
-        if (saveBtn) saveBtn.disabled = false;
-      });
+  }).finally(() => {
+    if (saveBtn) saveBtn.disabled = false;
+  });
+}
+
+function setLivraisonDetailAlert(message = '', variant = 'info') {
+  const alertEl = document.getElementById('livraisonDetailAlert');
+  if (!alertEl) return;
+  alertEl.classList.remove('success', 'danger');
+  if (!message) {
+    alertEl.style.display = 'none';
+    alertEl.textContent = '';
+    return;
+  }
+  if (variant === 'success') {
+    alertEl.classList.add('success');
+  } else if (variant === 'danger') {
+    alertEl.classList.add('danger');
+  }
+  alertEl.style.display = 'block';
+  alertEl.textContent = message;
+}
+
+function showLivraisonDetailLoader(show) {
+  const loader = document.getElementById('livraisonDetailLoader');
+  if (!loader) return;
+  loader.style.display = show ? 'flex' : 'none';
+}
+
+function resetLivraisonDetailScreen() {
+  const fields = {
+    livraisonDetailTitle: 'Livraison',
+    livraisonDetailSubtitle: 'Sélectionnez une livraison dans la liste.',
+    livraisonDetailClientName: '—',
+    livraisonDetailClientPhone: '—',
+    livraisonDetailLivreur: '—',
+    livraisonDetailLivreurPhone: '—',
+    livraisonDetailLieu: '—',
+    livraisonDetailDate: '—',
+    livraisonDetailHeure: '—',
+    livraisonDetailTotalAmount: '0 FCFA',
+    livraisonDetailTotalPaid: '0 FCFA',
+    livraisonDetailOutstanding: '0 FCFA',
+    livraisonDetailStatusDescription: 'Sélectionnez une action pour mettre à jour la livraison.'
+  };
+  Object.entries(fields).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+  const statusPill = document.getElementById('livraisonDetailStatusPill');
+  if (statusPill) {
+    statusPill.textContent = '--';
+    statusPill.classList.remove('success', 'danger', 'warning');
+  }
+  const itemsBody = document.getElementById('livraisonDetailItems');
+  if (itemsBody) {
+    itemsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Aucun article</td></tr>`;
+  }
+  const paymentsHistory = document.getElementById('livraisonPaymentsHistory');
+  if (paymentsHistory) {
+    paymentsHistory.innerHTML = '';
+  }
+  const amountInput = document.getElementById('livraisonEncaisseAmount');
+  if (amountInput) amountInput.value = '';
+  const compteSelect = document.getElementById('compteSelectLivraison');
+  if (compteSelect) compteSelect.value = '';
+  const successBtn = document.getElementById('livraisonMarkSuccessBtn');
+  const failBtn = document.getElementById('livraisonMarkFailedBtn');
+  if (successBtn) successBtn.disabled = true;
+  if (failBtn) failBtn.disabled = true;
+}
+
+function prepareLivraisonDetailScreen() {
+  if (currentLivraisonData) {
+    populateLivraisonDetailView(currentLivraisonData);
+    setLivraisonDetailAlert('Gestion de la livraison en cours.', 'info');
+  } else {
+    resetLivraisonDetailScreen();
+    setLivraisonDetailAlert("Sélectionnez une livraison dans l'historique pour la gérer.", 'info');
+  }
+}
+
+async function ouvrirLivraisonDetail(saleId) {
+  if (!saleId) return;
+  currentLivraisonId = saleId;
+  window.location.hash = 'livraison-detail';
+  showLivraisonDetailLoader(true);
+  try {
+    const sale = await getSaleByIdFirestore(saleId);
+    if (!sale.isDelivery) {
+      showLivraisonDetailLoader(false);
+      setLivraisonDetailAlert("Cette vente n'est pas une livraison.", 'danger');
+      ouvrirDetails(saleId);
+      return;
+    }
+    currentLivraisonData = { id: saleId, ...sale };
+    populateLivraisonDetailView(currentLivraisonData);
+    setLivraisonDetailAlert('Gestion de la livraison en cours.', 'info');
+  } catch (error) {
+    console.error('Erreur lors du chargement de la livraison :', error);
+    setLivraisonDetailAlert("Impossible de charger la livraison : " + error.message, 'danger');
+  } finally {
+    showLivraisonDetailLoader(false);
+  }
+}
+
+function computeLivraisonTotals(sale) {
+  const due = parseFloat(sale.overallTotal) || 0;
+  let totalEncaisse = 0;
+  let totalChange = 0;
+  if (Array.isArray(sale.paymentsDetails)) {
+    sale.paymentsDetails.forEach(p => {
+      totalEncaisse += parseFloat(p.montantEncaisse) || 0;
+      totalChange += parseFloat(p.monnaieRendue) || 0;
+    });
+  }
+  const net = totalEncaisse - totalChange;
+  const outstanding = Math.max(0, due - net);
+  return { due, totalEncaisse, totalChange, net, outstanding };
+}
+
+function formatXofAmount(value) {
+  return `${(Number(value) || 0).toLocaleString('fr-FR')} FCFA`;
+}
+
+function populateLivraisonDetailView(sale) {
+  if (!sale) {
+    resetLivraisonDetailScreen();
+    return;
+  }
+  const title = document.getElementById('livraisonDetailTitle');
+  const subtitle = document.getElementById('livraisonDetailSubtitle');
+  if (title) title.textContent = sale.clientNom ? `Livraison - ${sale.clientNom}` : 'Livraison';
+  if (subtitle) subtitle.textContent = sale.id ? `Référence ${sale.id}` : '';
+
+  const fields = {
+    livraisonDetailClientName: sale.clientNom || '—',
+    livraisonDetailClientPhone: sale.clientNumero || '—',
+    livraisonDetailLivreur: sale.livreurNom || '—',
+    livraisonDetailLivreurPhone: sale.livreurNumero || '—',
+    livraisonDetailLieu: sale.lieuLivraison || '—',
+    livraisonDetailDate: sale.dateVente || '—',
+    livraisonDetailHeure: sale.heureVente || '—'
+  };
+  Object.entries(fields).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+
+  const statusPill = document.getElementById('livraisonDetailStatusPill');
+  if (statusPill) {
+    statusPill.classList.remove('success', 'danger', 'warning');
+    let label = 'En cours';
+    if (sale.deliveryStatus === 'réussie') {
+      label = 'Réussie';
+      statusPill.classList.add('success');
+    } else if (sale.deliveryStatus === 'échouée') {
+      label = 'Échouée';
+      statusPill.classList.add('danger');
+    } else {
+      statusPill.classList.add('warning');
+    }
+    statusPill.textContent = `Livraison ${label}`;
+  }
+
+  const itemsBody = document.getElementById('livraisonDetailItems');
+  if (itemsBody) {
+    if (Array.isArray(sale.items) && sale.items.length) {
+      itemsBody.innerHTML = sale.items.map(item => {
+        const total = (parseFloat(item.total) || 0).toLocaleString('fr-FR');
+        const prix = (parseFloat(item.prix) || 0).toLocaleString('fr-FR');
+        return `<tr>
+          <td>${item.produit || 'Article'}</td>
+          <td>${item.quantite || 0}</td>
+          <td>${prix} FCFA</td>
+          <td>${total} FCFA</td>
+        </tr>`;
+      }).join('');
+    } else {
+      itemsBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#94a3b8;">Aucun article</td></tr>`;
+    }
+  }
+
+  const totals = computeLivraisonTotals(sale);
+  const totalEl = document.getElementById('livraisonDetailTotalAmount');
+  const paidEl = document.getElementById('livraisonDetailTotalPaid');
+  const outstandingEl = document.getElementById('livraisonDetailOutstanding');
+  if (totalEl) totalEl.textContent = formatXofAmount(totals.due);
+  if (paidEl) paidEl.textContent = formatXofAmount(totals.net);
+  if (outstandingEl) outstandingEl.textContent = formatXofAmount(totals.outstanding);
+
+  const paymentsHistory = document.getElementById('livraisonPaymentsHistory');
+  if (paymentsHistory) {
+    if (Array.isArray(sale.paymentsDetails) && sale.paymentsDetails.length) {
+      paymentsHistory.innerHTML = sale.paymentsDetails.map(p => {
+        const montant = (parseFloat(p.montantEncaisse) || 0).toLocaleString('fr-FR');
+        const compte = p.compteNom || p.compteId || 'Compte';
+        return `<p><strong>${compte} :</strong> ${montant} FCFA</p>`;
+      }).join('');
+    } else {
+      paymentsHistory.innerHTML = '<p style="color:#94a3b8;">Aucun encaissement enregistré pour cette livraison.</p>';
+    }
+  }
+
+  const amountInput = document.getElementById('livraisonEncaisseAmount');
+  if (amountInput) {
+    amountInput.value = totals.outstanding > 0 ? totals.outstanding.toFixed(2) : '';
+  }
+
+  const compteSelect = document.getElementById('compteSelectLivraison');
+  if (compteSelect) {
+    remplirTousSelectComptes(compteSelect);
+    if (currentLivraisonData && currentLivraisonData.principalCompteId) {
+      compteSelect.value = currentLivraisonData.principalCompteId;
+    }
+  }
+
+  updateLivraisonActionButtons(sale, totals);
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+}
+
+function updateLivraisonActionButtons(sale, totals) {
+  const successBtn = document.getElementById('livraisonMarkSuccessBtn');
+  const failBtn = document.getElementById('livraisonMarkFailedBtn');
+  const paymentBtn = document.getElementById('livraisonEncaisseBtn');
+  const statusDesc = document.getElementById('livraisonDetailStatusDescription');
+
+  const isSuccess = sale.deliveryStatus === 'réussie';
+  const isFailed = sale.deliveryStatus === 'échouée';
+  const outstanding = totals ? totals.outstanding : computeLivraisonTotals(sale).outstanding;
+
+  if (paymentBtn) {
+    paymentBtn.disabled = outstanding <= 0;
+  }
+  if (successBtn) {
+    successBtn.disabled = isSuccess || outstanding > 0;
+  }
+  if (failBtn) {
+    failBtn.disabled = isFailed;
+  }
+  if (statusDesc) {
+    if (isSuccess) {
+      statusDesc.textContent = 'Cette livraison est finalisée et intégrée au chiffre des ventes.';
+    } else if (isFailed) {
+      statusDesc.textContent = 'Livraison marquée comme échouée. Aucune sortie de stock n’a été appliquée.';
+    } else if (outstanding > 0) {
+      statusDesc.textContent = `Encaissez ${formatXofAmount(outstanding)} avant de finaliser la livraison.`;
+    } else {
+      statusDesc.textContent = 'Encaissement validé. Vous pouvez marquer la livraison comme réussie.';
+    }
+  }
+}
+
+async function encaisserLivraisonRestante() {
+  if (!currentLivraisonData || !currentLivraisonId) return;
+  const amountInput = document.getElementById('livraisonEncaisseAmount');
+  const compteSelect = document.getElementById('compteSelectLivraison');
+  if (!amountInput || !compteSelect) return;
+
+  const montant = parseFloat(amountInput.value);
+  if (!montant || montant <= 0) {
+    setLivraisonDetailAlert('Indiquez un montant valide à encaisser.', 'danger');
+    return;
+  }
+  if (!compteSelect.value) {
+    setLivraisonDetailAlert('Sélectionnez un compte de trésorerie.', 'danger');
+    return;
+  }
+
+  const totals = computeLivraisonTotals(currentLivraisonData);
+  if (montant - totals.outstanding > 0.5) {
+    setLivraisonDetailAlert('Le montant indiqué dépasse le solde restant.', 'danger');
+    return;
+  }
+
+  showLivraisonDetailLoader(true);
+  try {
+    const compteId = compteSelect.value;
+    const compteInfo = Array.isArray(comptesCache) ? comptesCache.find(c => c.id === compteId) || {} : {};
+    const nouveauPaiement = {
+      compteId,
+      compteNom: compteInfo.nom || compteId,
+      montantEncaisse: montant,
+      monnaieRendue: 0,
+      netEncaisse: montant
+    };
+
+    const updatedPayments = Array.isArray(currentLivraisonData.paymentsDetails) ? [...currentLivraisonData.paymentsDetails, nouveauPaiement] : [nouveauPaiement];
+    const updatedTotalEncaisse = (parseFloat(currentLivraisonData.paymentsTotalEncaisse) || 0) + montant;
+    const updatedNet = (parseFloat(currentLivraisonData.paymentsNetEncaisse) || 0) + montant;
+
+    const payload = {
+      paymentsDetails: updatedPayments,
+      paymentsTotalEncaisse: updatedTotalEncaisse,
+      paymentsTotalChange: currentLivraisonData.paymentsTotalChange || 0,
+      paymentsNetEncaisse: updatedNet,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+
+    if (!currentLivraisonData.principalCompteId) {
+      payload.principalCompteId = compteId;
+      payload.compteId = compteId;
     }
 
-        function updateAccueilSummary() {
-      const countEl = document.getElementById('accueil-ventes-count');
-      const revenueEl = document.getElementById('accueil-ventes-ca');
-      const profitEl = document.getElementById('accueil-ventes-profit');
-      const depenseEl = document.getElementById('accueil-depenses');
+    await updateSaleFirestore(currentLivraisonId, payload);
+
+    await enregistrerMouvementTresorerie({
+      compteId,
+      type: 'livraison_encaissement',
+      sens: 'in',
+      montant,
+      description: `Encaissement livraison ${currentLivraisonData.clientNom || ''}`,
+      refId: currentLivraisonId
+    });
+
+    currentLivraisonData.paymentsDetails = updatedPayments;
+    currentLivraisonData.paymentsTotalEncaisse = updatedTotalEncaisse;
+    currentLivraisonData.paymentsTotalChange = payload.paymentsTotalChange;
+    currentLivraisonData.paymentsNetEncaisse = updatedNet;
+    if (!currentLivraisonData.principalCompteId) {
+      currentLivraisonData.principalCompteId = compteId;
+      currentLivraisonData.compteId = compteId;
+    }
+
+    populateLivraisonDetailView(currentLivraisonData);
+    setLivraisonDetailAlert('Encaissement enregistré avec succès.', 'success');
+    filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
+    afficherLivraisons();
+  } catch (error) {
+    console.error('Erreur encaissement livraison :', error);
+    setLivraisonDetailAlert("Impossible d'enregistrer l'encaissement : " + error.message, 'danger');
+  } finally {
+    showLivraisonDetailLoader(false);
+  }
+}
+
+async function marquerLivraisonReussie() {
+  if (!currentLivraisonData || !currentLivraisonId) return;
+  if (currentLivraisonData.deliveryStatus === 'réussie') {
+    setLivraisonDetailAlert('La livraison est déjà marquée comme réussie.', 'info');
+    return;
+  }
+  const totals = computeLivraisonTotals(currentLivraisonData);
+  if (totals.outstanding > 0.5) {
+    setLivraisonDetailAlert('Encaissez le solde avant de marquer la livraison comme réussie.', 'danger');
+    return;
+  }
+
+  showLivraisonDetailLoader(true);
+  try {
+    if (!currentLivraisonData.convertedToSale) {
+      await updateStockAfterSaleFirestore(currentLivraisonData.items || []);
+    }
+    await updateSaleFirestore(currentLivraisonId, {
+      deliveryStatus: 'réussie',
+      convertedToSale: true,
+      deliveryClosedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    currentLivraisonData.deliveryStatus = 'réussie';
+    currentLivraisonData.convertedToSale = true;
+    populateLivraisonDetailView(currentLivraisonData);
+    setLivraisonDetailAlert('Livraison marquée comme réussie.', 'success');
+    filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
+    afficherLivraisons();
+  } catch (error) {
+    console.error('Erreur validation livraison :', error);
+    setLivraisonDetailAlert("Impossible de valider la livraison : " + error.message, 'danger');
+  } finally {
+    showLivraisonDetailLoader(false);
+  }
+}
+
+async function marquerLivraisonEchouee() {
+  if (!currentLivraisonData || !currentLivraisonId) return;
+  if (currentLivraisonData.deliveryStatus === 'échouée') {
+    setLivraisonDetailAlert('La livraison est déjà marquée comme échouée.', 'info');
+    return;
+  }
+  const raison = prompt("Indiquez la raison de l'échec (facultatif) :");
+  showLivraisonDetailLoader(true);
+  try {
+    const payload = {
+      deliveryStatus: 'échouée',
+      convertedToSale: false,
+      deliveryClosedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    if (raison) {
+      payload.deliveryFailureReason = raison;
+    }
+    await updateSaleFirestore(currentLivraisonId, payload);
+    currentLivraisonData.deliveryStatus = 'échouée';
+    currentLivraisonData.convertedToSale = false;
+    if (raison) currentLivraisonData.deliveryFailureReason = raison;
+    populateLivraisonDetailView(currentLivraisonData);
+    setLivraisonDetailAlert('Livraison marquée comme échouée.', 'danger');
+    filterSalesHistory(document.getElementById('sales-tabs').value || 'all');
+    afficherLivraisons();
+  } catch (error) {
+    console.error('Erreur marquage échec livraison :', error);
+    setLivraisonDetailAlert("Impossible de marquer la livraison comme échouée : " + error.message, 'danger');
+  } finally {
+    showLivraisonDetailLoader(false);
+  }
+}
+
+function updateAccueilSummary() {
+  const countEl = document.getElementById('accueil-ventes-count');
+  const revenueEl = document.getElementById('accueil-ventes-ca');
+  const profitEl = document.getElementById('accueil-ventes-profit');
+  const depenseEl = document.getElementById('accueil-depenses');
       const stockEl = document.getElementById('accueil-stock-items');
       const stockDetailEl = document.getElementById('accueil-stock-detail');
       const livraisonsEl = document.getElementById('accueil-ventes-livraison');
@@ -13119,6 +13950,9 @@ function voirHistoriqueStock(stockId, e) {
          const salesTabsDefaultValue = document.getElementById('sales-tabs').value || 'all';
         filterSalesHistory(salesTabsDefaultValue); // Pass the current tab value
         break;
+    case 'livraison-detail':
+        prepareLivraisonDetailScreen();
+        break;
       case 'depenses':
   initEcranDepenses();        // ← nouvelle fonction
   break;
@@ -13242,6 +14076,8 @@ let livreursCacheLoaded = false;
 let livreursLoadingPromise = null;
 let livreurSearchMode = 'nom';
 let selectedLivreurId = null;
+let currentLivraisonId = null;
+let currentLivraisonData = null;
 
 function ensureLivreursCache(force = false) {
   if (livreursCacheLoaded && !force) return Promise.resolve(livreursCache);
