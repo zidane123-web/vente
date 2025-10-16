@@ -1709,7 +1709,7 @@ body.role-employe #screen-accueil .accueil-actions {
         <div class="progress-container">
           <div class="progress-bar" id="progressBar"></div>
         </div>
-        <span id="progressText">Étape 1 / 5</span>
+        <span id="progressText">Étape 1 / 4</span>
         <div class="sale-step active" id="step1">
           <h2>Étape 1 : Ajouter des Articles</h2>
           <form class="vente-form" onsubmit="event.preventDefault();">
@@ -1798,6 +1798,18 @@ body.role-employe #screen-accueil .accueil-actions {
             </div>
             <div id="clientCreateFeedback" class="client-search-feedback" style="display:none;"></div>
           </div>
+          <div id="deliveryFields" class="delivery-section" style="display:none; margin-top:20px; border:1px solid #e0e0e0; border-radius:8px; padding:16px; background:#f9fafb;">
+            <h3>Informations livraison</h3>
+            <div class="vente-form">
+              <label for="livreurNom">Nom du livreur</label>
+              <input type="text" id="livreurNom" placeholder="Nom du livreur" />
+              <label for="livreurNumero">Numero du livreur</label>
+              <input type="text" id="livreurNumero" placeholder="Contact du livreur" />
+              <label for="lieuLivraison">Lieu de livraison</label>
+              <input type="text" id="lieuLivraison" placeholder="Lieu de livraison" />
+            </div>
+            <p class="delivery-section-hint" style="margin-top:12px; font-size:0.9em; color:#6b7280;">Ces informations sont requises uniquement pour les livraisons.</p>
+          </div>
           <input type="hidden" id="clientNom">
           <input type="hidden" id="clientNumero">
           <input type="hidden" id="clientId">
@@ -1818,6 +1830,7 @@ body.role-employe #screen-accueil .accueil-actions {
             <select id="vendeurSelect">
               <!-- Options canal de vente -->
             </select>
+            <p class="sale-mode-note" id="saleModeSummary" style="margin-top:12px; font-weight:600;">Mode de vente : Vente directe</p>
                         <!-- ====== Section : Encaissements détaillés ====== -->
 
             <div class="vente-payments-block">
@@ -1851,14 +1864,12 @@ body.role-employe #screen-accueil .accueil-actions {
               </div>
 
             </div>
+            <p class="payment-hint" id="deliveryPaymentHint" style="display:none; margin-top:12px; font-size:0.9em; color:#2563eb;">Encaissement non obligatoire pour les livraisons. Vous pourrez encaisser lors de la remise.</p>
 
 <label for="photoFacture">Photo de la facture</label>
             <input type="file" accept="image/*" capture="camera" id="photoFacture" />
             <label for="observationsVendeur">Observations</label>
             <textarea id="observationsVendeur" placeholder="Observations (facultatif)"></textarea>
-            <label for="isDelivery">
-              <input type="checkbox" id="isDelivery" onchange="toggleDeliveryFields()" /> Vente avec Livraison
-            </label>
           </form>
           <div class="step-navigation">
             <button class="btn-modern secondary" onclick="prevStep()">
@@ -1869,29 +1880,9 @@ body.role-employe #screen-accueil .accueil-actions {
             </button>
           </div>
         </div>
-        <!-- Étape 4 : Informations Livraison -->
+        <!-- Étape 4 : Confirmation -->
         <div class="sale-step" id="step4">
-          <h2>Étape 4 : Informations Livraison</h2>
-          <form class="vente-form" onsubmit="event.preventDefault();">
-            <label for="livreurNom">Nom du Livreur</label>
-            <input type="text" id="livreurNom" placeholder="Nom du livreur" />
-            <label for="livreurNumero">Numéro du Livreur</label>
-            <input type="text" id="livreurNumero" placeholder="Numéro du livreur" />
-            <label for="lieuLivraison">Lieu de Livraison</label>
-            <input type="text" id="lieuLivraison" placeholder="Lieu de livraison" />
-          </form>
-          <div class="step-navigation">
-            <button class="btn-modern secondary" onclick="prevStep()">
-              <i data-lucide="arrow-left"></i> Retour
-            </button>
-            <button class="btn-modern" onclick="nextStep()">
-              Suivant <i data-lucide="arrow-right"></i>
-            </button>
-          </div>
-        </div>
-        <!-- Étape 5 : Confirmation -->
-        <div class="sale-step" id="step5">
-          <h2>Étape 5 : Confirmation</h2>
+          <h2>Étape 4 : Confirmation</h2>
           <div id="saleRecap">
             <!-- Récapitulatif dynamique de la vente -->
           </div>
@@ -1942,6 +1933,9 @@ body.role-employe #screen-accueil .accueil-actions {
         <ion-segment value="all" id="sales-tabs">
           <ion-segment-button value="all">
             <ion-label>Tout</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="delivery">
+            <ion-label>Livraison</ion-label>
           </ion-segment-button>
           <ion-segment-button value="successful">
             <ion-label>Réussies</ion-label>
@@ -2381,6 +2375,11 @@ async function populateUserFilters() {
                             <div class="supplier-name">${displayClientName}</div>
                             <div class="purchase-date">${displayDateTime}</div>
                             <div class="item-list-container">${itemListHTML}</div>
+                            ${sale.isDelivery ? `
+                            <div class="delivery-details">
+                                <div><strong>Livraison :</strong> ${sale.livreurNom || 'Non renseigne'} (${sale.livreurNumero || '-'})</div>
+                                <div><strong>Lieu :</strong> ${sale.lieuLivraison || 'Non renseigne'}</div>
+                            </div>` : ''}
                             <div style="margin-top: 10px; display: flex; gap: 15px;">
                                 <a class="details-btn-link" onclick="ouvrirDetails('${sale.id}')">
                                     <ion-icon name="information-circle-outline"></ion-icon> Détails
@@ -2519,6 +2518,8 @@ async function filterSalesHistory(statusFilter = 'all') {
 
             if (statusFilter === 'successful') {
                 query = query.where("deliveryStatus", "==", "réussie");
+            } else if (statusFilter === 'delivery') {
+                query = query.where("isDelivery", "==", true).where("deliveryStatus", "==", "en cours");
             } else if (statusFilter === 'pending') {
                 query = query.where("deliveryStatus", "==", "en cours");
             } else if (statusFilter === 'failed') {
@@ -2577,6 +2578,7 @@ async function filterSalesHistory(statusFilter = 'all') {
                   filterSalesHistory(event.detail.value);
               });
           }
+          toggleDeliveryFields();
       });
       
 function generateInvoicePDF(sale) {
@@ -11749,6 +11751,7 @@ async function enregistrerModificationClient() {
       const progress = ((index + 1) / steps.length) * 100;
       document.getElementById("progressBar").style.width = progress + "%";
       document.getElementById("progressText").innerText = `Étape ${index + 1} / ${steps.length}`;
+      toggleDeliveryFields();
       if (index === 1) {
         initClientSearchStep();
       }
@@ -11791,11 +11794,20 @@ async function enregistrerModificationClient() {
       const recap = document.getElementById("saleRecap");
       let html = "<h3>Récapitulatif de la Vente</h3><strong>Articles :</strong><br>";
       currentItems.forEach(item => {
-        html += "• " + item.produit + " (Prix : " + item.prix + ", Qté : " + item.quantite + ", Total : " + item.total + ")<br>";
+        html += "- " + item.produit + " (Prix : " + item.prix + ", Qté : " + item.quantite + ", Total : " + item.total + ")<br>";
       });
       html += "<br><strong>Client :</strong> " + document.getElementById("clientNom").value + " (" + document.getElementById("clientNumero").value + ")<br>";
       html += "<strong>Canal de vente :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
-      html += "<strong>Total :</strong> " + currentItems.reduce((acc, item) => acc + parseFloat(item.total), 0).toFixed(2);
+      const livraisonNom = (document.getElementById("livreurNom")?.value || "").trim();
+      const livraisonNumero = (document.getElementById("livreurNumero")?.value || "").trim();
+      const livraisonLieu = (document.getElementById("lieuLivraison")?.value || "").trim();
+      const isDelivery = currentSaleMode === 'delivery';
+      html += "<strong>Total :</strong> " + currentItems.reduce((acc, item) => acc + parseFloat(item.total), 0).toFixed(2) + "<br>";
+      html += "<strong>Mode :</strong> " + (isDelivery ? "Livraison" : "Vente directe") + "<br>";
+      if (isDelivery) {
+        html += "<strong>Livreur :</strong> " + (livraisonNom ? livraisonNom : "Non renseigné") + " (" + (livraisonNumero ? livraisonNumero : "Contact manquant") + ")<br>";
+        html += "<strong>Lieu de livraison :</strong> " + (livraisonLieu ? livraisonLieu : "Non renseigné") + "<br>";
+      }
       const recapPaiements = ventePayments
         .map(p => {
           const compteId = p.compteId || '';
@@ -11822,6 +11834,8 @@ async function enregistrerModificationClient() {
           html += `- ${p.compteNom} : ${fmt(p.montantEncaisse)} FCFA` + (p.monnaieRendue > 0 ? ` (monnaie rendue ${fmt(p.monnaieRendue)} FCFA)` : '') + '<br>';
         });
         html += `<em>Total encaisse : ${fmt(statsPaiements.totalEncaisse)} FCFA - Monnaie rendue : ${fmt(statsPaiements.totalChange)} FCFA - Net : ${fmt(statsPaiements.net)} FCFA</em><br>`;
+      } else if (isDelivery) {
+        html += "<br><strong>Encaissements :</strong> Prévu lors de la livraison.<br>";
       }
       recap.innerHTML = html;
     }
@@ -11969,6 +11983,7 @@ function analyserPaiementsVente() {
   let message = '';
   let valid = true;
   let hasPositiveEncaisse = false;
+  const isDeliverySale = currentSaleMode === 'delivery';
 
   for (const payment of ventePayments) {
     if (!valid) {
@@ -12000,12 +12015,17 @@ function analyserPaiementsVente() {
   const net = totalEncaisse - totalChange;
 
   if (valid) {
-    if (due > 0 && !hasPositiveEncaisse) {
+    if (!isDeliverySale) {
+      if (due > 0 && !hasPositiveEncaisse) {
+        valid = false;
+        message = 'Renseignez au moins un montant encaissé.';
+      } else if (Math.abs(net - due) > 0.5) {
+        valid = false;
+        message = `Le net encaissé (${fmt(net)} FCFA) doit être égal au total de la vente (${fmt(due)} FCFA).`;
+      }
+    } else if (net < 0) {
       valid = false;
-      message = 'Renseignez au moins un montant encaissé.';
-    } else if (Math.abs(net - due) > 0.5) {
-      valid = false;
-      message = `Le net encaissé (${fmt(net)} FCFA) doit être égal au total de la vente (${fmt(due)} FCFA).`;
+      message = 'Le net encaissé ne peut pas être négatif.';
     }
   }
 
@@ -13117,14 +13137,7 @@ function selectionnerTypeVente(mode) {
 }
 
 function appliquerTypeVenteAuFormulaire() {
-  const isDeliveryCheckbox = document.getElementById('isDelivery');
-  const shouldDelivery = currentSaleMode === 'delivery';
-  if (isDeliveryCheckbox) {
-    if (isDeliveryCheckbox.checked !== shouldDelivery) {
-      isDeliveryCheckbox.checked = shouldDelivery;
-    }
-    toggleDeliveryFields();
-  }
+  toggleDeliveryFields();
 }
 
 function mettreAJourBadgeTypeVente() {
@@ -13139,6 +13152,7 @@ function mettreAJourBadgeTypeVente() {
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
     lucide.createIcons();
   }
+  toggleDeliveryFields();
 }
 
 function ouvrirModalCloseDay() {
@@ -13476,20 +13490,34 @@ function continuerDepuisPanier() {
 }
     // Gestion de la livraison dans la vente
     function toggleDeliveryFields() {
-      const isDelivery = document.getElementById("isDelivery").checked;
+      const isDelivery = currentSaleMode === 'delivery';
       const deliveryFields = document.getElementById("deliveryFields");
+      const paymentHint = document.getElementById("deliveryPaymentHint");
       const btnValider = document.getElementById("btnValider");
+      const saleModeSummary = document.getElementById("saleModeSummary");
       if (deliveryFields) {
         deliveryFields.style.display = isDelivery ? "block" : "none";
+        if (!isDelivery) {
+          ["livreurNom", "livreurNumero", "lieuLivraison"].forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+              field.value = "";
+            }
+          });
+        }
+      }
+      if (paymentHint) {
+        paymentHint.style.display = isDelivery ? "block" : "none";
       }
       if (btnValider) {
         btnValider.textContent = isDelivery ? "Valider Livraison" : "Valider Vente";
       }
-  currentSaleMode = isDelivery ? 'delivery' : 'direct';
-  mettreAJourBadgeTypeVente();
-}
+      if (saleModeSummary) {
+        saleModeSummary.textContent = isDelivery ? "Mode de vente : Livraison" : "Mode de vente : Vente directe";
+      }
+    }
     function getValidationMessage() {
-      return document.getElementById("isDelivery").checked ? "Valider la livraison ?" : "Valider la vente ?";
+      return currentSaleMode === 'delivery' ? "Valider la livraison ?" : "Valider la vente ?";
     }
 
     // Validation et finalisation de la vente
@@ -13515,7 +13543,7 @@ function continuerDepuisPanier() {
       }
       const photoFile = document.getElementById("photoFacture").files[0];
       const observationsVendeur = document.getElementById("observationsVendeur").value.trim();
-      let isDelivery = document.getElementById("isDelivery").checked;
+      const isDelivery = currentSaleMode === 'delivery';
       let livreurNom = "";
       let livreurNumero = "";
       let lieuLivraison = "";
@@ -13609,18 +13637,20 @@ function continuerDepuisPanier() {
         })
         .filter(Boolean);
 
-    if (paiementDetails.length === 0) {
+    if (!isDelivery && paiementDetails.length === 0) {
         hideSaleLoader();
         alert('Ajoutez au moins un encaissement valide pour finaliser la vente.');
         return;
     }
 
-    const paiementsPositifs = paiementDetails.filter(p => p.netEncaisse > 0);
     let principalCompteId = null;
-    if (paiementsPositifs.length > 0) {
-        principalCompteId = paiementsPositifs.reduce((best, current) => current.netEncaisse > best.netEncaisse ? current : best).compteId;
-    } else {
-        principalCompteId = paiementDetails[0].compteId;
+    if (paiementDetails.length > 0) {
+        const paiementsPositifs = paiementDetails.filter(p => p.netEncaisse > 0);
+        if (paiementsPositifs.length > 0) {
+            principalCompteId = paiementsPositifs.reduce((best, current) => current.netEncaisse > best.netEncaisse ? current : best).compteId;
+        } else {
+            principalCompteId = paiementDetails[0].compteId;
+        }
     }
 
     const vente = {
@@ -13637,6 +13667,9 @@ function continuerDepuisPanier() {
         observationsVendeur,
         isDelivery,
         deliveryStatus: isDelivery ? "en cours" : null,
+        livreurNom: isDelivery ? livreurNom : null,
+        livreurNumero: isDelivery ? livreurNumero : null,
+        lieuLivraison: isDelivery ? lieuLivraison : null,
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         enregistreParUid: user.uid,
         enregistreParNom: user.displayName || user.email,
@@ -13645,7 +13678,7 @@ function continuerDepuisPanier() {
         paymentsTotalChange: paiementStats.totalChange,
         paymentsNetEncaisse: paiementStats.net,
         principalCompteId,
-        compteId: principalCompteId
+        compteId: principalCompteId || null
     };
 
     try {
@@ -13653,7 +13686,9 @@ function continuerDepuisPanier() {
         const newSaleId = await addSaleFirestore(vente);
 
         // Étape 2 : Mettre à jour le stock
-        await updateStockAfterSaleFirestore(currentItems);
+        if (!isDelivery) {
+            await updateStockAfterSaleFirestore(currentItems);
+        }
 
         // Étape 3 : Enregistrer le mouvement de trésorerie pour la vente
         for (const paiement of paiementDetails) {
@@ -13802,14 +13837,17 @@ function continuerDepuisPanier() {
 
           if(sale.isDelivery) {
             let statusEmoji = "à En cours";
+            const recapLivreurNom = sale.livreurNom || "Non renseigne";
+            const recapLivreurNumero = sale.livreurNumero || "-";
+            const recapLieuLivraison = sale.lieuLivraison || "Non renseigne";
             if(sale.deliveryStatus === "réussie") {
               statusEmoji = "🟢 Réussie";
             } else if(sale.deliveryStatus === "échouée") {
               statusEmoji = "🔴 Échouée";
             }
             detailHTML += 
-              `<p><strong>Livraison par :</strong> ${sale.livreurNom} (${sale.livreurNumero})</p>
-              <p><strong>Lieu de Livraison :</strong> ${sale.lieuLivraison}</p>
+              `<p><strong>Livraison par :</strong> ${recapLivreurNom} (${recapLivreurNumero})</p>
+              <p><strong>Lieu de Livraison :</strong> ${recapLieuLivraison}</p>
               <p><strong>Statut de Livraison :</strong> ${statusEmoji}</p>`;
           }
           if(sale.photoFacture) {
