@@ -442,6 +442,31 @@ body.role-employe #screen-accueil .accueil-actions {
       margin-bottom: 12px;
       flex-wrap: wrap;
     }
+    .client-type-group {
+      margin-bottom: 16px;
+    }
+    .client-type-group-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .client-type-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .client-type-chip {
+      display: inline-flex;
+      align-items: center;
+    }
+    .client-type-hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 4px;
+      display: block;
+    }
     .client-search-chip {
       border: 1px solid rgba(59,130,246,0.3);
       background: rgba(59,130,246,0.1);
@@ -1839,6 +1864,18 @@ body.role-employe #screen-accueil .accueil-actions {
                   <p>Recherchez un client existant ou enregistrez-en un nouveau.</p>
                 </div>
               </header>
+              <div class="client-type-group" role="group" aria-labelledby="clientTypeLabel">
+                <span id="clientTypeLabel" class="client-type-group-title">Type de client</span>
+                <div class="client-type-options">
+                  <button type="button" class="client-search-chip client-type-chip active" data-type="ordinaire" onclick="setClientType('ordinaire')">
+                    Client ordinaire
+                  </button>
+                  <button type="button" class="client-search-chip client-type-chip" data-type="revendeur" onclick="setClientType('revendeur')">
+                    Revendeur
+                  </button>
+                </div>
+                <span class="client-type-hint">Précisez si le client achète pour lui-même ou pour la revente.</span>
+              </div>
               <div class="client-search-mode">
                 <button type="button" class="client-search-chip active" data-mode="nom" onclick="setClientSearchMode('nom')">
                   Par nom
@@ -1952,6 +1989,7 @@ body.role-employe #screen-accueil .accueil-actions {
           <input type="hidden" id="clientNom">
           <input type="hidden" id="clientNumero">
           <input type="hidden" id="clientId">
+          <input type="hidden" id="clientType" value="ordinaire">
           <input type="hidden" id="livreurId">
           <input type="hidden" id="livreurNom">
           <input type="hidden" id="livreurNumero">
@@ -12412,6 +12450,30 @@ async function enregistrerModificationClient() {
     let clientsLoadingPromise = null;
     let clientSearchMode = 'nom';
     let selectedClientId = null;
+    let currentClientType = 'ordinaire';
+
+    function normalizeClientType(value, fallback = 'ordinaire') {
+      if (typeof value !== 'string') return fallback;
+      const normalized = value.trim().toLowerCase();
+      if (normalized === 'revendeur') return 'revendeur';
+      if (normalized === 'ordinaire' || normalized === 'client' || normalized === 'standard') return 'ordinaire';
+      return fallback;
+    }
+
+    function setClientType(type) {
+      currentClientType = normalizeClientType(type, currentClientType || 'ordinaire');
+      const hiddenInput = document.getElementById('clientType');
+      if (hiddenInput) {
+        hiddenInput.value = currentClientType;
+      }
+      const chips = document.querySelectorAll('.client-type-chip');
+      if (chips.length > 0) {
+        chips.forEach(chip => {
+          chip.classList.toggle('active', chip.dataset.type === currentClientType);
+        });
+      }
+      updateClientSelectedSummary();
+    }
 
     function ensureClientsCache() {
       if (clientsCacheLoaded) return Promise.resolve(clientsCache);
@@ -12471,7 +12533,7 @@ async function enregistrerModificationClient() {
       ensureClientsCache();
       setClientSearchMode(clientSearchMode);
       selectedClientId = document.getElementById('clientId')?.value || null;
-      updateClientSelectedSummary();
+      setClientType(document.getElementById('clientType')?.value || currentClientType || 'ordinaire');
       const input = document.getElementById('clientSearchInput');
       if (input && !input.dataset.bound) {
         input.dataset.bound = 'true';
@@ -12560,6 +12622,8 @@ async function enregistrerModificationClient() {
       if (nomInput) nomInput.value = client.nom || '';
       if (numeroInput) numeroInput.value = client.numero || '';
       if (idInput) idInput.value = client.id || '';
+      const detectedType = normalizeClientType(client.typeClient || client.clientType || client.type, null);
+      setClientType(detectedType || (document.getElementById('clientType')?.value) || currentClientType || 'ordinaire');
       updateClientSelectedSummary();
       const items = document.querySelectorAll('#clientSearchResults .client-search-result');
       items.forEach(item => {
@@ -12576,10 +12640,13 @@ async function enregistrerModificationClient() {
       const textEl = document.getElementById('clientSelectedText');
       const nom = document.getElementById('clientNom')?.value.trim() || '';
       const numero = document.getElementById('clientNumero')?.value.trim() || '';
+      const typeValue = document.getElementById('clientType')?.value || currentClientType || 'ordinaire';
+      const typeLabel = typeValue === 'revendeur' ? 'Revendeur' : 'Client ordinaire';
       if (!summary || !textEl) return;
       if (nom) {
         summary.style.display = 'block';
-        textEl.textContent = numero ? `${nom} (${numero})` : nom;
+        const base = numero ? `${nom} (${numero})` : nom;
+        textEl.textContent = `${base} - ${typeLabel}`;
       } else {
         summary.style.display = 'none';
         textEl.textContent = '';
@@ -12648,6 +12715,7 @@ function createClientFromSale() {
   if (!nameInput || !phoneInput) return;
       const nom = nameInput.value.trim();
       const numero = phoneInput.value.trim();
+      const typeValue = normalizeClientType(document.getElementById('clientType')?.value || currentClientType || 'ordinaire');
       if (!nom) {
         if (feedback) {
           feedback.style.display = 'block';
@@ -12671,12 +12739,14 @@ function createClientFromSale() {
         return dbFirestore.collection('clients').add({
           nom,
           numero,
+          typeClient: typeValue,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       }).then(docRef => {
-        const newClient = { id: docRef.id, nom, numero };
+        const newClient = { id: docRef.id, nom, numero, typeClient: typeValue };
         clientsCache.push(newClient);
         clientsCacheLoaded = true;
+        setClientType(typeValue);
         toggleClientCreateForm(false);
         selectClientForSale(newClient);
         searchClientsVente();
@@ -13436,7 +13506,11 @@ function updateAccueilSummary() {
       currentItems.forEach(item => {
         html += "- " + item.produit + " (Prix : " + item.prix + ", Qté : " + item.quantite + ", Total : " + item.total + ")<br>";
       });
-      html += "<br><strong>Client :</strong> " + document.getElementById("clientNom").value + " (" + document.getElementById("clientNumero").value + ")<br>";
+      const recapClientNom = document.getElementById("clientNom").value;
+      const recapClientNumero = document.getElementById("clientNumero").value;
+      const recapClientType = normalizeClientType(document.getElementById("clientType")?.value || '', 'ordinaire');
+      const recapClientTypeLabel = recapClientType === 'revendeur' ? 'Revendeur' : 'Client ordinaire';
+      html += "<br><strong>Client :</strong> " + recapClientNom + " (" + recapClientNumero + ") - " + recapClientTypeLabel + "<br>";
       html += "<strong>Canal de vente :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
       const livraisonNom = (document.getElementById("livreurNom")?.value || "").trim();
       const livraisonNumero = (document.getElementById("livreurNumero")?.value || "").trim();
@@ -15061,6 +15135,7 @@ function selectionnerTypeVente(mode) {
   currentSaleMode = mode === 'delivery' ? 'delivery' : 'direct';
   mettreAJourBadgeTypeVente();
   appliquerTypeVenteAuFormulaire();
+  setClientType('ordinaire');
   fermerModalTypeVente();
   window.location.hash = 'panier';
   updatePanierPage();
@@ -15467,12 +15542,18 @@ function continuerDepuisPanier() {
       }
       const clientNom = document.getElementById("clientNom").value.trim();
       const clientNumero = document.getElementById("clientNumero").value.trim();
+      const clientTypeRaw = document.getElementById("clientType")?.value || '';
+      const clientTypeValue = normalizeClientType(clientTypeRaw, null);
       if(!clientNom) {
         alert("Veuillez entrer le nom du client.");
         return;
       }
       if(!clientNumero) {
         alert("Veuillez entrer le numéro WhatsApp du client.");
+        return;
+      }
+      if(!clientTypeValue) {
+        alert("Sélectionnez le type de client.");
         return;
       }
       const vendeur = document.getElementById("vendeurSelect").value;
@@ -15499,13 +15580,13 @@ function continuerDepuisPanier() {
       }
       if(photoFile) {
         compressImage(photoFile, 800, 800, 0.7, function(compressedData) {
-          finaliserVente(clientNom, clientNumero, vendeur, compressedData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
+          finaliserVente(clientNom, clientNumero, clientTypeValue, vendeur, compressedData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
         });
       } else {
-        finaliserVente(clientNom, clientNumero, vendeur, null, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
+        finaliserVente(clientNom, clientNumero, clientTypeValue, vendeur, null, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
       }
     }
- async function finaliserVente(clientNom, clientNumero, vendeur, photoData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
+ async function finaliserVente(clientNom, clientNumero, clientType, vendeur, photoData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
     const user = firebase.auth().currentUser;
     if (!user) {
       alert("Erreur: Utilisateur non connecté. Reconnexion nécessaire.");
@@ -15516,6 +15597,7 @@ function continuerDepuisPanier() {
       return;
     }
   showSaleLoader();
+    const saleClientType = normalizeClientType(clientType, 'ordinaire');
     
     const now = new Date();
     const dateVente = now.toLocaleDateString("fr-FR");
@@ -15599,6 +15681,7 @@ function continuerDepuisPanier() {
         heureVente,
         clientNom,
         clientNumero,
+        clientType: saleClientType,
         clientId: document.getElementById("clientId")?.value || null,
         vendeur,
         items: currentItems,
@@ -15670,6 +15753,7 @@ function continuerDepuisPanier() {
         // Réinitialisation du formulaire et redirection
         resetVentePayments();
         clearSelectedClient();
+        setClientType('ordinaire');
         currentItems = [];
         window.location.hash = 'historique';
         
