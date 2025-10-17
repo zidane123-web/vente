@@ -36,6 +36,8 @@ function bootstrapSaleMode(dom) {
   window.showToast = window.showToast || (() => {});
   window.updateSearchCartBadge = window.updateSearchCartBadge || (() => {});
   window.updateBalanceDisplay = window.updateBalanceDisplay || (() => {});
+  window.setClientType = window.setClientType || (() => {});
+  window.resetCreateLivreurForm = () => {};
   window.creerDettesDeVente = window.creerDettesDeVente || (() => Promise.resolve());
   window.firebase = { auth: () => ({ currentUser: { uid: 'demo', displayName: 'Test User' } }) };
 
