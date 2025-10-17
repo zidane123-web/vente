@@ -467,6 +467,163 @@ body.role-employe #screen-accueil .accueil-actions {
       margin-top: 4px;
       display: block;
     }
+    .selection-summary {
+      border: 1px dashed rgba(59,130,246,0.3);
+      background: rgba(59,130,246,0.08);
+      border-radius: var(--border-radius);
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      color: #1f2937;
+      font-size: 15px;
+    }
+    .selection-summary p {
+      margin: 0;
+      font-weight: 500;
+    }
+    .selection-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 12px;
+    }
+    .selection-actions .btn-modern {
+      flex: 0 0 auto;
+    }
+    .selection-actions .btn-link {
+      flex: 0 0 auto;
+    }
+    .selection-page {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 24px 16px 40px;
+    }
+    .selection-page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .selection-page-header h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: #0f172a;
+      flex: 1;
+      text-align: center;
+    }
+    .selection-page-body {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .selection-page .back-btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+    .btn-icon {
+      background: #1d4ed8;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .btn-icon:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(29,78,216,0.25);
+    }
+    .btn-icon i {
+      width: 20px;
+      height: 20px;
+    }
+    .selection-search-bar {
+      gap: 0;
+    }
+    .selection-search-bar input {
+      flex: 1;
+    }
+    .selection-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .selection-form label {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .selection-form input {
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 15px;
+    }
+    .new-client-type-group {
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: var(--border-radius);
+      padding: 14px;
+      background: #f8fafc;
+    }
+    .new-client-type-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .client-type-radio {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .client-type-radio input {
+      margin: 0;
+    }
+    .client-type-radio:hover {
+      border-color: rgba(59,130,246,0.6);
+      box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+    }
+    .client-type-radio input:checked + span,
+    .client-type-radio input:checked ~ span {
+      font-weight: 600;
+      color: #1d4ed8;
+    }
+    .selection-form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .client-type-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      margin-top: 6px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: rgba(59,130,246,0.12);
+      color: #1d4ed8;
+    }
+    .client-type-tag.revendeur {
+      background: rgba(16,185,129,0.15);
+      color: #047857;
+    }
+    .client-type-tag.ordinaire {
+      background: rgba(59,130,246,0.12);
+      color: #1d4ed8;
+    }
     .client-search-chip {
       border: 1px solid rgba(59,130,246,0.3);
       background: rgba(59,130,246,0.1);
@@ -1861,67 +2018,29 @@ body.role-employe #screen-accueil .accueil-actions {
               <header class="info-card-header">
                 <div>
                   <h3>Client</h3>
-                  <p>Recherchez un client existant ou enregistrez-en un nouveau.</p>
+                  <p>Identifiez le client pour cette vente.</p>
                 </div>
               </header>
+              <div id="clientSelectedSummary" class="selection-summary">
+                <p id="clientSelectedText">Aucun client sélectionné.</p>
+              </div>
               <div class="client-type-group" role="group" aria-labelledby="clientTypeLabel">
                 <span id="clientTypeLabel" class="client-type-group-title">Type de client</span>
                 <div class="client-type-options">
-                  <button type="button" class="client-search-chip client-type-chip active" data-type="ordinaire" onclick="setClientType('ordinaire')">
+                  <button type="button" class="client-search-chip client-type-chip" data-type="ordinaire" onclick="setClientType('ordinaire')">
                     Client ordinaire
                   </button>
                   <button type="button" class="client-search-chip client-type-chip" data-type="revendeur" onclick="setClientType('revendeur')">
                     Revendeur
                   </button>
                 </div>
-                <span class="client-type-hint">Précisez si le client achète pour lui-même ou pour la revente.</span>
+                <span class="client-type-hint">Choisissez le profil du client pour cette vente.</span>
               </div>
-              <div class="client-search-mode">
-                <button type="button" class="client-search-chip active" data-mode="nom" onclick="setClientSearchMode('nom')">
-                  Par nom
+              <div class="selection-actions">
+                <button type="button" class="btn-modern" onclick="openClientSelection()">
+                  <i data-lucide="users"></i> Choisir client
                 </button>
-                <button type="button" class="client-search-chip" data-mode="numero" onclick="setClientSearchMode('numero')">
-                  Par numéro
-                </button>
-              </div>
-              <div class="client-search-bar">
-                <input
-                  type="text"
-                  id="clientSearchInput"
-                  placeholder="Rechercher un client par nom"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault(); searchClientsVente();}"
-                />
-                <button type="button" class="btn-modern secondary" onclick="searchClientsVente()">
-                  <i data-lucide="search"></i> Rechercher
-                </button>
-              </div>
-              <div id="clientSearchFeedback" class="client-search-feedback">
-                Saisissez au moins 2 caractères pour lancer la recherche.
-              </div>
-              <div id="clientSearchResults" class="client-search-results"></div>
-              <div id="clientSelectedSummary" class="client-selected-summary" style="display:none;">
-                <h3>Client sélectionné</h3>
-                <p id="clientSelectedText"></p>
-                <button type="button" class="btn-link" onclick="clearSelectedClient()">Changer de client</button>
-              </div>
-              <div class="client-search-actions">
-                <button type="button" class="btn-modern secondary" id="clientCreateToggleBtn" onclick="toggleClientCreateForm(true)">
-                  <i data-lucide="user-plus"></i> Nouveau client
-                </button>
-              </div>
-              <div id="clientCreateForm" class="client-create-form" style="display:none;">
-                <h3>Nouveau client</h3>
-                <div class="vente-form">
-                  <label for="newClientName">Nom</label>
-                  <input type="text" id="newClientName" placeholder="Nom complet" />
-                  <label for="newClientPhone">Numéro WhatsApp</label>
-                  <input type="text" id="newClientPhone" placeholder="Numéro WhatsApp" />
-                </div>
-                <div class="client-create-actions">
-                  <button type="button" class="btn-modern secondary" onclick="toggleClientCreateForm(false)">Annuler</button>
-                  <button type="button" class="btn-modern" onclick="createClientFromSale()">Enregistrer</button>
-                </div>
-                <div id="clientCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+                <button type="button" class="btn-link" onclick="clearSelectedClient()">Effacer la sélection</button>
               </div>
             </section>
             <section class="info-card livreur-card" id="deliveryCard" style="display:none;">
@@ -1932,52 +2051,14 @@ body.role-employe #screen-accueil .accueil-actions {
                 </div>
                 <span class="info-badge" id="deliveryModeBadge" style="display:none;">Livraison active</span>
               </header>
-              <div class="client-search-mode livreur-search-mode">
-                <button type="button" class="client-search-chip active" data-mode="nom" onclick="setLivreurSearchMode('nom')">
-                  Par nom
+              <div id="livreurSelectedSummary" class="selection-summary">
+                <p id="livreurSelectedText">Aucun livreur sélectionné.</p>
+              </div>
+              <div class="selection-actions">
+                <button type="button" class="btn-modern" onclick="openLivreurSelection()">
+                  <i data-lucide="truck"></i> Choisir livreur
                 </button>
-                <button type="button" class="client-search-chip" data-mode="numero" onclick="setLivreurSearchMode('numero')">
-                  Par numéro
-                </button>
-              </div>
-              <div class="client-search-bar livreur-search-bar">
-                <input
-                  type="text"
-                  id="livreurSearchInput"
-                  placeholder="Rechercher un livreur par nom"
-                  onkeydown="if(event.key==='Enter'){event.preventDefault(); searchLivreurs();}"
-                />
-                <button type="button" class="btn-modern secondary" onclick="searchLivreurs()">
-                  <i data-lucide="search"></i> Rechercher
-                </button>
-              </div>
-              <div id="livreurSearchFeedback" class="client-search-feedback">
-                Saisissez au moins 2 caractères pour lancer la recherche.
-              </div>
-              <div id="livreurSearchResults" class="client-search-results"></div>
-              <div id="livreurSelectedSummary" class="client-selected-summary" style="display:none;">
-                <h3>Livreur sélectionné</h3>
-                <p id="livreurSelectedText"></p>
-                <button type="button" class="btn-link" onclick="clearSelectedLivreur()">Changer de livreur</button>
-              </div>
-              <div class="client-search-actions livreur-search-actions">
-                <button type="button" class="btn-modern secondary" id="livreurCreateToggleBtn" onclick="toggleLivreurCreateForm(true)">
-                  <i data-lucide="user-plus"></i> Nouveau livreur
-                </button>
-              </div>
-              <div id="livreurCreateForm" class="client-create-form" style="display:none;">
-                <h3>Nouveau livreur</h3>
-                <div class="vente-form">
-                  <label for="newLivreurName">Nom</label>
-                  <input type="text" id="newLivreurName" placeholder="Nom complet" />
-                  <label for="newLivreurPhone">Numéro</label>
-                  <input type="text" id="newLivreurPhone" placeholder="Contact principal" />
-                </div>
-                <div class="client-create-actions">
-                  <button type="button" class="btn-modern secondary" onclick="toggleLivreurCreateForm(false)">Annuler</button>
-                  <button type="button" class="btn-modern" onclick="createLivreurFromSale()">Enregistrer</button>
-                </div>
-                <div id="livreurCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+                <button type="button" class="btn-link" onclick="clearSelectedLivreur()">Effacer la sélection</button>
               </div>
               <div class="livraison-lieu">
                 <label for="lieuLivraison">Lieu de livraison</label>
@@ -1989,7 +2070,7 @@ body.role-employe #screen-accueil .accueil-actions {
           <input type="hidden" id="clientNom">
           <input type="hidden" id="clientNumero">
           <input type="hidden" id="clientId">
-          <input type="hidden" id="clientType" value="ordinaire">
+          <input type="hidden" id="clientType" value="">
           <input type="hidden" id="livreurId">
           <input type="hidden" id="livreurNom">
           <input type="hidden" id="livreurNumero">
@@ -2075,6 +2156,136 @@ body.role-employe #screen-accueil .accueil-actions {
             </button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="screen-choisir-client" class="screen">
+      <div class="selection-page">
+        <header class="selection-page-header">
+          <button type="button" class="back-btn" onclick="returnToSaleFromSelection()">
+            ← Retour
+          </button>
+          <h1>Choisir un client</h1>
+          <button type="button" class="btn-icon" onclick="openCreateClientPage()" aria-label="Ajouter un client">
+            <i data-lucide="plus"></i>
+          </button>
+        </header>
+        <div class="selection-page-body">
+          <div class="client-search-mode">
+            <button type="button" class="client-search-chip active" data-mode="nom" onclick="setClientSearchMode('nom')">
+              Par nom
+            </button>
+            <button type="button" class="client-search-chip" data-mode="numero" onclick="setClientSearchMode('numero')">
+              Par numéro
+            </button>
+          </div>
+          <div class="client-search-bar selection-search-bar">
+            <input
+              type="text"
+              id="clientSearchInput"
+              placeholder="Rechercher un client"
+              autocomplete="off"
+            />
+          </div>
+          <div id="clientSearchFeedback" class="client-search-feedback">
+            Tapez pour lancer la recherche.
+          </div>
+          <div id="clientSearchResults" class="client-search-results"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-ajouter-client" class="screen">
+      <div class="selection-page">
+        <header class="selection-page-header">
+          <button type="button" class="back-btn" onclick="openClientSelectionFromCreate()">
+            ← Retour
+          </button>
+          <h1>Nouveau client</h1>
+        </header>
+        <form class="selection-form" onsubmit="event.preventDefault(); createClientFromSale();">
+          <label for="newClientName">Nom</label>
+          <input type="text" id="newClientName" placeholder="Nom complet" autocomplete="off" />
+          <label for="newClientPhone">Numéro WhatsApp</label>
+          <input type="text" id="newClientPhone" placeholder="Numéro WhatsApp" autocomplete="off" />
+          <div class="client-type-group new-client-type-group" role="group" aria-labelledby="newClientTypeLabel">
+            <span id="newClientTypeLabel" class="client-type-group-title">Type de client</span>
+            <div class="client-type-options new-client-type-options">
+              <label class="client-type-radio">
+                <input type="radio" name="newClientType" value="ordinaire" />
+                <span>Client ordinaire</span>
+              </label>
+              <label class="client-type-radio">
+                <input type="radio" name="newClientType" value="revendeur" />
+                <span>Revendeur</span>
+              </label>
+            </div>
+            <span class="client-type-hint">Sélectionnez un type. Aucun choix n’est présélectionné.</span>
+          </div>
+          <div id="clientCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+          <div class="selection-form-actions">
+            <button type="button" class="btn-modern secondary" onclick="openClientSelectionFromCreate()">Annuler</button>
+            <button type="submit" class="btn-modern" id="createClientSubmitBtn">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section id="screen-choisir-livreur" class="screen">
+      <div class="selection-page">
+        <header class="selection-page-header">
+          <button type="button" class="back-btn" onclick="returnToSaleFromSelection()">
+            ← Retour
+          </button>
+          <h1>Choisir un livreur</h1>
+          <button type="button" class="btn-icon" onclick="openCreateLivreurPage()" aria-label="Ajouter un livreur">
+            <i data-lucide="plus"></i>
+          </button>
+        </header>
+        <div class="selection-page-body">
+          <div class="client-search-mode livreur-search-mode">
+            <button type="button" class="client-search-chip active" data-mode="nom" onclick="setLivreurSearchMode('nom')">
+              Par nom
+            </button>
+            <button type="button" class="client-search-chip" data-mode="numero" onclick="setLivreurSearchMode('numero')">
+              Par numéro
+            </button>
+          </div>
+          <div class="client-search-bar selection-search-bar">
+            <input
+              type="text"
+              id="livreurSearchInput"
+              placeholder="Rechercher un livreur"
+              autocomplete="off"
+            />
+          </div>
+          <div id="livreurSearchFeedback" class="client-search-feedback">
+            Tapez pour lancer la recherche.
+          </div>
+          <div id="livreurSearchResults" class="client-search-results"></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-ajouter-livreur" class="screen">
+      <div class="selection-page">
+        <header class="selection-page-header">
+          <button type="button" class="back-btn" onclick="openLivreurSelectionFromCreate()">
+            ← Retour
+          </button>
+          <h1>Nouveau livreur</h1>
+        </header>
+        <form class="selection-form" onsubmit="event.preventDefault(); createLivreurFromSale();">
+          <label for="newLivreurName">Nom</label>
+          <input type="text" id="newLivreurName" placeholder="Nom complet" autocomplete="off" />
+          <label for="newLivreurPhone">Numéro de téléphone</label>
+          <input type="text" id="newLivreurPhone" placeholder="Numéro de téléphone" autocomplete="off" />
+          <div id="livreurCreateFeedback" class="client-search-feedback" style="display:none;"></div>
+          <div class="selection-form-actions">
+            <button type="button" class="btn-modern secondary" onclick="openLivreurSelectionFromCreate()">Annuler</button>
+            <button type="submit" class="btn-modern" id="createLivreurSubmitBtn">Enregistrer</button>
+          </div>
+        </form>
       </div>
     </section>
     
@@ -12450,9 +12661,9 @@ async function enregistrerModificationClient() {
     let clientsLoadingPromise = null;
     let clientSearchMode = 'nom';
     let selectedClientId = null;
-    let currentClientType = 'ordinaire';
+    let currentClientType = '';
 
-    function normalizeClientType(value, fallback = 'ordinaire') {
+    function normalizeClientType(value, fallback = '') {
       if (typeof value !== 'string') return fallback;
       const normalized = value.trim().toLowerCase();
       if (normalized === 'revendeur') return 'revendeur';
@@ -12461,18 +12672,118 @@ async function enregistrerModificationClient() {
     }
 
     function setClientType(type) {
-      currentClientType = normalizeClientType(type, currentClientType || 'ordinaire');
+      const normalizedType = type ? normalizeClientType(type, '') : '';
+      currentClientType = normalizedType;
       const hiddenInput = document.getElementById('clientType');
       if (hiddenInput) {
-        hiddenInput.value = currentClientType;
+        hiddenInput.value = normalizedType;
       }
-      const chips = document.querySelectorAll('.client-type-chip');
-      if (chips.length > 0) {
-        chips.forEach(chip => {
-          chip.classList.toggle('active', chip.dataset.type === currentClientType);
-        });
-      }
+      const chips = document.querySelectorAll('#clientCard .client-type-chip');
+      chips.forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.type === normalizedType);
+      });
       updateClientSelectedSummary();
+    }
+
+    function openClientSelection() {
+      ensureClientsCache();
+      window.location.hash = 'choisir-client';
+    }
+
+    function openCreateClientPage() {
+      resetCreateClientForm();
+      window.location.hash = 'ajouter-client';
+    }
+
+    function openClientSelectionFromCreate() {
+      resetCreateClientForm();
+      window.location.hash = 'choisir-client';
+    }
+
+    function openLivreurSelection() {
+      ensureLivreursCache();
+      window.location.hash = 'choisir-livreur';
+    }
+
+    function openCreateLivreurPage() {
+      resetCreateLivreurForm();
+      window.location.hash = 'ajouter-livreur';
+    }
+
+    function openLivreurSelectionFromCreate() {
+      resetCreateLivreurForm();
+      window.location.hash = 'choisir-livreur';
+    }
+
+    function returnToSaleFromSelection() {
+      window.location.hash = 'vendre';
+      setTimeout(() => {
+        if (typeof showStep === 'function') {
+          showStep(currentStep);
+        }
+        if (typeof lucide !== 'undefined') {
+          lucide.createIcons();
+        }
+      }, 60);
+    }
+
+    function resetCreateClientForm() {
+      const nameInput = document.getElementById('newClientName');
+      const phoneInput = document.getElementById('newClientPhone');
+      const feedback = document.getElementById('clientCreateFeedback');
+      const submitBtn = document.getElementById('createClientSubmitBtn');
+      if (nameInput) nameInput.value = '';
+      if (phoneInput) phoneInput.value = '';
+      document.querySelectorAll('input[name="newClientType"]').forEach(radio => {
+        radio.checked = false;
+      });
+      if (feedback) {
+        feedback.style.display = 'none';
+        feedback.textContent = '';
+      }
+      if (submitBtn) submitBtn.disabled = false;
+    }
+
+    function resetCreateLivreurForm() {
+      const nameInput = document.getElementById('newLivreurName');
+      const phoneInput = document.getElementById('newLivreurPhone');
+      const feedback = document.getElementById('livreurCreateFeedback');
+      const submitBtn = document.getElementById('createLivreurSubmitBtn');
+      if (nameInput) nameInput.value = '';
+      if (phoneInput) phoneInput.value = '';
+      if (feedback) {
+        feedback.style.display = 'none';
+        feedback.textContent = '';
+      }
+      if (submitBtn) submitBtn.disabled = false;
+    }
+
+    function setupClientSelectionScreen() {
+      ensureClientsCache();
+      setClientSearchMode(clientSearchMode, { keepValue: true, preserveFeedback: true });
+      const input = document.getElementById('clientSearchInput');
+      if (input && !input.dataset.bound) {
+        input.dataset.bound = 'true';
+        input.addEventListener('input', () => searchClientsVente());
+      }
+      searchClientsVente();
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    }
+
+    function setupLivreurSelectionScreen() {
+      ensureLivreursCache();
+      setLivreurSearchMode(livreurSearchMode, { keepValue: true, preserveFeedback: true });
+      const input = document.getElementById('livreurSearchInput');
+      if (input && !input.dataset.bound) {
+        input.dataset.bound = 'true';
+        input.addEventListener('input', () => searchLivreurs());
+      }
+      searchLivreurs();
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
     }
 
     function ensureClientsCache() {
@@ -12506,39 +12817,42 @@ async function enregistrerModificationClient() {
       return clientsLoadingPromise;
     }
 
-    function setClientSearchMode(mode) {
+    function setClientSearchMode(mode, options = {}) {
       if (mode !== 'nom' && mode !== 'numero') return;
       clientSearchMode = mode;
-      const chips = document.querySelectorAll('#clientCard .client-search-chip');
-      chips.forEach(chip => {
-        chip.classList.toggle('active', chip.dataset.mode === mode);
-      });
+      const chips = document.querySelectorAll('#screen-choisir-client .client-search-chip');
+      if (chips.length) {
+        chips.forEach(chip => {
+          chip.classList.toggle('active', chip.dataset.mode === mode);
+        });
+      }
       const input = document.getElementById('clientSearchInput');
       if (input) {
         input.placeholder = mode === 'nom'
           ? 'Rechercher un client par nom'
           : 'Rechercher un client par numéro';
-        input.value = '';
-        input.focus();
+        if (!options.keepValue) {
+          input.value = '';
+        }
+        if (!options.skipFocus) {
+          input.focus();
+        }
+        if (!options.keepValue) {
+          searchClientsVente();
+        }
       }
       const feedback = document.getElementById('clientSearchFeedback');
-      if (feedback) {
-        feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+      if (feedback && !options.preserveFeedback) {
+        feedback.textContent = 'Tapez pour lancer la recherche.';
+        feedback.style.color = '#6b7280';
       }
-      const results = document.getElementById('clientSearchResults');
-      if (results) results.innerHTML = '';
     }
 
     function initClientSearchStep() {
       ensureClientsCache();
-      setClientSearchMode(clientSearchMode);
       selectedClientId = document.getElementById('clientId')?.value || null;
-      setClientType(document.getElementById('clientType')?.value || currentClientType || 'ordinaire');
-      const input = document.getElementById('clientSearchInput');
-      if (input && !input.dataset.bound) {
-        input.dataset.bound = 'true';
-      }
-      toggleClientCreateForm(false);
+      setClientType(document.getElementById('clientType')?.value || currentClientType || '');
+      updateClientSelectedSummary();
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
       }
@@ -12551,9 +12865,9 @@ async function enregistrerModificationClient() {
       if (!input || !resultsContainer) return;
 
       const query = input.value.trim();
-      if (query.length < 2) {
+      if (query.length === 0) {
         if (feedback) {
-          feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+          feedback.textContent = 'Tapez pour lancer la recherche.';
           feedback.style.color = '#6b7280';
         }
         resultsContainer.innerHTML = '';
@@ -12576,7 +12890,7 @@ async function enregistrerModificationClient() {
         renderClientResults(filtered);
         if (feedback) {
           if (filtered.length === 0) {
-            feedback.textContent = 'Aucun client trouvé. Vous pouvez créer un nouveau client.';
+            feedback.textContent = 'Aucun client trouvé. Utilisez le bouton + pour en créer un.';
             feedback.style.color = '#b91c1c';
           } else {
             feedback.textContent = `${filtered.length} client(s) trouvé(s).`;
@@ -12600,10 +12914,14 @@ async function enregistrerModificationClient() {
           item.classList.add('selected');
         }
         const numeroDisplay = client.numero ? client.numero : 'Numéro non renseigné';
+        const typeValue = normalizeClientType(client.typeClient || client.clientType || client.type, '');
+        const typeLabel = typeValue === 'revendeur' ? 'Revendeur' : typeValue === 'ordinaire' ? 'Client ordinaire' : '';
+        const typeBadge = typeLabel ? `<span class="client-type-tag ${typeValue}">${typeLabel}</span>` : '';
         item.innerHTML = `
           <div>
             <h4>${client.nom || 'Client sans nom'}</h4>
             <span>${numeroDisplay}</span>
+            ${typeBadge}
           </div>
         `;
         item.addEventListener('click', () => {
@@ -12622,9 +12940,12 @@ async function enregistrerModificationClient() {
       if (nomInput) nomInput.value = client.nom || '';
       if (numeroInput) numeroInput.value = client.numero || '';
       if (idInput) idInput.value = client.id || '';
-      const detectedType = normalizeClientType(client.typeClient || client.clientType || client.type, null);
-      setClientType(detectedType || (document.getElementById('clientType')?.value) || currentClientType || 'ordinaire');
-      updateClientSelectedSummary();
+      const detectedType = normalizeClientType(client.typeClient || client.clientType || client.type, '');
+      if (detectedType) {
+        setClientType(detectedType);
+      } else {
+        setClientType('');
+      }
       const items = document.querySelectorAll('#clientSearchResults .client-search-result');
       items.forEach(item => {
         item.classList.toggle('selected', item.dataset.clientId === (client.id || ''));
@@ -12632,7 +12953,12 @@ async function enregistrerModificationClient() {
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
       }
-      showToast(`Client ${client.nom || ''} sélectionné.`);
+      if (typeof showToast === 'function' && client.nom) {
+        showToast(`Client ${client.nom} sélectionné.`);
+      }
+      if (window.location.hash === '#choisir-client' || window.location.hash === '#ajouter-client') {
+        setTimeout(() => returnToSaleFromSelection(), 50);
+      }
     }
 
     function updateClientSelectedSummary() {
@@ -12640,16 +12966,14 @@ async function enregistrerModificationClient() {
       const textEl = document.getElementById('clientSelectedText');
       const nom = document.getElementById('clientNom')?.value.trim() || '';
       const numero = document.getElementById('clientNumero')?.value.trim() || '';
-      const typeValue = document.getElementById('clientType')?.value || currentClientType || 'ordinaire';
-      const typeLabel = typeValue === 'revendeur' ? 'Revendeur' : 'Client ordinaire';
+      const typeValue = document.getElementById('clientType')?.value || currentClientType || '';
+      const typeLabel = typeValue === 'revendeur' ? 'Revendeur' : typeValue === 'ordinaire' ? 'Client ordinaire' : 'Type à préciser';
       if (!summary || !textEl) return;
       if (nom) {
-        summary.style.display = 'block';
         const base = numero ? `${nom} (${numero})` : nom;
         textEl.textContent = `${base} - ${typeLabel}`;
       } else {
-        summary.style.display = 'none';
-        textEl.textContent = '';
+        textEl.textContent = 'Aucun client sélectionné.';
       }
     }
 
@@ -12661,6 +12985,7 @@ async function enregistrerModificationClient() {
       if (nomInput) nomInput.value = '';
       if (numeroInput) numeroInput.value = '';
       if (idInput) idInput.value = '';
+      setClientType('');
       updateClientSelectedSummary();
       const items = document.querySelectorAll('#clientSearchResults .client-search-result');
       items.forEach(item => item.classList.remove('selected'));
@@ -12671,51 +12996,30 @@ async function enregistrerModificationClient() {
       }
       const feedback = document.getElementById('clientSearchFeedback');
       if (feedback) {
-        feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+        feedback.textContent = 'Tapez pour lancer la recherche.';
         feedback.style.color = '#6b7280';
       }
       const results = document.getElementById('clientSearchResults');
       if (results) results.innerHTML = '';
     }
 
-    function toggleClientCreateForm(show) {
-      const form = document.getElementById('clientCreateForm');
-      const toggleBtn = document.getElementById('clientCreateToggleBtn');
+function createClientFromSale() {
+      const nameInput = document.getElementById('newClientName');
+      const phoneInput = document.getElementById('newClientPhone');
       const feedback = document.getElementById('clientCreateFeedback');
-      if (!form || !toggleBtn) return;
+      const submitBtn = document.getElementById('createClientSubmitBtn');
+      if (!nameInput || !phoneInput) return;
+
+      const nom = nameInput.value.trim();
+      const numero = phoneInput.value.trim();
+      const typeChoice = document.querySelector('input[name="newClientType"]:checked');
+      const typeValue = typeChoice ? normalizeClientType(typeChoice.value, '') : '';
+
       if (feedback) {
         feedback.style.display = 'none';
         feedback.textContent = '';
       }
-      if (show) {
-        form.style.display = 'block';
-        toggleBtn.style.display = 'none';
-        setTimeout(() => document.getElementById('newClientName')?.focus(), 100);
-      } else {
-        form.style.display = 'none';
-        toggleBtn.style.display = 'inline-flex';
-        const nameField = document.getElementById('newClientName');
-        if (nameField) {
-          nameField.value = '';
-        }
-        const phoneField = document.getElementById('newClientPhone');
-        if (phoneField) {
-          phoneField.value = '';
-        }
-      }
-      if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-      }
-    }
 
-function createClientFromSale() {
-  const nameInput = document.getElementById('newClientName');
-  const phoneInput = document.getElementById('newClientPhone');
-  const feedback = document.getElementById('clientCreateFeedback');
-  if (!nameInput || !phoneInput) return;
-      const nom = nameInput.value.trim();
-      const numero = phoneInput.value.trim();
-      const typeValue = normalizeClientType(document.getElementById('clientType')?.value || currentClientType || 'ordinaire');
       if (!nom) {
         if (feedback) {
           feedback.style.display = 'block';
@@ -12732,10 +13036,21 @@ function createClientFromSale() {
         }
         return;
       }
+      if (!typeValue) {
+        if (feedback) {
+          feedback.style.display = 'block';
+          feedback.style.color = '#b91c1c';
+          feedback.textContent = 'Sélectionnez le type du client.';
+        }
+        return;
+      }
 
-      const saveBtn = document.querySelector('#clientCreateForm .btn-modern:not(.secondary)');
-      if (saveBtn) saveBtn.disabled = true;
+      if (submitBtn) submitBtn.disabled = true;
+
       ensureClientsCache().then(() => {
+        if (typeof dbFirestore === 'undefined' || !dbFirestore || typeof dbFirestore.collection !== 'function') {
+          throw new Error('Base de données indisponible');
+        }
         return dbFirestore.collection('clients').add({
           nom,
           numero,
@@ -12747,10 +13062,15 @@ function createClientFromSale() {
         clientsCache.push(newClient);
         clientsCacheLoaded = true;
         setClientType(typeValue);
-        toggleClientCreateForm(false);
         selectClientForSale(newClient);
+        if (typeof showToast === 'function') {
+          showToast('Client créé avec succès.');
+        }
+        nameInput.value = '';
+        phoneInput.value = '';
+        const checked = document.querySelector('input[name="newClientType"]:checked');
+        if (checked) checked.checked = false;
         searchClientsVente();
-        showToast('Client créé avec succès.');
       }).catch(error => {
         console.error('Erreur lors de la création du client :', error);
         if (feedback) {
@@ -12758,10 +13078,10 @@ function createClientFromSale() {
           feedback.style.color = '#b91c1c';
           feedback.textContent = 'Impossible de créer le client : ' + error.message;
         }
-  }).finally(() => {
-    if (saveBtn) saveBtn.disabled = false;
-  });
-}
+      }).finally(() => {
+        if (submitBtn) submitBtn.disabled = false;
+      });
+    }
 
 function setLivraisonDetailAlert(message = '', variant = 'info') {
   const alertEl = document.getElementById('livraisonDetailAlert');
@@ -13477,8 +13797,13 @@ function updateAccueilSummary() {
   if (currentStep === 1) {
     const nom = document.getElementById('clientNom')?.value.trim() || '';
     const numero = document.getElementById('clientNumero')?.value.trim() || '';
+    const typeSelection = document.getElementById('clientType')?.value.trim() || '';
     if (!nom || !numero) {
       showToast("Sélectionnez ou créez un client avant de continuer.");
+      return;
+    }
+    if (!typeSelection) {
+      showToast("Choisissez le type de client avant de continuer.");
       return;
     }
   }
@@ -13508,8 +13833,13 @@ function updateAccueilSummary() {
       });
       const recapClientNom = document.getElementById("clientNom").value;
       const recapClientNumero = document.getElementById("clientNumero").value;
-      const recapClientType = normalizeClientType(document.getElementById("clientType")?.value || '', 'ordinaire');
-      const recapClientTypeLabel = recapClientType === 'revendeur' ? 'Revendeur' : 'Client ordinaire';
+      const recapClientTypeRaw = document.getElementById("clientType")?.value || '';
+      const recapClientType = normalizeClientType(recapClientTypeRaw, '');
+      const recapClientTypeLabel = recapClientType === 'revendeur'
+        ? 'Revendeur'
+        : recapClientType === 'ordinaire'
+          ? 'Client ordinaire'
+          : 'Type non défini';
       html += "<br><strong>Client :</strong> " + recapClientNom + " (" + recapClientNumero + ") - " + recapClientTypeLabel + "<br>";
       html += "<strong>Canal de vente :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
       const livraisonNom = (document.getElementById("livreurNom")?.value || "").trim();
@@ -14689,6 +15019,26 @@ function voirHistoriqueStock(stockId, e) {
   switch (hash) {
     case 'vendre':
       break;
+    case 'choisir-client':
+      setupClientSelectionScreen();
+      break;
+    case 'ajouter-client':
+      resetCreateClientForm();
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      setTimeout(() => document.getElementById('newClientName')?.focus(), 80);
+      break;
+    case 'choisir-livreur':
+      setupLivreurSelectionScreen();
+      break;
+    case 'ajouter-livreur':
+      resetCreateLivreurForm();
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+      setTimeout(() => document.getElementById('newLivreurName')?.focus(), 80);
+      break;
     case 'stock':
       updateStockSummary();
       renderInventoryPreview();
@@ -14877,33 +15227,37 @@ function ensureLivreursCache(force = false) {
 function setLivreurSearchMode(mode, options = {}) {
   if (mode !== 'nom' && mode !== 'numero') return;
   livreurSearchMode = mode;
-  const chips = document.querySelectorAll('#deliveryCard .client-search-chip');
-  chips.forEach(chip => {
-    chip.classList.toggle('active', chip.dataset.mode === mode);
-  });
+  const chips = document.querySelectorAll('#screen-choisir-livreur .client-search-chip');
+  if (chips.length) {
+    chips.forEach(chip => {
+      chip.classList.toggle('active', chip.dataset.mode === mode);
+    });
+  }
   const input = document.getElementById('livreurSearchInput');
-  if (input && !options.skipInputReset) {
+  if (input) {
     input.placeholder = mode === 'nom'
       ? 'Rechercher un livreur par nom'
       : 'Rechercher un livreur par numéro';
-    input.value = '';
-    input.focus();
+    if (!options.keepValue) {
+      input.value = '';
+    }
+    if (!options.skipFocus) {
+      input.focus();
+    }
+    if (!options.keepValue) {
+      searchLivreurs();
+    }
   }
   const feedback = document.getElementById('livreurSearchFeedback');
   if (feedback && !options.preserveFeedback) {
-    feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+    feedback.textContent = 'Tapez pour lancer la recherche.';
     feedback.style.color = '#6b7280';
-  }
-  const results = document.getElementById('livreurSearchResults');
-  if (results && !options.preserveResults) {
-    results.innerHTML = '';
   }
 }
 
 function initLivreurSection() {
   if (currentSaleMode !== 'delivery') return;
   ensureLivreursCache();
-  setLivreurSearchMode(livreurSearchMode, { skipInputReset: true, preserveResults: true, preserveFeedback: true });
   selectedLivreurId = document.getElementById('livreurId')?.value || null;
   updateLivreurSelectedSummary();
 }
@@ -14915,9 +15269,9 @@ function searchLivreurs() {
   if (!input || !resultsContainer) return;
 
   const query = input.value.trim();
-  if (query.length < 2) {
+  if (query.length === 0) {
     if (feedback) {
-      feedback.textContent = 'Saisissez au moins 2 caractères pour lancer la recherche.';
+      feedback.textContent = 'Tapez pour lancer la recherche.';
       feedback.style.color = '#6b7280';
     }
     resultsContainer.innerHTML = '';
@@ -14940,7 +15294,7 @@ function searchLivreurs() {
     renderLivreurResults(filtered);
     if (feedback) {
       if (filtered.length === 0) {
-        feedback.textContent = 'Aucun livreur trouvé. Vous pouvez en créer un.';
+        feedback.textContent = 'Aucun livreur trouvé. Utilisez le bouton + pour en créer un.';
         feedback.style.color = '#b91c1c';
       } else {
         feedback.textContent = `${filtered.length} livreur(s) trouvé(s).`;
@@ -14999,6 +15353,9 @@ function selectLivreurForSale(livreur) {
   if (typeof showToast === 'function' && livreur.nom) {
     showToast(`Livreur ${livreur.nom} sélectionné.`);
   }
+  if (window.location.hash === '#choisir-livreur' || window.location.hash === '#ajouter-livreur') {
+    setTimeout(() => returnToSaleFromSelection(), 50);
+  }
 }
 
 function updateLivreurSelectedSummary() {
@@ -15008,11 +15365,9 @@ function updateLivreurSelectedSummary() {
   const numero = document.getElementById('livreurNumero')?.value.trim() || '';
   if (!summary || !textEl) return;
   if (nom) {
-    summary.style.display = 'block';
     textEl.textContent = numero ? `${nom} (${numero})` : nom;
   } else {
-    summary.style.display = 'none';
-    textEl.textContent = '';
+    textEl.textContent = 'Aucun livreur sélectionné.';
   }
 }
 
@@ -15025,31 +15380,18 @@ function clearSelectedLivreur(silent = false) {
   const results = document.querySelectorAll('#livreurSearchResults .client-search-result');
   results.forEach(item => item.classList.remove('selected'));
   updateLivreurSelectedSummary();
+  const searchInput = document.getElementById('livreurSearchInput');
+  if (searchInput) {
+    searchInput.value = '';
+    searchInput.focus();
+  }
+  const feedback = document.getElementById('livreurSearchFeedback');
+  if (feedback) {
+    feedback.textContent = 'Tapez pour lancer la recherche.';
+    feedback.style.color = '#6b7280';
+  }
   if (!silent && typeof showToast === 'function') {
     showToast('Livreur désélectionné.');
-  }
-}
-
-function toggleLivreurCreateForm(show) {
-  const form = document.getElementById('livreurCreateForm');
-  const toggleBtn = document.getElementById('livreurCreateToggleBtn');
-  if (!form || !toggleBtn) return;
-  if (show) {
-    form.style.display = 'block';
-    toggleBtn.style.display = 'none';
-    setTimeout(() => document.getElementById('newLivreurName')?.focus(), 100);
-  } else {
-    form.style.display = 'none';
-    toggleBtn.style.display = 'inline-flex';
-    const nameField = document.getElementById('newLivreurName');
-    const phoneField = document.getElementById('newLivreurPhone');
-    if (nameField) nameField.value = '';
-    if (phoneField) phoneField.value = '';
-    const feedback = document.getElementById('livreurCreateFeedback');
-    if (feedback) feedback.style.display = 'none';
-  }
-  if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
   }
 }
 
@@ -15057,9 +15399,17 @@ function createLivreurFromSale() {
   const nameInput = document.getElementById('newLivreurName');
   const phoneInput = document.getElementById('newLivreurPhone');
   const feedback = document.getElementById('livreurCreateFeedback');
+  const submitBtn = document.getElementById('createLivreurSubmitBtn');
   if (!nameInput || !phoneInput) return;
+
   const nom = nameInput.value.trim();
   const numero = phoneInput.value.trim();
+
+  if (feedback) {
+    feedback.style.display = 'none';
+    feedback.textContent = '';
+  }
+
   if (!nom) {
     if (feedback) {
       feedback.style.display = 'block';
@@ -15076,16 +15426,12 @@ function createLivreurFromSale() {
     }
     return;
   }
-  if (feedback) {
-    feedback.style.display = 'none';
-  }
 
-  const saveBtn = document.querySelector('#livreurCreateForm .btn-modern:not(.secondary)');
-  if (saveBtn) saveBtn.disabled = true;
+  if (submitBtn) submitBtn.disabled = true;
 
   ensureLivreursCache().then(() => {
     if (typeof dbFirestore === 'undefined' || !dbFirestore || typeof dbFirestore.collection !== 'function') {
-      throw new Error("Base de données indisponible");
+      throw new Error('Base de données indisponible');
     }
     return dbFirestore.collection('livreurs').add({
       nom,
@@ -15096,12 +15442,13 @@ function createLivreurFromSale() {
     const newLivreur = { id: docRef.id, nom, numero };
     livreursCache.push(newLivreur);
     livreursCacheLoaded = true;
-    toggleLivreurCreateForm(false);
     selectLivreurForSale(newLivreur);
-    searchLivreurs();
     if (typeof showToast === 'function') {
       showToast('Livreur créé avec succès.');
     }
+    nameInput.value = '';
+    phoneInput.value = '';
+    searchLivreurs();
   }).catch(error => {
     console.error('Erreur lors de la création du livreur :', error);
     if (feedback) {
@@ -15110,7 +15457,7 @@ function createLivreurFromSale() {
       feedback.textContent = 'Impossible de créer le livreur : ' + error.message;
     }
   }).finally(() => {
-    if (saveBtn) saveBtn.disabled = false;
+    if (submitBtn) submitBtn.disabled = false;
   });
 }
 
@@ -15135,7 +15482,7 @@ function selectionnerTypeVente(mode) {
   currentSaleMode = mode === 'delivery' ? 'delivery' : 'direct';
   mettreAJourBadgeTypeVente();
   appliquerTypeVenteAuFormulaire();
-  setClientType('ordinaire');
+  setClientType('');
   fermerModalTypeVente();
   window.location.hash = 'panier';
   updatePanierPage();
@@ -15508,9 +15855,7 @@ function continuerDepuisPanier() {
           initLivreurSection();
         } else {
           clearSelectedLivreur(true);
-          if (typeof toggleLivreurCreateForm === 'function') {
-            toggleLivreurCreateForm(false);
-          }
+          resetCreateLivreurForm();
           const lieuInput = document.getElementById("lieuLivraison");
           if (lieuInput) {
             lieuInput.value = "";
@@ -15753,7 +16098,7 @@ function continuerDepuisPanier() {
         // Réinitialisation du formulaire et redirection
         resetVentePayments();
         clearSelectedClient();
-        setClientType('ordinaire');
+        setClientType('');
         currentItems = [];
         window.location.hash = 'historique';
         
