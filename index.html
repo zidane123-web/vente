@@ -2127,8 +2127,8 @@ body.role-employe #screen-accueil .accueil-actions {
             </div>
             <p class="payment-hint" id="deliveryPaymentHint" style="display:none; margin-top:12px; font-size:0.9em; color:#2563eb;">Encaissement non obligatoire pour les livraisons. Vous pourrez encaisser lors de la remise.</p>
 
-<label for="photoFacture">Photo de la facture</label>
-            <input type="file" accept="image/*" capture="camera" id="photoFacture" />
+<label for="photoFacture">Photos de la facture</label>
+            <input type="file" accept="image/*" capture="camera" id="photoFacture" multiple />
             <label for="observationsVendeur">Observations</label>
             <textarea id="observationsVendeur" placeholder="Observations (facultatif)"></textarea>
           </form>
@@ -15880,7 +15880,7 @@ function continuerDepuisPanier() {
     }
 
     // Validation et finalisation de la vente
-    function validerVente() {
+    async function validerVente() {
       if(currentItems.length === 0) {
         alert("Veuillez ajouter au moins un article.");
         return;
@@ -15906,7 +15906,8 @@ function continuerDepuisPanier() {
         alert("Veuillez sélectionner un canal de vente.");
         return;
       }
-      const photoFile = document.getElementById("photoFacture").files[0];
+      const photoInput = document.getElementById("photoFacture");
+      const photoFiles = photoInput ? Array.from(photoInput.files || []) : [];
       const observationsVendeur = document.getElementById("observationsVendeur").value.trim();
       const isDelivery = currentSaleMode === 'delivery';
       let livreurId = "";
@@ -15923,15 +15924,23 @@ function continuerDepuisPanier() {
           return;
         }
       }
-      if(photoFile) {
-        compressImage(photoFile, 800, 800, 0.7, function(compressedData) {
-          finaliserVente(clientNom, clientNumero, clientTypeValue, vendeur, compressedData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
-        });
-      } else {
-        finaliserVente(clientNom, clientNumero, clientTypeValue, vendeur, null, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
+      let compressedPhotos = [];
+      try {
+        compressedPhotos = await Promise.all(photoFiles.map(file => new Promise((resolve, reject) => {
+          try {
+            compressImage(file, 800, 800, 0.7, data => resolve(data));
+          } catch (err) {
+            reject(err);
+          }
+        })));
+      } catch (error) {
+        console.error("Erreur lors de la compression des images :", error);
+        alert("Impossible de traiter les photos selectionnees. Veuillez reessayer.");
+        return;
       }
+      await finaliserVente(clientNom, clientNumero, clientTypeValue, vendeur, compressedPhotos, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
     }
- async function finaliserVente(clientNom, clientNumero, clientType, vendeur, photoData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
+ async function finaliserVente(clientNom, clientNumero, clientType, vendeur, photosData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
     const user = firebase.auth().currentUser;
     if (!user) {
       alert("Erreur: Utilisateur non connecté. Reconnexion nécessaire.");
@@ -16021,6 +16030,10 @@ function continuerDepuisPanier() {
         }
     }
 
+    const facturePhotos = Array.isArray(photosData)
+        ? photosData.filter(Boolean)
+        : (photosData ? [photosData] : []);
+
     const vente = {
         dateVente,
         heureVente,
@@ -16032,7 +16045,8 @@ function continuerDepuisPanier() {
         items: currentItems,
         overallTotal: overallTotal.toFixed(2),
         totalProfit: totalProfit.toFixed(2),
-        photoFacture: photoData,
+        photoFacture: facturePhotos[0] || null,
+        photosFacture: facturePhotos,
         observationsVendeur,
         isDelivery,
         deliveryStatus: isDelivery ? "en cours" : null,
@@ -16221,9 +16235,15 @@ function continuerDepuisPanier() {
               <p><strong>Lieu de Livraison :</strong> ${recapLieuLivraison}</p>
               <p><strong>Statut de Livraison :</strong> ${statusEmoji}</p>`;
           }
-          if(sale.photoFacture) {
-            detailHTML += `<p><strong>Photo :</strong><br>
-                        <img src="${sale.photoFacture}" alt="Photo" style="max-width:100%; border-radius:5px;"></p>`;
+          const facturePhotos = Array.isArray(sale.photosFacture) ? sale.photosFacture.filter(Boolean) : [];
+          if (!facturePhotos.length && sale.photoFacture) {
+            facturePhotos.push(sale.photoFacture);
+          }
+          if(facturePhotos.length) {
+            const photosHtml = facturePhotos
+              .map((photo, idx) => `<img src="${photo}" alt="Photo ${idx + 1}" style="max-width:100%; border-radius:5px; margin-bottom:8px;">`)
+              .join("<br>");
+            detailHTML += `<p><strong>Photos :</strong><br>${photosHtml}</p>`;
           }
           document.getElementById("detailContent").innerHTML = detailHTML;
           document.getElementById("modalDetail").style.display = "flex";
@@ -16441,7 +16461,7 @@ document.getElementById('exportInventoryBtn')
               throw new Error("Aucune vente récupérée.");
             }
             const jsonOutput = JSON.stringify(sales, (key, value) => {
-              if(key === "photoRecu" || key === "photoFacture") return undefined;
+              if(key === "photoRecu" || key === "photoFacture" || key === "photosFacture") return undefined;
               return value;
             }, 2);
             const { jsPDF } = window.jspdf;
@@ -16475,38 +16495,60 @@ document.getElementById('exportInventoryBtn')
       getSalesForTodayFirestore()
         .then(sales => {
           try {
-            const salesWithFacture = sales.filter(sale => sale.photoFacture);
+            const preparePhotos = sale => {
+              const photos = Array.isArray(sale.photosFacture) ? sale.photosFacture.filter(Boolean) : [];
+              if (!photos.length && sale.photoFacture) {
+                photos.push(sale.photoFacture);
+              }
+              return photos;
+            };
+            const salesWithFacture = sales
+              .map(sale => ({ sale, photos: preparePhotos(sale) }))
+              .filter(item => item.photos.length);
             if (!salesWithFacture.length) {
               alert("Aucune vente avec facture disponible pour l'exportation.");
               return;
             }
-            salesWithFacture.sort((a, b) => b.id.localeCompare(a.id));
+            salesWithFacture.sort((a, b) => b.sale.id.localeCompare(a.sale.id));
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             doc.setFontSize(14);
             doc.text("Factures des Ventes", 14, 15);
             doc.setFontSize(10);
             let currentY = 25;
-            salesWithFacture.forEach((sale, index) => {
+            const PAGE_LIMIT = 270;
+            salesWithFacture.forEach(({ sale, photos }, index) => {
               if(index > 0) {
                 doc.addPage();
                 currentY = 20;
               }
-              doc.text("Date : " + sale.dateVente, 14, currentY);
-              currentY += 7;
-              doc.text("Heure : " + sale.heureVente, 14, currentY);
-              currentY += 7;
-              doc.text("Client : " + sale.clientNom + " (" + sale.clientNumero + ")", 14, currentY);
-              currentY += 7;
-              doc.text("Observations : " + (sale.observationsVendeur || "Aucune"), 14, currentY);
-              currentY += 7;
-              try {
-                doc.addImage(sale.photoFacture, "JPEG", 14, currentY, 60, 40);
-                currentY += 50;
-              } catch (err) {
-                console.error("Erreur lors de l'ajout de l'image : " + err.message);
-                alert("Erreur lors de l'ajout de l'image pour une vente: " + err.message);
-              }
+              const writeHeader = () => {
+                doc.text("Date : " + sale.dateVente, 14, currentY);
+                currentY += 7;
+                doc.text("Heure : " + sale.heureVente, 14, currentY);
+                currentY += 7;
+                doc.text("Client : " + sale.clientNom + " (" + sale.clientNumero + ")", 14, currentY);
+                currentY += 7;
+                doc.text("Observations : " + (sale.observationsVendeur || "Aucune"), 14, currentY);
+                currentY += 7;
+              };
+              writeHeader();
+              photos.forEach((photo, photoIdx) => {
+                if(photoIdx > 0 && currentY + 45 > PAGE_LIMIT) {
+                  doc.addPage();
+                  currentY = 20;
+                  writeHeader();
+                }
+                doc.text("Photo " + (photoIdx + 1), 14, currentY);
+                currentY += 5;
+                try {
+                  doc.addImage(photo, "JPEG", 14, currentY, 60, 40);
+                  currentY += 45;
+                } catch (err) {
+                  console.error("Erreur lors de l'ajout de l'image : " + err.message);
+                  alert("Erreur lors de l'ajout de l'image pour une vente: " + err.message);
+                }
+              });
             });
             doc.addJS("var p = app.response('Entrez le mot de passe pour ouvrir ce document :'); if(p !== 'Karim123456789,x1'){ app.alert('Mot de passe incorrect. Le document va être fermé.'); this.closeDoc(); }");
             doc.save("factures.pdf");
