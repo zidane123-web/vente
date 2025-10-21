@@ -54,6 +54,18 @@ function formatCurrency(amount) {
   }).format(Math.round(amount));
 }
 
+function formatQuantityValue(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return '-';
+  if (Math.abs(num % 1) < 1e-6) {
+    return num.toString();
+  }
+  return num.toLocaleString('fr-FR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+}
+
 function formatDateForTitle(date) {
   return date.toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -64,12 +76,10 @@ function formatDateForTitle(date) {
 }
 
 function formatDateForDisplay(date) {
-  return date.toLocaleString('fr-FR', {
+  return date.toLocaleDateString('fr-FR', {
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: '2-digit'
   });
 }
 
@@ -87,6 +97,31 @@ function slugifyName(value) {
     .replace(/^_|_$/g, '');
 }
 
+function parseNumericValue(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const cleaned = value
+      .trim()
+      .replace(/[\s/]/g, '')
+      .replace(/[^0-9.,-]/g, '')
+      .replace(/,/g, '.');
+    if (!cleaned) return 0;
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (value && typeof value === 'object') {
+    if (typeof value.toNumber === 'function') {
+      return parseNumericValue(value.toNumber());
+    }
+    if (typeof value.valueOf === 'function' && value !== value.valueOf()) {
+      return parseNumericValue(value.valueOf());
+    }
+  }
+  return 0;
+}
+
 function getItemName(item) {
   if (!item || typeof item !== 'object') return 'Article inconnu';
   return (
@@ -101,9 +136,7 @@ function getItemName(item) {
 function getItemQuantity(item) {
   if (!item || typeof item !== 'object') return 0;
   const raw = item.quantite ?? item.quantity ?? item.qty ?? item.qte ?? 0;
-  const normalized = typeof raw === 'string' ? raw.replace(/[^0-9.,-]/g, '').replace(/,/g, '.') : raw;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseNumericValue(raw);
 }
 
 function getItemUnitCost(item) {
@@ -115,9 +148,7 @@ function getItemUnitCost(item) {
     item.cost ??
     item.unitCost ??
     0;
-  const normalized = typeof raw === 'string' ? raw.replace(/[^0-9.,-]/g, '').replace(/,/g, '.') : raw;
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseNumericValue(raw);
 }
 
 function computeItemCost(item) {
@@ -167,6 +198,57 @@ function summarisePurchase(purchase) {
   };
 }
 
+function ensurePageSpace(doc, requiredHeight = 24) {
+  const bottomLimit = doc.page.height - doc.page.margins.bottom;
+  if (doc.y + requiredHeight > bottomLimit) {
+    doc.addPage();
+  }
+}
+
+function renderItemsTable(doc, items) {
+  if (!Array.isArray(items) || items.length === 0) {
+    doc.fontSize(11).fillColor('#444444').text('Aucun detail produit disponible.');
+    doc.fillColor('#000000');
+    doc.moveDown(0.4);
+    return;
+  }
+
+  const startX = doc.page.margins.left;
+  const availableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const colArticle = Math.max(Math.floor(availableWidth * 0.45), 160);
+  const colQty = Math.max(Math.floor(availableWidth * 0.12), 60);
+  const colUnit = Math.max(Math.floor(availableWidth * 0.2), 100);
+  const colTotal = availableWidth - colArticle - colQty - colUnit;
+  const columnWidths = [colArticle, colQty, colUnit, colTotal];
+
+  ensurePageSpace(doc, 36);
+  doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000');
+  doc.text('Article', startX, doc.y, { width: columnWidths[0], continued: true });
+  doc.text('Qte', startX + columnWidths[0], doc.y, { width: columnWidths[1], align: 'right', continued: true });
+  doc.text('Cout unitaire', startX + columnWidths[0] + columnWidths[1], doc.y, { width: columnWidths[2], align: 'right', continued: true });
+  doc.text('Cout total', startX + columnWidths[0] + columnWidths[1] + columnWidths[2], doc.y, { width: columnWidths[3], align: 'right' });
+
+  doc.moveDown(0.15);
+  const separatorY = doc.y;
+  doc.save();
+  doc.lineWidth(0.5).strokeColor('#bbbbbb').moveTo(startX, separatorY).lineTo(startX + availableWidth, separatorY).stroke();
+  doc.restore();
+  doc.moveDown(0.2);
+
+  doc.font('Helvetica').fontSize(11).fillColor('#000000');
+
+  items.forEach(item => {
+    ensurePageSpace(doc, 20);
+    doc.text(item.name, startX, doc.y, { width: columnWidths[0], continued: true });
+    doc.text(formatQuantityValue(item.qty), startX + columnWidths[0], doc.y, { width: columnWidths[1], align: 'right', continued: true });
+    doc.text(formatCurrency(item.unitCost), startX + columnWidths[0] + columnWidths[1], doc.y, { width: columnWidths[2], align: 'right', continued: true });
+    doc.text(formatCurrency(item.lineCost), startX + columnWidths[0] + columnWidths[1] + columnWidths[2], doc.y, { width: columnWidths[3], align: 'right' });
+    doc.moveDown(0.1);
+  });
+
+  doc.moveDown(0.5);
+}
+
 function writePdfReport(purchases, start, end, outputPath) {
   const doc = new PDFDocument({ margin: 48 });
   const stream = fs.createWriteStream(outputPath);
@@ -178,7 +260,7 @@ function writePdfReport(purchases, start, end, outputPath) {
   doc.fontSize(20).text(headerTitle, { align: 'center' });
   doc.moveDown(0.5);
   doc.fontSize(11).fillColor('#444444');
-  doc.text(`Plage horaire: ${formatDateForDisplay(start)} -> ${formatDateForDisplay(end)}`, { align: 'center' });
+  doc.text(`Date: ${formatDateForDisplay(start)}`, { align: 'center' });
   doc.moveDown(0.75);
 
   if (purchases.length === 0) {
@@ -198,39 +280,28 @@ function writePdfReport(purchases, start, end, outputPath) {
   doc.moveDown();
 
   purchases.forEach((purchase, index) => {
-    if (index > 0) {
+    ensurePageSpace(doc, 120);
+    if (index > 0 && doc.y + 100 > doc.page.height - doc.page.margins.bottom) {
       doc.addPage();
     }
-    doc.fontSize(16).fillColor('#000000').text(`Approvisionnement ${purchase.id}`, { underline: true });
-    doc.moveDown(0.5);
+    doc.fontSize(15).fillColor('#000000').text(`Approvisionnement ${purchase.id}`, { underline: true });
+    doc.moveDown(0.4);
     const timestamp = purchase.timestampMs ? new Date(purchase.timestampMs) : null;
-    doc.fontSize(12);
-    doc.text(`Heure: ${timestamp ? formatDateForDisplay(timestamp) : 'N/A'}`);
+    doc.fontSize(11);
+    doc.text(`Date: ${timestamp ? formatDateForDisplay(timestamp) : 'N/A'}`);
     doc.text(`Type: ${purchase.type}`);
     doc.text(`Montant estime: ${formatCurrency(purchase.totalCost)}`);
+    doc.text(`Nombre d'articles: ${purchase.items.length}`);
     if (purchase.note) {
       doc.moveDown(0.35);
       doc.fontSize(11).fillColor('#444444').text(`Note: ${purchase.note}`);
       doc.fillColor('#000000');
     }
-    doc.moveDown(0.5);
-    doc.fontSize(13).text('Articles', { underline: true });
-    doc.moveDown(0.25);
-
-    if (purchase.items.length === 0) {
-      doc.fontSize(11).fillColor('#444444');
-      doc.text('Aucun detail produit disponible.');
-      doc.fillColor('#000000');
-    } else {
-      purchase.items.forEach(item => {
-        doc.fontSize(11).fillColor('#000000');
-        doc.text(`- ${item.name}`);
-        doc.fontSize(10).fillColor('#444444');
-        doc.text(`  Qte: ${item.qty} | Cout unitaire: ${formatCurrency(item.unitCost)} | Cout total: ${formatCurrency(item.lineCost)}`);
-        doc.fillColor('#000000');
-        doc.moveDown(0.2);
-      });
-    }
+    doc.moveDown(0.4);
+    doc.font('Helvetica-Bold').fontSize(12).fillColor('#000000').text('Articles', { underline: true });
+    doc.font('Helvetica');
+    doc.moveDown(0.3);
+    renderItemsTable(doc, purchase.items);
   });
 
   doc.end();
