@@ -47,11 +47,13 @@ function toMillis(value) {
 
 function formatCurrency(amount) {
   if (!Number.isFinite(amount)) return '';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'currency',
-    currency: 'XOF',
-    maximumFractionDigits: 0
-  }).format(Math.round(amount));
+  const rounded = Math.round(amount);
+  const absolute = Math.abs(rounded);
+  const formatted = absolute
+    .toString()
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  const sign = rounded < 0 ? '-' : '';
+  return `${sign}${formatted} FCFA`;
 }
 
 function formatQuantityValue(value) {
@@ -198,74 +200,132 @@ function summarisePurchase(purchase) {
   };
 }
 
-function ensurePageSpace(doc, requiredHeight = 24) {
-  const bottomLimit = doc.page.height - doc.page.margins.bottom;
-  if (doc.y + requiredHeight > bottomLimit) {
-    doc.addPage();
-  }
+function calculateRowHeight(doc, cells, widths, options = {}) {
+  const { font = 'Helvetica', fontSize = 10 } = options;
+  let maxHeight = 0;
+  cells.forEach((rawCell, idx) => {
+    const cell = String(rawCell ?? '');
+    doc.font(font).fontSize(fontSize);
+    const width = Math.max(12, widths[idx] - 8);
+    const height = doc.heightOfString(cell, { width, lineGap: 2 });
+    maxHeight = Math.max(maxHeight, height);
+  });
+  return maxHeight + 8;
+}
+
+function drawHeaderRow(doc, headers, startX, y, widths) {
+  const headerHeight = calculateRowHeight(doc, headers, widths, { font: 'Helvetica-Bold', fontSize: 10 });
+  let x = startX;
+  doc.font('Helvetica-Bold').fontSize(10).fillColor('#000000');
+  headers.forEach((header, idx) => {
+    doc.save();
+    doc.rect(x, y, widths[idx], headerHeight).fill('#efefef');
+    doc.restore();
+    doc.rect(x, y, widths[idx], headerHeight).stroke();
+    doc.text(String(header ?? ''), x + 4, y + 4, { width: Math.max(10, widths[idx] - 8), lineGap: 2 });
+    x += widths[idx];
+  });
+  doc.font('Helvetica').fontSize(10).fillColor('#000000');
+  return headerHeight;
+}
+
+function drawBodyRow(doc, cells, startX, y, widths, options = {}) {
+  const { zebra = false } = options;
+  const rowHeight = calculateRowHeight(doc, cells, widths, { font: 'Helvetica', fontSize: 10 });
+  let x = startX;
+  doc.font('Helvetica').fontSize(10).fillColor('#000000');
+  cells.forEach((rawCell, idx) => {
+    const cell = String(rawCell ?? '');
+    if (zebra) {
+      doc.save();
+      doc.rect(x, y, widths[idx], rowHeight).fill('#f8f8f8');
+      doc.restore();
+    }
+    doc.rect(x, y, widths[idx], rowHeight).stroke();
+    doc.text(cell, x + 4, y + 4, { width: Math.max(10, widths[idx] - 8), lineGap: 2 });
+    x += widths[idx];
+  });
+  return rowHeight;
 }
 
 function renderItemsTable(doc, items) {
   if (!Array.isArray(items) || items.length === 0) {
-    doc.fontSize(11).fillColor('#444444').text('Aucun detail produit disponible.');
+    doc.font('Helvetica').fontSize(10).fillColor('#444444').text('Aucun detail produit disponible.');
     doc.fillColor('#000000');
     doc.moveDown(0.4);
     return;
   }
 
+  const headers = ['Article', 'Qte', 'Cout unitaire', 'Cout total'];
   const startX = doc.page.margins.left;
   const availableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-  const colArticle = Math.max(Math.floor(availableWidth * 0.45), 160);
+  const colArticle = Math.max(Math.floor(availableWidth * 0.48), 170);
   const colQty = Math.max(Math.floor(availableWidth * 0.12), 60);
-  const colUnit = Math.max(Math.floor(availableWidth * 0.2), 100);
+  const colUnit = Math.max(Math.floor(availableWidth * 0.2), 90);
   const colTotal = availableWidth - colArticle - colQty - colUnit;
   const columnWidths = [colArticle, colQty, colUnit, colTotal];
+  const limitY = doc.page.height - doc.page.margins.bottom;
 
-  ensurePageSpace(doc, 36);
-  doc.font('Helvetica-Bold').fontSize(11).fillColor('#000000');
-  doc.text('Article', startX, doc.y, { width: columnWidths[0], continued: true });
-  doc.text('Qte', startX + columnWidths[0], doc.y, { width: columnWidths[1], align: 'right', continued: true });
-  doc.text('Cout unitaire', startX + columnWidths[0] + columnWidths[1], doc.y, { width: columnWidths[2], align: 'right', continued: true });
-  doc.text('Cout total', startX + columnWidths[0] + columnWidths[1] + columnWidths[2], doc.y, { width: columnWidths[3], align: 'right' });
+  const drawHeader = () => {
+    const y = doc.y;
+    const headerHeight = drawHeaderRow(doc, headers, startX, y, columnWidths);
+    doc.y = y + headerHeight;
+  };
 
-  doc.moveDown(0.15);
-  const separatorY = doc.y;
-  doc.save();
-  doc.lineWidth(0.5).strokeColor('#bbbbbb').moveTo(startX, separatorY).lineTo(startX + availableWidth, separatorY).stroke();
-  doc.restore();
-  doc.moveDown(0.2);
+  const headerHeight = calculateRowHeight(doc, headers, columnWidths, { font: 'Helvetica-Bold', fontSize: 10 });
+  if (doc.y + headerHeight > limitY) {
+    doc.addPage();
+  }
+  drawHeader();
 
-  doc.font('Helvetica').fontSize(11).fillColor('#000000');
-
-  items.forEach(item => {
-    ensurePageSpace(doc, 20);
-    doc.text(item.name, startX, doc.y, { width: columnWidths[0], continued: true });
-    doc.text(formatQuantityValue(item.qty), startX + columnWidths[0], doc.y, { width: columnWidths[1], align: 'right', continued: true });
-    doc.text(formatCurrency(item.unitCost), startX + columnWidths[0] + columnWidths[1], doc.y, { width: columnWidths[2], align: 'right', continued: true });
-    doc.text(formatCurrency(item.lineCost), startX + columnWidths[0] + columnWidths[1] + columnWidths[2], doc.y, { width: columnWidths[3], align: 'right' });
-    doc.moveDown(0.1);
+  items.forEach((item, index) => {
+    const cells = [
+      item.name,
+      formatQuantityValue(item.qty),
+      formatCurrency(item.unitCost),
+      formatCurrency(item.lineCost)
+    ];
+    const rowHeight = calculateRowHeight(doc, cells, columnWidths, { font: 'Helvetica', fontSize: 10 });
+    if (doc.y + rowHeight > limitY) {
+      doc.addPage();
+      drawHeader();
+    }
+    const y = doc.y;
+    drawBodyRow(doc, cells, startX, y, columnWidths, { zebra: index % 2 === 0 });
+    doc.y = y + rowHeight;
   });
 
-  doc.moveDown(0.5);
+  doc.moveDown(0.6);
 }
 
 function writePdfReport(purchases, start, end, outputPath) {
-  const doc = new PDFDocument({ margin: 48 });
+  const doc = new PDFDocument({ margin: 50, info: { Title: `Achats ${SUPPLIER_NAME}` } });
   const stream = fs.createWriteStream(outputPath);
   doc.pipe(stream);
 
   const reportDateLabel = formatDateForTitle(start);
-  const headerTitle = `Achats du ${reportDateLabel} - ${SUPPLIER_NAME}`;
+  const generatedAt = new Date();
+  const generatedAtLabel = generatedAt.toLocaleDateString('fr-FR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+  const totalAmount = purchases.reduce((acc, purchase) => acc + purchase.totalCost, 0);
+  const totalItems = purchases.reduce((acc, purchase) => acc + purchase.items.length, 0);
 
-  doc.fontSize(20).text(headerTitle, { align: 'center' });
-  doc.moveDown(0.5);
-  doc.fontSize(11).fillColor('#444444');
-  doc.text(`Date: ${formatDateForDisplay(start)}`, { align: 'center' });
-  doc.moveDown(0.75);
+  doc.font('Helvetica-Bold').fontSize(20).text(`Achats - ${SUPPLIER_NAME}`, { align: 'center' });
+  doc.moveDown(0.3);
+  doc.font('Helvetica').fontSize(12).text(`Jour couvert: ${reportDateLabel}`, { align: 'center' });
+  doc.moveDown(0.2);
+  doc.font('Helvetica').fontSize(12).text(`Approvisionnements trouves: ${purchases.length}`, { align: 'center' });
+  doc.moveDown(0.2);
+  doc.font('Helvetica').fontSize(10).text(`Export genere le ${generatedAtLabel}`, { align: 'center' });
+  doc.moveDown();
 
   if (purchases.length === 0) {
-    doc.fontSize(14).fillColor('#000000');
-    doc.text("Aucun achat enregistre pour ce fournisseur aujourd'hui.", { align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(16).text('Resume');
+    doc.moveDown(0.4);
+    doc.font('Helvetica').fontSize(11).text("Aucun achat enregistre pour ce fournisseur aujourd'hui.");
     doc.end();
     return new Promise((resolve, reject) => {
       stream.on('finish', () => resolve(outputPath));
@@ -273,35 +333,38 @@ function writePdfReport(purchases, start, end, outputPath) {
     });
   }
 
-  const totalAmount = purchases.reduce((acc, purchase) => acc + purchase.totalCost, 0);
-  doc.fontSize(12).fillColor('#000000');
-  doc.text(`Approvisionnements trouves: ${purchases.length}`);
+  doc.font('Helvetica-Bold').fontSize(16).text('Resume');
+  doc.moveDown(0.4);
+  doc.font('Helvetica').fontSize(11);
+  doc.text(`Fournisseur: ${SUPPLIER_NAME}`);
   doc.text(`Montant total estime: ${formatCurrency(totalAmount)}`);
-  doc.moveDown();
+  doc.text(`Articles references: ${totalItems}`);
+  doc.moveDown(0.8);
+
+  const limitY = doc.page.height - doc.page.margins.bottom;
 
   purchases.forEach((purchase, index) => {
-    ensurePageSpace(doc, 120);
-    if (index > 0 && doc.y + 100 > doc.page.height - doc.page.margins.bottom) {
+    if (index > 0 && doc.y + 120 > limitY) {
       doc.addPage();
     }
-    doc.fontSize(15).fillColor('#000000').text(`Approvisionnement ${purchase.id}`, { underline: true });
-    doc.moveDown(0.4);
+    doc.font('Helvetica-Bold').fontSize(15).text(`Approvisionnement ${purchase.id}`);
+    doc.moveDown(0.25);
     const timestamp = purchase.timestampMs ? new Date(purchase.timestampMs) : null;
-    doc.fontSize(11);
+    doc.font('Helvetica').fontSize(11);
     doc.text(`Date: ${timestamp ? formatDateForDisplay(timestamp) : 'N/A'}`);
     doc.text(`Type: ${purchase.type}`);
     doc.text(`Montant estime: ${formatCurrency(purchase.totalCost)}`);
     doc.text(`Nombre d'articles: ${purchase.items.length}`);
     if (purchase.note) {
-      doc.moveDown(0.35);
-      doc.fontSize(11).fillColor('#444444').text(`Note: ${purchase.note}`);
+      doc.moveDown(0.2);
+      doc.font('Helvetica').fontSize(10).fillColor('#444444').text(`Note: ${purchase.note}`, {
+        width: doc.page.width - doc.page.margins.left - doc.page.margins.right
+      });
       doc.fillColor('#000000');
     }
-    doc.moveDown(0.4);
-    doc.font('Helvetica-Bold').fontSize(12).fillColor('#000000').text('Articles', { underline: true });
-    doc.font('Helvetica');
-    doc.moveDown(0.3);
+    doc.moveDown(0.35);
     renderItemsTable(doc, purchase.items);
+    doc.moveDown(0.3);
   });
 
   doc.end();
