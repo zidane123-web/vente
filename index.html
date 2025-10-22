@@ -9000,10 +9000,18 @@ if (purchasePaymentStatusSelect) {
     purchasePaymentStatusSelect.addEventListener('change', updatePurchasePaymentUI);
 }
 
+function approCartIsEmpty() {
+    return Array.isArray(currentApproItems) ? currentApproItems.length === 0 : true;
+}
+
 window.addEventListener('hashchange', () => {
     if (window.location.hash === '#approvisionnement') {
         handlePurchaseTypeChange();
-        showApproModeDialog();
+        if (approCartIsEmpty()) {
+            showApproModeDialog();
+        } else {
+            hideApproModeDialog();
+        }
     } else {
         hideApproModeDialog();
     }
@@ -9011,7 +9019,11 @@ window.addEventListener('hashchange', () => {
 
 handlePurchaseTypeChange();
 if (window.location.hash === '#approvisionnement') {
-    showApproModeDialog();
+    if (approCartIsEmpty()) {
+        showApproModeDialog();
+    } else {
+        hideApproModeDialog();
+    }
 }
 
   // Incrémenter/Décrémenter la quantité
@@ -9334,26 +9346,25 @@ function retirerApproItem(index) {
                         price: newAveragePrice
                     });
                 }
-        }
 
-
-            const historyRef = stockDocRef.collection("history").doc();
-            batch.set(historyRef, {
-                timestamp: serverTimestamp,
-                change: +item.quantite,
-                newStock: newStockQty,
-                type: 'approvisionnement',
-                costOfChange: item.quantite * item.adjustedPrixAchat
-            });
-
-            if (item.category === 'telephones' && item.imeis && item.imeis.length > 0) {
-                item.imeis.forEach(imei => {
-                    const imeiDocRef = stockDocRef.collection("imeis").doc(imei);
-                    batch.set(imeiDocRef, {
-                        status: "disponible",
-                        dateEntree: serverTimestamp
-                    });
+                const historyRef = stockDocRef.collection("history").doc();
+                batch.set(historyRef, {
+                    timestamp: serverTimestamp,
+                    change: +item.quantite,
+                    newStock: newStockQty,
+                    type: 'approvisionnement',
+                    costOfChange: item.quantite * item.adjustedPrixAchat
                 });
+
+                if (item.category === 'telephones' && item.imeis && item.imeis.length > 0) {
+                    item.imeis.forEach(imei => {
+                        const imeiDocRef = stockDocRef.collection("imeis").doc(imei);
+                        batch.set(imeiDocRef, {
+                            status: "disponible",
+                            dateEntree: serverTimestamp
+                        });
+                    });
+                }
             }
         }
 
