@@ -5915,6 +5915,234 @@ document.addEventListener('DOMContentLoaded', () => {
     #supplierPaymentsHistoryList li:last-child {
         border-bottom: none;
     }
+    #screen-aide-commande {
+        background: #f5f5fa;
+        padding: 20px 16px 80px;
+        min-height: 100vh;
+    }
+    .aide-commande-wrapper {
+        max-width: 1040px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+    .aide-commande-header {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .aide-commande-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .aide-commande-header p {
+        margin: 4px 0 0;
+        color: #64748b;
+        font-size: 14px;
+    }
+    .aide-commande-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+    }
+    .aide-commande-controls .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 210px;
+    }
+    .aide-commande-controls label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+    }
+    .aide-commande-select {
+        appearance: none;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 14px;
+        background: #fff;
+        color: #1e293b;
+        min-height: 40px;
+    }
+    .aide-commande-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+    }
+    .aide-commande-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .aide-commande-card span {
+        text-transform: uppercase;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        font-weight: 600;
+    }
+    .aide-commande-card strong {
+        font-size: 22px;
+        color: #1e293b;
+    }
+    .aide-commande-card small {
+        font-size: 12px;
+        color: #94a3b8;
+    }
+    .aide-commande-section {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+    .aide-commande-section h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .aide-commande-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #fff;
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+    .aide-commande-table thead {
+        background: #0f172a;
+        color: #fff;
+    }
+    .aide-commande-table th,
+    .aide-commande-table td {
+        padding: 14px 18px;
+        text-align: left;
+        font-size: 14px;
+        vertical-align: top;
+    }
+    .aide-commande-table th {
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 12px;
+    }
+    .aide-commande-table tbody tr:nth-child(even) {
+        background: #f8fafc;
+    }
+    .aide-commande-table tbody tr.is-alert td {
+        background: rgba(248, 113, 113, 0.12);
+    }
+    .aide-commande-article {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .aide-commande-article strong {
+        font-size: 15px;
+        color: #0f172a;
+    }
+    .aide-commande-article small {
+        color: #94a3b8;
+        font-size: 12px;
+        text-transform: uppercase;
+    }
+    .aide-commande-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+    .aide-commande-badge.ok {
+        background: rgba(34, 197, 94, 0.16);
+        color: #15803d;
+    }
+    .aide-commande-badge.faible {
+        background: rgba(251, 191, 36, 0.18);
+        color: #b45309;
+    }
+    .aide-commande-badge.rupture {
+        background: rgba(248, 113, 113, 0.2);
+        color: #b91c1c;
+    }
+    .aide-commande-empty {
+        padding: 22px;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+        font-size: 14px;
+        color: #64748b;
+        text-align: center;
+    }
+    .aide-commande-alerts {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .aide-commande-alert {
+        background: #fff;
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 12px;
+        align-items: start;
+    }
+    .aide-commande-alert h3 {
+        margin: 0;
+        font-size: 16px;
+        color: #0f172a;
+    }
+    .aide-commande-alert .alert-meta {
+        margin: 0;
+        font-size: 13px;
+        color: #475569;
+    }
+    .aide-commande-alert .alert-meta strong {
+        color: #0f172a;
+    }
+    .aide-commande-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: flex-end;
+    }
+    .aide-commande-helper {
+        font-size: 13px;
+        color: #64748b;
+    }
+    @media (max-width: 720px) {
+        .aide-commande-table {
+            font-size: 13px;
+        }
+        .aide-commande-table th,
+        .aide-commande-table td {
+            padding: 12px;
+        }
+        .aide-commande-controls .control-group {
+            width: 100%;
+        }
+        .aide-commande-select {
+            width: 100%;
+        }
+    }
   </style>
 
   <script>
@@ -12200,6 +12428,66 @@ async function annulerCommandeFournisseur(approId, event) {
     
 </section>
 
+<section id="screen-aide-commande" class="screen">
+  <div class="aide-commande-wrapper">
+    <div class="aide-commande-header">
+      <div>
+        <h1>Aide commande</h1>
+        <p id="aideCommandeRange">Analyse de la semaine en cours.</p>
+      </div>
+      <p class="aide-commande-helper">
+        Identifie les articles vendus récemment et hiérarchisés du plus demandé au moins demandé.
+      </p>
+    </div>
+
+    <div class="aide-commande-controls">
+      <div class="control-group">
+        <label for="aideCommandeTimeframe">Période analysée</label>
+        <select id="aideCommandeTimeframe" class="aide-commande-select">
+          <option value="semaine">Cette semaine</option>
+          <option value="deux_semaines">Deux dernières semaines</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="aide-commande-summary">
+      <div class="aide-commande-card">
+        <span>Articles suivis</span>
+        <strong id="aideCommandeSummaryArticles">0</strong>
+        <small>Nombre d'articles vendus sur la période</small>
+      </div>
+      <div class="aide-commande-card">
+        <span>Unités vendues</span>
+        <strong id="aideCommandeSummaryQuantities">0</strong>
+        <small>Total des quantités vendues</small>
+      </div>
+      <div class="aide-commande-card">
+        <span>Alertes stock</span>
+        <strong id="aideCommandeSummaryAlerts">0</strong>
+        <small>Articles en rupture ou stock ≤ 1</small>
+      </div>
+    </div>
+
+    <div class="aide-commande-section">
+      <h2>Classement des articles vendus</h2>
+      <div id="aideCommandeTopList" class="aide-commande-empty">Analyse en cours...</div>
+    </div>
+
+    <div class="aide-commande-section">
+      <h2>Alertes de réapprovisionnement</h2>
+      <div class="aide-commande-filters">
+        <div class="control-group">
+          <label for="aideCommandeSupplierFilter">Filtrer par fournisseur</label>
+          <select id="aideCommandeSupplierFilter" class="aide-commande-select">
+            <option value="all">Tous les fournisseurs</option>
+          </select>
+        </div>
+      </div>
+      <div id="aideCommandeAlertsList" class="aide-commande-empty">Analyse en cours...</div>
+    </div>
+  </div>
+</section>
+
     <button id="livraisonsQuickButton" class="livraison-count-btn" onclick="ouvrirLivraisonsDepuisBadge()">
       <i data-lucide="truck"></i>
       <span>Livraisons en cours : <strong id="livraisonsEnCoursBadge">0</strong></span>
@@ -12221,6 +12509,10 @@ async function annulerCommandeFournisseur(approId, event) {
       <div class="nav-item" id="nav-appro-hist" onclick="window.location.hash='approvisionnement-historique'">
         <i data-lucide="archive"></i> <span>Achats</span>
     </div>
+      <div class="nav-item" id="nav-aide-commande" onclick="window.location.hash='aide-commande'">
+        <i data-lucide="life-buoy"></i>
+        <span>Aide commande</span>
+      </div>
       <div class="nav-item" id="nav-dettes-fournisseurs" onclick="window.location.hash='dettes-fournisseurs'">
         <i data-lucide="receipt-text"></i>
         <span>Dettes</span>
@@ -15056,6 +15348,9 @@ function voirHistoriqueStock(stockId, e) {
          const salesTabsDefaultValue = document.getElementById('sales-tabs').value || 'all';
         filterSalesHistory(salesTabsDefaultValue); // Pass the current tab value
         break;
+    case 'aide-commande':
+      initializeAideCommandePage();
+      break;
     case 'livraison-detail':
         prepareLivraisonDetailScreen();
         break;
@@ -15175,6 +15470,597 @@ let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
 let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
 const COMMISSION_PAR_TELEPHONE = 75;
+let aideCommandeInitialized = false;
+let aideCommandeState = {
+  timeframe: 'semaine',
+  lastLoadedTimeframe: null,
+  articles: [],
+  lowStock: [],
+  suppliers: [],
+  metrics: null,
+  range: null
+};
+let aideCommandeLoadingPromise = null;
+const aideCommandeLastPurchaseCache = new Map();
+
+function initializeAideCommandePage(forceReload = false) {
+  const topList = document.getElementById('aideCommandeTopList');
+  const alertsList = document.getElementById('aideCommandeAlertsList');
+  if (!topList || !alertsList) {
+    return;
+  }
+
+  if (!aideCommandeInitialized) {
+    const timeframeSelect = document.getElementById('aideCommandeTimeframe');
+    if (timeframeSelect) {
+      timeframeSelect.addEventListener('change', () => {
+        aideCommandeState.timeframe = timeframeSelect.value || 'semaine';
+        loadAideCommandeData(true);
+      });
+    }
+    const supplierSelect = document.getElementById('aideCommandeSupplierFilter');
+    if (supplierSelect) {
+      supplierSelect.addEventListener('change', () => {
+        renderAideCommandeAlerts();
+      });
+    }
+    aideCommandeInitialized = true;
+  }
+
+  const timeframeSelect = document.getElementById('aideCommandeTimeframe');
+  if (timeframeSelect && timeframeSelect.value && aideCommandeState.timeframe !== timeframeSelect.value) {
+    aideCommandeState.timeframe = timeframeSelect.value;
+    forceReload = true;
+  }
+
+  loadAideCommandeData(forceReload);
+}
+
+async function loadAideCommandeData(force = false) {
+  const topList = document.getElementById('aideCommandeTopList');
+  const alertsList = document.getElementById('aideCommandeAlertsList');
+  if (!topList || !alertsList) {
+    return;
+  }
+
+  if (!force &&
+      aideCommandeState.lastLoadedTimeframe === aideCommandeState.timeframe &&
+      Array.isArray(aideCommandeState.articles) &&
+      aideCommandeState.articles.length > 0) {
+    renderAideCommandeSummary(aideCommandeState.metrics, aideCommandeState.range);
+    populateAideCommandeSupplierFilter(aideCommandeState.suppliers || []);
+    renderAideCommandeTopList();
+    renderAideCommandeAlerts();
+    return;
+  }
+
+  if (aideCommandeLoadingPromise) {
+    if (!force) {
+      return aideCommandeLoadingPromise;
+    }
+    try {
+      await aideCommandeLoadingPromise;
+    } catch (error) {
+      console.warn('Chargement precedent aide commande interrompu.', error);
+    }
+  }
+
+  topList.className = 'aide-commande-empty';
+  topList.textContent = 'Analyse en cours...';
+  alertsList.className = 'aide-commande-empty';
+  alertsList.textContent = 'Analyse en cours...';
+
+  aideCommandeLoadingPromise = fetchAideCommandeData(aideCommandeState.timeframe)
+    .then(result => {
+      aideCommandeState.lastLoadedTimeframe = aideCommandeState.timeframe;
+      aideCommandeState.articles = result.articles;
+      aideCommandeState.lowStock = result.lowStock;
+      aideCommandeState.suppliers = result.suppliers;
+      aideCommandeState.metrics = result.metrics;
+      aideCommandeState.range = result.range;
+      renderAideCommandeSummary(result.metrics, result.range);
+      populateAideCommandeSupplierFilter(result.suppliers);
+      renderAideCommandeTopList();
+      renderAideCommandeAlerts();
+      return result;
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement de la page aide commande :', error);
+      const message = 'Impossible de charger les statistiques. Reessayez dans quelques minutes.';
+      topList.className = 'aide-commande-empty';
+      topList.textContent = message;
+      alertsList.className = 'aide-commande-empty';
+      alertsList.textContent = message;
+      return null;
+    })
+    .finally(() => {
+      aideCommandeLoadingPromise = null;
+    });
+
+  return aideCommandeLoadingPromise;
+}
+
+async function fetchAideCommandeData(timeframe) {
+  const now = new Date();
+  const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const startDate = new Date(endDate);
+  const dayOfWeek = endDate.getDay();
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+  if (timeframe === 'deux_semaines') {
+    startDate.setDate(startDate.getDate() - (diffToMonday + 7));
+  } else {
+    startDate.setDate(startDate.getDate() - diffToMonday);
+  }
+  startDate.setHours(0, 0, 0, 0);
+
+  const startTimestamp = firebase.firestore.Timestamp.fromDate(startDate);
+  const ventesSnapshot = await dbFirestore.collection('ventes')
+    .where('timestamp', '>=', startTimestamp)
+    .orderBy('timestamp', 'desc')
+    .get();
+
+  const articleMap = new Map();
+
+  ventesSnapshot.forEach(doc => {
+    const data = doc.data() || {};
+    const status = (data.status || '').toString().toLowerCase();
+    if (status.startsWith('annul')) {
+      return;
+    }
+    const saleTimestamp = data.timestamp && typeof data.timestamp.toDate === 'function'
+      ? data.timestamp.toDate()
+      : (data.timestamp ? new Date(data.timestamp) : null);
+
+    const items = Array.isArray(data.items) ? data.items : [];
+    items.forEach(item => {
+      const rawName = (item.produit || item.name || item.modele || '').trim();
+      if (!rawName) {
+        return;
+      }
+      const key = rawName.toLowerCase();
+      let record = articleMap.get(key);
+      if (!record) {
+        record = {
+          produit: rawName,
+          queryName: rawName,
+          totalQty: 0,
+          totalRevenue: 0,
+          totalProfit: 0,
+          saleCount: 0,
+          category: item.category || null,
+          lastSaleDate: saleTimestamp || null
+        };
+        articleMap.set(key, record);
+      } else {
+        if (rawName.length > record.queryName.length) {
+          record.produit = rawName;
+          record.queryName = rawName;
+        }
+        if (!record.category && item.category) {
+          record.category = item.category;
+        }
+        if (saleTimestamp && (!record.lastSaleDate || saleTimestamp > record.lastSaleDate)) {
+          record.lastSaleDate = saleTimestamp;
+        }
+      }
+
+      const quantity = Number(item.quantite || item.quantity || 0);
+      if (!Number.isNaN(quantity)) {
+        record.totalQty += quantity;
+      }
+
+      const revenue = Number(item.total || (quantity * (Number(item.prix) || 0)));
+      if (!Number.isNaN(revenue)) {
+        record.totalRevenue += revenue;
+      }
+
+      const profit = Number(item.profitTotal || 0);
+      if (!Number.isNaN(profit)) {
+        record.totalProfit += profit;
+      }
+
+      record.saleCount += 1;
+    });
+  });
+
+  let articles = Array.from(articleMap.values());
+  articles.sort((a, b) => {
+    if (b.totalQty !== a.totalQty) {
+      return b.totalQty - a.totalQty;
+    }
+    if (b.totalRevenue !== a.totalRevenue) {
+      return b.totalRevenue - a.totalRevenue;
+    }
+    return a.produit.localeCompare(b.produit, 'fr', { sensitivity: 'base' });
+  });
+
+  const stocks = await ensureAideCommandeStock();
+  const stockMap = new Map();
+  stocks.forEach(stockItem => {
+    const name = (stockItem.name || '').trim();
+    if (!name) {
+      return;
+    }
+    const lower = name.toLowerCase();
+    if (!stockMap.has(name)) {
+      stockMap.set(name, stockItem);
+    }
+    if (!stockMap.has(lower)) {
+      stockMap.set(lower, stockItem);
+    }
+  });
+
+  articles = articles.map(record => {
+    const stockData = stockMap.get(record.queryName) || stockMap.get(record.queryName.toLowerCase()) || null;
+    const stockQty = stockData ? Number(stockData.stock) || 0 : 0;
+    const status = stockQty <= 0 ? 'rupture' : stockQty <= 1 ? 'faible' : 'ok';
+    const category = stockData && stockData.category ? stockData.category : record.category;
+    return {
+      ...record,
+      stockQuantity: stockQty,
+      stockStatus: status,
+      category,
+      lastPurchase: null
+    };
+  });
+
+  const uniqueNames = Array.from(new Set(articles.map(article => article.queryName)));
+  const lastPurchases = await fetchLastPurchasesForProducts(uniqueNames);
+
+  articles.forEach(article => {
+    if (lastPurchases[article.queryName]) {
+      article.lastPurchase = lastPurchases[article.queryName];
+    }
+  });
+
+  const lowStock = articles.filter(article => article.stockStatus !== 'ok');
+  const suppliers = Array.from(new Set(
+    lowStock
+      .map(article => (article.lastPurchase && article.lastPurchase.fournisseur) ? article.lastPurchase.fournisseur : null)
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+
+  const metrics = {
+    uniqueArticles: articles.length,
+    totalQuantity: articles.reduce((sum, article) => sum + (Number(article.totalQty) || 0), 0),
+    lowStockCount: lowStock.length
+  };
+
+  return {
+    articles,
+    lowStock,
+    suppliers,
+    metrics,
+    range: { startDate, endDate }
+  };
+}
+
+async function ensureAideCommandeStock() {
+  if (Array.isArray(cachedStock) && cachedStock.length) {
+    return cachedStock;
+  }
+  const snapshot = await dbFirestore.collection('stock').get();
+  const stocks = [];
+  snapshot.forEach(doc => {
+    stocks.push({ id: doc.id, ...doc.data() });
+  });
+  cachedStock = stocks;
+  return stocks;
+}
+
+async function fetchLastPurchasesForProducts(productNames) {
+  const results = {};
+  const seen = new Set();
+
+  for (const name of productNames) {
+    const trimmed = (name || '').trim();
+    if (!trimmed || seen.has(trimmed)) {
+      continue;
+    }
+    seen.add(trimmed);
+
+    if (aideCommandeLastPurchaseCache.has(trimmed)) {
+      results[trimmed] = aideCommandeLastPurchaseCache.get(trimmed);
+      continue;
+    }
+
+    const purchase = await getLastPurchaseForProduct(trimmed);
+    aideCommandeLastPurchaseCache.set(trimmed, purchase);
+    results[trimmed] = purchase;
+  }
+
+  return results;
+}
+
+async function getLastPurchaseForProduct(articleName) {
+  const trimmed = (articleName || '').trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  const baseQuery = dbFirestore.collection('approvisionnement')
+    .where('productNames', 'array-contains', trimmed);
+
+  try {
+    const snapshot = await baseQuery.orderBy('timestamp', 'desc').limit(1).get();
+    if (snapshot.empty) {
+      return null;
+    }
+    return buildLastPurchasePayload(snapshot.docs[0], trimmed);
+  } catch (error) {
+    if (error && error.code === 'failed-precondition') {
+      const fallbackSnapshot = await baseQuery.get();
+      const docs = [];
+      fallbackSnapshot.forEach(doc => docs.push(doc));
+      docs.sort((a, b) => {
+        const tsA = a.data()?.timestamp;
+        const tsB = b.data()?.timestamp;
+        const dateA = tsA && typeof tsA.toDate === 'function' ? tsA.toDate().getTime() : new Date(tsA || 0).getTime();
+        const dateB = tsB && typeof tsB.toDate === 'function' ? tsB.toDate().getTime() : new Date(tsB || 0).getTime();
+        return dateB - dateA;
+      });
+      if (!docs.length) {
+        return null;
+      }
+      return buildLastPurchasePayload(docs[0], trimmed);
+    }
+    console.error('Erreur lors de la recherche du dernier achat pour', articleName, error);
+    return null;
+  }
+}
+
+function buildLastPurchasePayload(doc, articleName) {
+  if (!doc) {
+    return null;
+  }
+  const data = doc.data() || {};
+  const timestamp = data.timestamp && typeof data.timestamp.toDate === 'function'
+    ? data.timestamp.toDate()
+    : (data.timestamp ? new Date(data.timestamp) : null);
+
+  let price = null;
+  if (Array.isArray(data.items)) {
+    const target = articleName.toLowerCase();
+    const matched = data.items.find(item => {
+      const name = (item.produit || item.modele || item.name || '').trim().toLowerCase();
+      return name === target;
+    }) || data.items.find(item => {
+      const name = (item.produit || item.modele || item.name || '').trim().toLowerCase();
+      return name.includes(target);
+    });
+
+    if (matched) {
+      if (matched.adjustedPrixAchat != null) {
+        price = Number(matched.adjustedPrixAchat);
+      } else if (matched.prixAchat != null) {
+        price = Number(matched.prixAchat);
+      } else if (matched.coutTotal != null && matched.quantite) {
+        const qty = Number(matched.quantite);
+        if (!Number.isNaN(qty) && qty > 0) {
+          price = Number(matched.coutTotal) / qty;
+        }
+      }
+    }
+  }
+
+  return {
+    fournisseur: data.fournisseur || 'Inconnu',
+    date: (timestamp && !Number.isNaN(timestamp.getTime())) ? timestamp : null,
+    price: price != null && !Number.isNaN(price) ? price : null,
+    approId: doc.id
+  };
+}
+
+function renderAideCommandeSummary(metrics, range) {
+  const articlesEl = document.getElementById('aideCommandeSummaryArticles');
+  const quantitiesEl = document.getElementById('aideCommandeSummaryQuantities');
+  const alertsEl = document.getElementById('aideCommandeSummaryAlerts');
+  const rangeEl = document.getElementById('aideCommandeRange');
+
+  if (!articlesEl || !quantitiesEl || !alertsEl) {
+    return;
+  }
+
+  const uniqueArticles = metrics && metrics.uniqueArticles ? metrics.uniqueArticles : 0;
+  const totalQuantity = metrics && metrics.totalQuantity ? metrics.totalQuantity : 0;
+  const lowStockCount = metrics && metrics.lowStockCount ? metrics.lowStockCount : 0;
+
+  articlesEl.textContent = Number(uniqueArticles).toLocaleString('fr-FR');
+  quantitiesEl.textContent = Number(totalQuantity).toLocaleString('fr-FR');
+  alertsEl.textContent = Number(lowStockCount).toLocaleString('fr-FR');
+
+  if (rangeEl) {
+    if (range && range.startDate && range.endDate) {
+      rangeEl.textContent = 'Analyse du ' + formatAideCommandeDate(range.startDate) + ' au ' + formatAideCommandeDate(range.endDate);
+    } else {
+      rangeEl.textContent = 'Analyse de la periode selectionnee.';
+    }
+  }
+}
+
+function renderAideCommandeTopList() {
+  const container = document.getElementById('aideCommandeTopList');
+  if (!container) {
+    return;
+  }
+
+  const articles = Array.isArray(aideCommandeState.articles) ? aideCommandeState.articles : [];
+  if (!articles.length) {
+    container.className = 'aide-commande-empty';
+    container.textContent = 'Aucune vente enregistree sur la periode selectionnee.';
+    return;
+  }
+
+  container.className = '';
+
+  const rows = articles.map(article => {
+    const qtyText = Number(article.totalQty || 0).toLocaleString('fr-FR');
+    const revenueText = formatAideCommandeCurrency(article.totalRevenue);
+    const stockText = Number(article.stockQuantity || 0).toLocaleString('fr-FR');
+    const lastSale = article.lastSaleDate ? formatAideCommandeDate(article.lastSaleDate) : 'N/A';
+    const supplierName = article.lastPurchase && article.lastPurchase.fournisseur
+      ? aideCommandeEscapeHtml(article.lastPurchase.fournisseur)
+      : 'Inconnu';
+    const lastPurchaseDate = article.lastPurchase ? formatAideCommandeDate(article.lastPurchase.date) : 'N/A';
+    const lastPurchasePrice = article.lastPurchase && article.lastPurchase.price != null
+      ? formatAideCommandeCurrency(article.lastPurchase.price)
+      : 'Prix non renseigne';
+    const statusBadge = aideCommandeStatusBadge(article.stockStatus);
+    const category = article.category ? '<small>' + aideCommandeEscapeHtml(article.category) + '</small>' : '';
+    const rowClass = article.stockStatus !== 'ok' ? ' class="is-alert"' : '';
+
+    return (
+      '<tr' + rowClass + '>' +
+        '<td class="aide-commande-article"><strong>' + aideCommandeEscapeHtml(article.produit) + '</strong>' + category + '</td>' +
+        '<td><strong>' + qtyText + '</strong></td>' +
+        '<td>' + revenueText + '</td>' +
+        '<td>' + stockText + '<br>' + statusBadge + '</td>' +
+        '<td>' + lastSale + '</td>' +
+        '<td><div><strong>' + supplierName + '</strong></div><div>' + lastPurchaseDate + ' · ' + lastPurchasePrice + '</div></td>' +
+      '</tr>'
+    );
+  }).join('');
+
+  container.innerHTML =
+    '<table class="aide-commande-table">' +
+      '<thead>' +
+        '<tr>' +
+          '<th>Article</th>' +
+          '<th>Qte vendue</th>' +
+          '<th>CA (FCFA)</th>' +
+          '<th>Stock</th>' +
+          '<th>Derniere vente</th>' +
+          '<th>Dernier achat</th>' +
+        '</tr>' +
+      '</thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>';
+}
+
+function renderAideCommandeAlerts() {
+  const container = document.getElementById('aideCommandeAlertsList');
+  const supplierSelect = document.getElementById('aideCommandeSupplierFilter');
+  if (!container) {
+    return;
+  }
+
+  const selectedSupplier = supplierSelect ? supplierSelect.value : 'all';
+  const alerts = Array.isArray(aideCommandeState.lowStock) ? aideCommandeState.lowStock : [];
+
+  if (!alerts.length) {
+    container.className = 'aide-commande-empty';
+    container.textContent = 'Aucune alerte de stock sur la periode selectionnee.';
+    return;
+  }
+
+  const filtered = alerts.filter(article => {
+    if (selectedSupplier === 'all') {
+      return true;
+    }
+    const supplierName = article.lastPurchase && article.lastPurchase.fournisseur
+      ? article.lastPurchase.fournisseur
+      : 'Inconnu';
+    return supplierName === selectedSupplier;
+  });
+
+  if (!filtered.length) {
+    container.className = 'aide-commande-empty';
+    container.textContent = 'Aucune alerte pour ce fournisseur.';
+    return;
+  }
+
+  container.className = 'aide-commande-alerts';
+  container.innerHTML = filtered.map(article => {
+    const supplierName = article.lastPurchase && article.lastPurchase.fournisseur
+      ? aideCommandeEscapeHtml(article.lastPurchase.fournisseur)
+      : 'Inconnu';
+    const lastPurchaseDate = article.lastPurchase ? formatAideCommandeDate(article.lastPurchase.date) : 'N/A';
+    const priceText = article.lastPurchase && article.lastPurchase.price != null
+      ? formatAideCommandeCurrency(article.lastPurchase.price)
+      : 'Prix non renseigne';
+    const lastSale = article.lastSaleDate ? formatAideCommandeDate(article.lastSaleDate) : 'N/A';
+    const stockText = Number(article.stockQuantity || 0).toLocaleString('fr-FR');
+    const statusBadge = aideCommandeStatusBadge(article.stockStatus);
+
+    return (
+      '<div class="aide-commande-alert">' +
+        '<div>' +
+          '<h3>' + aideCommandeEscapeHtml(article.produit) + '</h3>' +
+          statusBadge +
+        '</div>' +
+        '<p class="alert-meta"><strong>Stock actuel :</strong> ' + stockText + '</p>' +
+        '<p class="alert-meta"><strong>Fournisseur :</strong> ' + supplierName + '</p>' +
+        '<p class="alert-meta"><strong>Dernier achat :</strong> ' + lastPurchaseDate + ' · ' + priceText + '</p>' +
+        '<p class="alert-meta"><strong>Derniere vente :</strong> ' + lastSale + '</p>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function populateAideCommandeSupplierFilter(suppliers) {
+  const select = document.getElementById('aideCommandeSupplierFilter');
+  if (!select) {
+    return;
+  }
+
+  const currentValue = select.value;
+  select.innerHTML = '';
+
+  const optionAll = document.createElement('option');
+  optionAll.value = 'all';
+  optionAll.textContent = 'Tous les fournisseurs';
+  select.appendChild(optionAll);
+
+  suppliers.forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  });
+
+  if (suppliers.includes(currentValue)) {
+    select.value = currentValue;
+  } else {
+    select.value = 'all';
+  }
+
+  select.disabled = suppliers.length === 0;
+}
+
+function formatAideCommandeDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return 'N/A';
+  }
+  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function formatAideCommandeCurrency(value) {
+  const numeric = Number(value);
+  if (Number.isNaN(numeric) || !Number.isFinite(numeric)) {
+    return '0 FCFA';
+  }
+  return numeric.toLocaleString('fr-FR') + ' FCFA';
+}
+
+function aideCommandeEscapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function aideCommandeStatusBadge(status) {
+  const config = {
+    rupture: { label: 'Rupture', css: 'rupture' },
+    faible: { label: 'Stock 1', css: 'faible' },
+    ok: { label: 'OK', css: 'ok' }
+  };
+  const meta = config[status] || config.ok;
+  return '<span class="aide-commande-badge ' + meta.css + '">' + meta.label + '</span>';
+}
 
 // Gestion des livreurs (section livraison)
 let livreursCache = [];
