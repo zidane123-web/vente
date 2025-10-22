@@ -9679,11 +9679,16 @@ async function recordCreditPayment(approId, outstandingAmount) {
     
     <p id="scanFeedbackDynamsoft" style="text-align: center; color: var(--accent-color); height: 20px; margin-top: 10px;"></p>
 
-    <div style="display: flex; gap: 8px; margin: 15px 0;">
-      <input type="number" id="manualImeiInputDynamsoft" placeholder="Ou saisir l'IMEI manuellement" style="flex-grow: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc;">
-      <button onclick="ajouterImeiManuellementDynamsoft()" style="padding: 10px; border: none; background: var(--primary-color); color: white; border-radius: 5px; cursor: pointer;">
-        <i data-lucide="plus"></i>
-      </button>
+    <div style="display: flex; gap: 8px; margin: 15px 0; align-items: stretch;">
+      <textarea id="manualImeiInputDynamsoft" placeholder="Coller plusieurs IMEI (séparés par des retours à la ligne ou des espaces)" rows="3" style="flex-grow: 1; padding: 10px; border-radius: 5px; border: 1px solid #ccc; resize: vertical;"></textarea>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" class="btn-modern secondary" onclick="ajouterListeImeisDynamsoft()" style="white-space: nowrap;">
+          <i data-lucide="clipboard-plus"></i> Ajouter la liste
+        </button>
+        <button type="button" class="btn-modern" onclick="ajouterImeiManuellementDynamsoft()" style="white-space: nowrap;">
+          <i data-lucide="plus"></i> Ajouter 1 IMEI
+        </button>
+      </div>
     </div>
 
     <hr style="margin: 15px 0;">
@@ -10646,6 +10651,7 @@ function lancerScanDynamsoft(item, options = {}) {
   document.getElementById('scannedImeiListDynamsoft').innerHTML = '';
   document.getElementById('manualImeiInputDynamsoft').value = '';
   document.getElementById('btnConfirmerScanDynamsoft').disabled = true;
+  setupManualImeiInputListeners();
 
   // Naviguer vers le nouvel écran de scan
   window.location.hash = 'scan-dynamsoft';
@@ -10671,10 +10677,43 @@ function lancerScanDynamsoftReception(item, index) {
 
 // --- 2. Affiche le bouton "Scanner le prochain IMEI" ---
 function afficherBoutonDeScan() {
+    updateEtatScanDynamsoft(true);
+}
+
+function updateEtatScanDynamsoft(promptNext = true) {
+    if (!currentApproItemForScan) {
+        return;
+    }
+    const targetCount = Number(currentApproItemForScan.quantite) || 0;
+    const currentCount = tempScannedImeis.length;
+    const remaining = Math.max(targetCount - currentCount, 0);
     const container = document.getElementById('scan-container');
-    const numRestants = currentApproItemForScan.quantite - tempScannedImeis.length;
-    container.innerHTML = `<button class="btn-modern" onclick="demarrerUnScan()">Scanner IMEI (${numRestants} restant(s))</button>`;
-    document.getElementById('scanFeedbackDynamsoft').textContent = 'Prêt pour le prochain scan.';
+    const feedbackEl = document.getElementById('scanFeedbackDynamsoft');
+    const confirmBtn = document.getElementById('btnConfirmerScanDynamsoft');
+
+    if (confirmBtn) {
+        confirmBtn.disabled = !(currentCount === targetCount && targetCount > 0);
+    }
+
+    if (currentCount === targetCount && targetCount > 0) {
+        if (feedbackEl) {
+            feedbackEl.textContent = "Tous les IMEI ont été ajoutés !";
+        }
+        if (container) {
+            container.innerHTML = '<p style="color: green; font-weight: bold;">Terminé ! Vous pouvez confirmer.</p>';
+        }
+        return;
+    }
+
+    if (feedbackEl) {
+        feedbackEl.textContent = promptNext
+            ? 'Prêt pour le prochain scan.'
+            : (remaining > 0 ? `${remaining} IMEI restant(s) à ajouter.` : '');
+    }
+
+    if (promptNext && container) {
+        container.innerHTML = `<button class="btn-modern" onclick="demarrerUnScan()">Scanner IMEI (${remaining} restant(s))</button>`;
+    }
 }
 
 // --- 3. Démarre UN SEUL scan (LOGIQUE HELLO WORLD EXACTE) ---
@@ -10713,56 +10752,232 @@ function demarrerUnScan() {
 
 
 // --- 4. Fonction qui traite chaque IMEI (logique métier) ---
-function processImei(rawInput) {
-  const cleaned = rawInput.replace(/\D/g, '').slice(0, 15);
-
-  if (cleaned.length !== 15 || tempScannedImeis.includes(cleaned)) {
-    showToast(cleaned.length !== 15 ? "IMEI invalide." : "IMEI déjà scanné.", "error");
-    afficherBoutonDeScan(); // Affiche le bouton pour le prochain essai
-    return;
+function processImei(rawInput, options = {}) {
+  const { promptNext = true, silent = false } = options;
+  if (!currentApproItemForScan) {
+    return { status: 'no-context' };
   }
 
-  if (tempScannedImeis.length >= currentApproItemForScan.quantite) {
-    showToast("Quantité requise déjà atteinte.");
-    return;
+  const value = typeof rawInput === 'string' ? rawInput : String(rawInput || '');
+  const cleaned = value.replace(/\D/g, '').slice(0, 15);
+  const targetCount = Number(currentApproItemForScan.quantite) || 0;
+
+  if (cleaned.length !== 15) {
+    if (!silent) {
+      showToast("IMEI invalide.");
+    }
+    updateEtatScanDynamsoft(promptNext);
+    return { status: 'invalid', imei: cleaned };
+  }
+
+  if (tempScannedImeis.includes(cleaned)) {
+    if (!silent) {
+      showToast("IMEI déjà scanné.");
+    }
+    updateEtatScanDynamsoft(promptNext);
+    return { status: 'duplicate', imei: cleaned };
+  }
+
+  if (tempScannedImeis.length >= targetCount) {
+    if (!silent) {
+      showToast("Quantité requise déjà atteinte.");
+    }
+    updateEtatScanDynamsoft(false);
+    return { status: 'full', imei: cleaned };
   }
 
   tempScannedImeis.push(cleaned);
 
-  // Mise à jour de l'interface
   const list = document.getElementById('scannedImeiListDynamsoft');
-  const listItem = document.createElement('li');
-  listItem.textContent = cleaned;
-  list.appendChild(listItem);
-  document.getElementById('scanCurrentCountDynamsoft').textContent = tempScannedImeis.length;
-  showToast(`IMEI ${cleaned} ajouté !`);
-  if (navigator.vibrate) navigator.vibrate(100);
-
-  // Décider de la suite : soit on a fini, soit on affiche le bouton pour le prochain
-  if (tempScannedImeis.length === currentApproItemForScan.quantite) {
-    document.getElementById('btnConfirmerScanDynamsoft').disabled = false;
-    document.getElementById('scanFeedbackDynamsoft').textContent = "Tous les IMEI ont été ajoutés !";
-    document.getElementById('scan-container').innerHTML = '<p style="color: green; font-weight: bold;">Terminé ! Vous pouvez confirmer.</p>';
-    showToast("Prêt à confirmer.");
-  } else {
-    afficherBoutonDeScan(); // Affiche le bouton pour le suivant
+  if (list) {
+    const listItem = document.createElement('li');
+    listItem.textContent = cleaned;
+    list.appendChild(listItem);
   }
+  const countEl = document.getElementById('scanCurrentCountDynamsoft');
+  if (countEl) {
+    countEl.textContent = tempScannedImeis.length;
+  }
+  if (!silent) {
+    showToast(`IMEI ${cleaned} ajouté !`);
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(100);
+    }
+  }
+
+  updateEtatScanDynamsoft(promptNext);
+
+  return { status: 'added', imei: cleaned };
 }
 
 // --- 5. Fonctions des boutons de l'interface (confirm, manual, cancel) ---
 function ajouterImeiManuellementDynamsoft() {
   const input = document.getElementById('manualImeiInputDynamsoft');
+  if (!input) return;
+
   const imei = input.value.trim();
-  if (imei) {
-    // On ne traite que s'il reste de la place
-    if (tempScannedImeis.length < currentApproItemForScan.quantite) {
-        processImei(imei);
-        input.value = '';
-    } else {
-        showToast("Quantité requise déjà atteinte.");
+  if (!imei) {
+    showToast("Saisissez ou collez au moins un IMEI.");
+    return;
+  }
+
+  const result = processImei(imei, { promptNext: true, silent: false });
+  if (result && result.status === 'added') {
+    input.value = '';
+  }
+}
+
+function ajouterListeImeisDynamsoft() {
+  const textarea = document.getElementById('manualImeiInputDynamsoft');
+  if (!textarea) return;
+
+  const rawText = textarea.value || '';
+  if (!rawText.trim()) {
+    showToast("Collez vos IMEI avant d'ajouter la liste.");
+    return;
+  }
+
+  const stats = traiterListeImeisColles(rawText);
+  afficherResumeAjoutImeis(stats);
+  if (stats.added > 0) {
+    textarea.value = '';
+  }
+}
+
+function traiterListeImeisColles(rawText) {
+  const stats = {
+    added: 0,
+    duplicates: 0,
+    invalid: 0,
+    overflow: 0
+  };
+
+  if (!currentApproItemForScan || !rawText) {
+    return stats;
+  }
+
+  const sequences = rawText.match(/\d+/g) || [];
+  if (!sequences.length) {
+    updateEtatScanDynamsoft(false);
+    return stats;
+  }
+
+  const targetCount = Number(currentApproItemForScan.quantite) || 0;
+  let stopProcessing = false;
+
+  for (const sequence of sequences) {
+    if (stopProcessing) {
+      break;
+    }
+    if (sequence.length < 12) {
+      continue;
+    }
+    const { chunks, leftover } = decouperSequenceEnImeis(sequence);
+    if (!chunks.length) {
+      if (leftover) {
+        stats.invalid += 1;
+      }
+      continue;
+    }
+
+    for (const chunk of chunks) {
+      if (stopProcessing || tempScannedImeis.length >= targetCount) {
+        stats.overflow += 1;
+        stopProcessing = true;
+        break;
+      }
+      const result = processImei(chunk, { promptNext: false, silent: true });
+      switch (result.status) {
+        case 'added':
+          stats.added += 1;
+          break;
+        case 'duplicate':
+          stats.duplicates += 1;
+          break;
+        case 'invalid':
+          stats.invalid += 1;
+          break;
+        case 'full':
+          stats.overflow += 1;
+          stopProcessing = true;
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (leftover && !stopProcessing) {
+      stats.invalid += 1;
+    }
+  }
+
+  updateEtatScanDynamsoft(false);
+  return stats;
+}
+
+function decouperSequenceEnImeis(sequence) {
+  const digits = sequence.replace(/\D/g, '');
+  if (digits.length < 15) {
+    return { chunks: [], leftover: digits.length > 0 };
+  }
+
+  const chunks = [];
+  for (let i = 0; i + 15 <= digits.length; i += 15) {
+    const chunk = digits.slice(i, i + 15);
+    if (chunk.length === 15) {
+      chunks.push(chunk);
+    }
+  }
+
+  const leftover = digits.length % 15 !== 0;
+  return { chunks, leftover };
+}
+
+function afficherResumeAjoutImeis(stats) {
+  if (!stats) return;
+  const parts = [];
+  if (stats.added) parts.push(`${stats.added} IMEI ajouté(s)`);
+  if (stats.duplicates) parts.push(`${stats.duplicates} doublon(s) ignoré(s)`);
+  if (stats.overflow) parts.push(`${stats.overflow} au-delà de la quantité`);
+  if (stats.invalid) parts.push(`${stats.invalid} entrée(s) invalide(s)`);
+
+  const message = parts.length ? parts.join(' · ') : "Aucun IMEI détecté.";
+  showToast(message);
+  const allAdded = currentApproItemForScan && tempScannedImeis.length === Number(currentApproItemForScan.quantite || 0);
+  if (!allAdded) {
+    const feedbackEl = document.getElementById('scanFeedbackDynamsoft');
+    if (feedbackEl) {
+      feedbackEl.textContent = message;
     }
   }
 }
+
+function setupManualImeiInputListeners() {
+  const textarea = document.getElementById('manualImeiInputDynamsoft');
+  if (!textarea || textarea.dataset.bulkListenerAttached === 'true') {
+    return;
+  }
+  textarea.addEventListener('paste', handleImeiTextareaPaste);
+  textarea.dataset.bulkListenerAttached = 'true';
+}
+
+function handleImeiTextareaPaste(event) {
+  const textarea = event.currentTarget;
+  setTimeout(() => {
+    if (!textarea.value.trim()) {
+      return;
+    }
+    const stats = traiterListeImeisColles(textarea.value);
+    if (stats.added || stats.duplicates || stats.invalid || stats.overflow) {
+      afficherResumeAjoutImeis(stats);
+      if (stats.added > 0) {
+        textarea.value = '';
+      }
+    }
+  }, 0);
+}
+
+document.addEventListener('DOMContentLoaded', setupManualImeiInputListeners);
 
 function confirmerScanApprovisionnementDynamsoft() {
   if (scanUsageMode === 'appro') {
