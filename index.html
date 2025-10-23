@@ -6469,6 +6469,70 @@ document.addEventListener('DOMContentLoaded', () => {
         color: #64748b;
         text-align: center;
     }
+    .vente-payment-proof-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+        margin-top: 10px;
+    }
+    .vente-payment-proof-thumb {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 10px;
+        border: 1px solid #d1d5db;
+        cursor: pointer;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+    }
+    .vente-payment-proof-remove {
+        border: none;
+        background: #dc2626;
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        cursor: pointer;
+    }
+    .cloture-payment-entry {
+        padding: 10px 0;
+        border-bottom: 1px dashed #e2e8f0;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .cloture-payment-entry:last-child {
+        border-bottom: none;
+    }
+    .cloture-payment-amount {
+        font-weight: 600;
+        color: #0f172a;
+    }
+    .cloture-payment-proof {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .cloture-payment-proof span {
+        font-size: 12px;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .cloture-proof-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid rgba(99, 102, 241, 0.35);
+        cursor: pointer;
+        box-shadow: 0 12px 30px rgba(79, 70, 229, 0.18);
+        transition: transform 0.2s ease;
+    }
+    .cloture-proof-image:hover {
+        transform: translateY(-2px);
+    }
     @media (max-width: 720px) {
         .cloture-vendeur-controls {
             flex-direction: column;
@@ -11612,15 +11676,39 @@ function renderClotureSales(sales) {
     return;
   }
   const entries = sales.map(sale => {
-    const lines = Array.isArray(sale.payments) && sale.payments.length
-      ? sale.payments.map(p => `${aideCommandeEscapeHtml(p.label)} : ${formatXof(p.net || p.encaisse || 0)}`).join(' · ')
-      : 'Paiements non détaillés';
-    const heure = sale.heure || (sale.timestamp ? new Date(sale.timestamp).toLocaleTimeString('fr-FR') : '');
+    const heure = sale.heure || (sale.timestamp ? new Date(sale.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '');
+    const paymentsHtml = Array.isArray(sale.payments) && sale.payments.length
+      ? sale.payments.map(p => {
+          const montant = formatXof(p.net != null ? p.net : (p.encaisse || 0));
+          const monnaieText = p.monnaie ? ` (monnaie ${formatXof(p.monnaie)})` : '';
+          const proofs = [];
+          const encaisseCollection = Array.isArray(p.encaissePhotos) ? p.encaissePhotos.slice() : [];
+          if (p.encaissePhoto) {
+            encaisseCollection.push(p.encaissePhoto);
+          }
+          encaisseCollection.forEach(photo => {
+            if (!photo) return;
+            proofs.push(`<div class="cloture-payment-proof"><span>Encaissement</span><img class="cloture-proof-image" src="${photo}" alt="Preuve encaissement" onclick="ouvrirPreuvePaiement(this.src)"></div>`);
+          });
+          const monnaieCollection = Array.isArray(p.monnaiePhotos) ? p.monnaiePhotos.slice() : [];
+          if (p.monnaiePhoto) {
+            monnaieCollection.push(p.monnaiePhoto);
+          }
+          monnaieCollection.forEach(photo => {
+            if (!photo) return;
+            proofs.push(`<div class="cloture-payment-proof"><span>Monnaie</span><img class="cloture-proof-image" src="${photo}" alt="Preuve monnaie" onclick="ouvrirPreuvePaiement(this.src)"></div>`);
+          });
+          return `<div class="cloture-payment-entry">
+            <div class="cloture-payment-amount">${aideCommandeEscapeHtml(p.label || 'Compte')} : ${montant}${monnaieText}</div>
+            ${proofs.join('')}
+          </div>`;
+        }).join('')
+      : '<div class="cloture-payment-entry">Paiements non detailles</div>';
     return `<div class="cloture-history-item">
       <div><strong>${heure || '--:--'}</strong></div>
       <div>${aideCommandeEscapeHtml(sale.client || 'Client')}</div>
       <div>${formatXof(sale.total || 0)}</div>
-      <div>${lines}</div>
+      <div>${paymentsHtml}</div>
     </div>`;
   }).join('');
   container.innerHTML = entries;
@@ -11756,6 +11844,15 @@ function normaliserCleCloture(value) {
     .replace(/^-+|-+$/g, '') || 'inconnu';
 }
 
+function ouvrirPreuvePaiement(src) {
+  if (!src) return;
+  const win = window.open();
+  if (win) {
+    win.document.write('<title>Preuve de paiement</title>');
+    win.document.write('<img src="' + src + '" style="max-width:100%; height:auto; display:block; margin:0 auto;">');
+  }
+}
+
 async function calculerClotureVendeur(dateObj, vendor) {
   const start = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0, 0);
   const end = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59, 999);
@@ -11813,11 +11910,27 @@ async function calculerClotureVendeur(dateObj, vendor) {
         entry.encaisse += encaisse;
         entry.monnaie += monnaie;
         entry.net += net;
+        const encaissePhotos = [];
+        if (Array.isArray(payment.encaissePhotos)) {
+          payment.encaissePhotos.forEach(p => p && encaissePhotos.push(p));
+        }
+        if (payment.encaissePhoto) {
+          encaissePhotos.push(payment.encaissePhoto);
+        }
+        const monnaiePhotos = [];
+        if (Array.isArray(payment.monnaiePhotos)) {
+          payment.monnaiePhotos.forEach(p => p && monnaiePhotos.push(p));
+        }
+        if (payment.monnaiePhoto) {
+          monnaiePhotos.push(payment.monnaiePhoto);
+        }
         salePayments.push({
           label: compteNom || compteId || 'Compte',
           encaisse,
           monnaie,
-          net
+          net,
+          encaissePhotos,
+          monnaiePhotos
         });
       });
     } else {
@@ -11839,7 +11952,9 @@ async function calculerClotureVendeur(dateObj, vendor) {
         label: 'Sans detail',
         encaisse: total,
         monnaie: 0,
-        net: total
+        net: total,
+        encaissePhotos: [],
+        monnaiePhotos: []
       });
     }
 
@@ -11852,6 +11967,7 @@ async function calculerClotureVendeur(dateObj, vendor) {
       client: data.clientNom || 'Client',
       total,
       heure: data.heureVente || (saleTimestamp ? saleTimestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''),
+      timestamp: saleTimestamp ? saleTimestamp.toISOString() : null,
       payments: salePayments
     });
   });
@@ -15347,7 +15463,9 @@ function ajouterLignePaiementVente(initialData) {
     id: ++ventePaymentAutoId,
     compteId: payload.compteId || '',
     montantEncaisse: payload.montantEncaisse || '',
-    monnaieRendue: payload.monnaieRendue || ''
+    monnaieRendue: payload.monnaieRendue || '',
+    encaissePhoto: payload.encaissePhoto || null,
+    monnaiePhoto: payload.monnaiePhoto || null
   });
   renderVentePayments();
   rafraichirResumePaiementVente();
@@ -15396,6 +15514,79 @@ function renderVentePayments() {
     });
     row.appendChild(changeInput);
 
+    const proofsWrapper = document.createElement('div');
+    proofsWrapper.className = 'vente-payment-proof-wrapper';
+
+    const encaisseInput = document.createElement('input');
+    encaisseInput.type = 'file';
+    encaisseInput.accept = 'image/*';
+    encaisseInput.style.display = 'none';
+    encaisseInput.addEventListener('change', event => {
+      onVentePaymentPhotoSelected(payment.id, 'encaisse', event.target.files);
+      encaisseInput.value = '';
+    });
+    proofsWrapper.appendChild(encaisseInput);
+
+    const encaisseBtn = document.createElement('button');
+    encaisseBtn.type = 'button';
+    encaisseBtn.className = 'btn-modern secondary';
+    encaisseBtn.style.whiteSpace = 'nowrap';
+    encaisseBtn.innerHTML = '<i data-lucide="camera"></i> Preuve encaissement';
+    encaisseBtn.addEventListener('click', () => encaisseInput.click());
+    proofsWrapper.appendChild(encaisseBtn);
+
+    if (payment.encaissePhoto) {
+      const thumb = document.createElement('img');
+      thumb.src = payment.encaissePhoto;
+      thumb.alt = 'Preuve encaissement';
+      thumb.className = 'vente-payment-proof-thumb';
+      thumb.addEventListener('click', () => ouvrirPreuvePaiement(thumb.src));
+      proofsWrapper.appendChild(thumb);
+
+      const removeEncaisse = document.createElement('button');
+      removeEncaisse.type = 'button';
+      removeEncaisse.className = 'vente-payment-proof-remove';
+      removeEncaisse.textContent = 'Retirer';
+      removeEncaisse.addEventListener('click', () => supprimerVentePaymentPhoto(payment.id, 'encaisse'));
+      proofsWrapper.appendChild(removeEncaisse);
+    }
+
+    const monnaieInput = document.createElement('input');
+    monnaieInput.type = 'file';
+    monnaieInput.accept = 'image/*';
+    monnaieInput.style.display = 'none';
+    monnaieInput.addEventListener('change', event => {
+      onVentePaymentPhotoSelected(payment.id, 'monnaie', event.target.files);
+      monnaieInput.value = '';
+    });
+    proofsWrapper.appendChild(monnaieInput);
+
+    const monnaieBtn = document.createElement('button');
+    monnaieBtn.type = 'button';
+    monnaieBtn.className = 'btn-modern secondary';
+    monnaieBtn.style.whiteSpace = 'nowrap';
+    monnaieBtn.innerHTML = '<i data-lucide="camera"></i> Preuve monnaie';
+    monnaieBtn.addEventListener('click', () => monnaieInput.click());
+    proofsWrapper.appendChild(monnaieBtn);
+
+    if (payment.monnaiePhoto) {
+      const thumbMonnaie = document.createElement('img');
+      thumbMonnaie.src = payment.monnaiePhoto;
+      thumbMonnaie.alt = 'Preuve monnaie';
+      thumbMonnaie.className = 'vente-payment-proof-thumb';
+      thumbMonnaie.addEventListener('click', () => ouvrirPreuvePaiement(thumbMonnaie.src));
+      proofsWrapper.appendChild(thumbMonnaie);
+
+      const removeMonnaie = document.createElement('button');
+      removeMonnaie.type = 'button';
+      removeMonnaie.className = 'vente-payment-proof-remove';
+      removeMonnaie.textContent = 'Retirer';
+      removeMonnaie.addEventListener('click', () => supprimerVentePaymentPhoto(payment.id, 'monnaie'));
+      proofsWrapper.appendChild(removeMonnaie);
+    }
+
+    row.appendChild(proofsWrapper);
+
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'vente-payment-remove btn-modern secondary';
@@ -15436,6 +15627,8 @@ function supprimerLignePaiementVente(paymentId) {
       unique.compteId = '';
       unique.montantEncaisse = '';
       unique.monnaieRendue = '';
+      unique.encaissePhoto = null;
+      unique.monnaiePhoto = null;
     }
     renderVentePayments();
     rafraichirResumePaiementVente();
@@ -15443,6 +15636,46 @@ function supprimerLignePaiementVente(paymentId) {
   }
 
   ventePayments = ventePayments.filter(p => p.id !== paymentId);
+  renderVentePayments();
+  rafraichirResumePaiementVente();
+}
+
+function onVentePaymentPhotoSelected(paymentId, type, fileList) {
+  if (!fileList || !fileList.length) {
+    return;
+  }
+  const file = fileList[0];
+  if (!file) return;
+  try {
+    compressImage(file, 1280, 1280, 0.7, dataUrl => {
+      setVentePaymentPhoto(paymentId, type, dataUrl);
+    });
+  } catch (err) {
+    console.error('Erreur lors de la compression de la preuve de paiement :', err);
+    alert("Impossible de traiter l'image sélectionnée. Reessayez.");
+  }
+}
+
+function setVentePaymentPhoto(paymentId, type, dataUrl) {
+  const payment = ventePayments.find(p => p.id === paymentId);
+  if (!payment) return;
+  if (type === 'encaisse') {
+    payment.encaissePhoto = dataUrl;
+  } else if (type === 'monnaie') {
+    payment.monnaiePhoto = dataUrl;
+  }
+  renderVentePayments();
+  rafraichirResumePaiementVente();
+}
+
+function supprimerVentePaymentPhoto(paymentId, type) {
+  const payment = ventePayments.find(p => p.id === paymentId);
+  if (!payment) return;
+  if (type === 'encaisse') {
+    payment.encaissePhoto = null;
+  } else if (type === 'monnaie') {
+    payment.monnaiePhoto = null;
+  }
   renderVentePayments();
   rafraichirResumePaiementVente();
 }
@@ -18044,7 +18277,9 @@ function continuerDepuisPanier() {
                 compteNom: compteInfo.nom || compteId,
                 montantEncaisse,
                 monnaieRendue,
-                netEncaisse: montantEncaisse - monnaieRendue
+                netEncaisse: montantEncaisse - monnaieRendue,
+                encaissePhoto: paiement.encaissePhoto || null,
+                monnaiePhoto: paiement.monnaiePhoto || null
             };
         })
         .filter(Boolean);
