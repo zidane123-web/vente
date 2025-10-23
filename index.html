@@ -20089,7 +20089,7 @@ function majCartesTresorerie() {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'dettes-fournisseurs', 'fournisseur-balance'];
+        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'dettes-fournisseurs', 'fournisseur-balance', 'aide-commande', 'cloture-vendeur'];
         const currentHash = window.location.hash.replace('#', '');
         if (disallowedForEmployee.includes(currentHash)) {
           window.location.hash = 'vendre';
