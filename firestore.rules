@@ -70,6 +70,13 @@ service cloud.firestore {
       allow delete: if canDelete();
     }
 
+    /* Clotures journalières par vendeur */
+    match /cloturesVendeurs/{document=**} {
+      allow read: if canRead();
+      allow create, update: if canWrite();
+      allow delete: if canDelete();
+    }
+
     /* Dépenses fonctionnelles */
     match /depenses/{document=**} {
       allow read: if canRead();
