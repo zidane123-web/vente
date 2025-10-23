@@ -1,4 +1,4 @@
-﻿
+
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -2462,6 +2462,9 @@ body.role-employe #screen-accueil .accueil-actions {
         </ion-buttons>
         <ion-title>Historique des Ventes</ion-title>
         <ion-buttons slot="end">
+          <ion-button onclick="ouvrirClotureVendeurDepuisHistorique()">
+            <ion-icon name="calculator-outline"></ion-icon>
+          </ion-button>
           <ion-button>
             <ion-icon name="search-outline"></ion-icon>
           </ion-button>
@@ -4079,6 +4082,110 @@ function generateInvoicePDF(sale) {
 
 
     <!-- Screen  : Démarrer la journée -->
+<section id="screen-cloture-vendeur" class="screen">
+  <div class="cloture-vendeur-wrapper">
+    <div class="cloture-vendeur-header">
+      <button type="button" class="cloture-vendeur-back" onclick="window.location.hash='historique'">
+        <i data-lucide="arrow-left"></i>
+        <span>Retour ventes</span>
+      </button>
+      <h1>Cloture vendeur</h1>
+    </div>
+
+    <div class="cloture-vendeur-controls">
+      <div class="cloture-control-group">
+        <label for="clotureVendeurDate">Date de cloture</label>
+        <input type="date" id="clotureVendeurDate" class="cloture-vendeur-input">
+      </div>
+      <div class="cloture-control-group">
+        <label for="clotureVendeurSelect">Vendeur</label>
+        <select id="clotureVendeurSelect" class="cloture-vendeur-select">
+          <option value="">Selectionnez un vendeur</option>
+        </select>
+      </div>
+      <div class="cloture-control-group" style="min-width:160px;">
+        <label>&nbsp;</label>
+        <button type="button" class="btn-modern secondary" onclick="rafraichirClotureVendeur()" id="clotureRefreshButton">
+          <i data-lucide="refresh-cw"></i> Recalculer
+        </button>
+      </div>
+    </div>
+
+    <div id="clotureVendeurLoader" class="cloture-empty-state" style="display:none;">
+      Calcul des ventes en cours...
+    </div>
+
+    <div id="clotureVendeurMessage" class="cloture-empty-state" style="display:none;">
+      Selectionnez un vendeur et une date pour lancer la cloture.
+    </div>
+
+    <div id="clotureVendeurSummary" style="display:none; display:flex; flex-direction:column; gap:20px;">
+      <div class="cloture-summary-grid">
+        <div class="cloture-card">
+          <span>Total ventes</span>
+          <strong id="clotureTotalVentes">0 FCFA</strong>
+          <small id="clotureTotalVentesCount">0 vente</small>
+        </div>
+        <div class="cloture-card">
+          <span>Cash attendu</span>
+          <strong id="clotureCashAttendu">0 FCFA</strong>
+          <small>Somme des encaissements en caisse (net)</small>
+        </div>
+        <div class="cloture-card">
+          <span>MoMo encaisse</span>
+          <strong id="clotureMomoEncaisse">0 FCFA</strong>
+          <small>Total des paiements via MoMo</small>
+        </div>
+        <div class="cloture-card">
+          <span>Monnaie MoMo</span>
+          <strong id="clotureMomoMonnaie">0 FCFA</strong>
+          <small>Rendus effectues depuis MoMo</small>
+        </div>
+      </div>
+
+      <div class="cloture-details">
+        <div class="cloture-detail-block">
+          <p class="cloture-detail-title">Cash remis par le vendeur</p>
+          <input type="number" id="clotureCashRemisInput" class="cloture-vendeur-input" placeholder="Montant recu en especes" min="0" step="0.01" oninput="mettreAJourClotureCalculs()">
+          <small>Cash attendu : <strong id="clotureCashAttenduLabel">0 FCFA</strong></small>
+        </div>
+        <div class="cloture-detail-block">
+          <p class="cloture-detail-title">Somme calculee</p>
+          <div class="cloture-detail-highlight" id="clotureCalculTotal">0 FCFA</div>
+          <small>Formule : Cash remis + MoMo encaisse - MoMo monnaie</small>
+        </div>
+        <div class="cloture-detail-block">
+          <p class="cloture-detail-title">Ecart</p>
+          <div class="cloture-difference" id="clotureDifference">0 FCFA</div>
+          <small id="clotureDifferenceLabel">Ecart par rapport au total des ventes</small>
+        </div>
+      </div>
+
+      <div class="cloture-history">
+        <h3>Detail des comptes utilises</h3>
+        <div id="clotureAccountsContainer"></div>
+      </div>
+
+      <div class="cloture-history">
+        <h3>Ventes du jour</h3>
+        <div id="clotureSalesList"></div>
+      </div>
+
+      <div class="cloture-actions">
+        <textarea id="clotureNotes" placeholder="Notes ou remarques supplementaires..."></textarea>
+        <button type="button" class="btn-modern" id="clotureSaveButton" onclick="enregistrerClotureVendeur()">
+          <i data-lucide="check-circle"></i> Enregistrer la cloture
+        </button>
+        <div class="cloture-save-feedback" id="clotureSaveFeedback"></div>
+      </div>
+
+      <div class="cloture-history">
+        <h3>Historique des dernieres clotures</h3>
+        <ul class="cloture-history-list" id="clotureHistoryList"></ul>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="screen-start-day" class="screen">
   <div class="start-day-container">
     <button id="btnStartDay" class="btn-start-day">
@@ -6140,6 +6247,234 @@ document.addEventListener('DOMContentLoaded', () => {
             width: 100%;
         }
         .aide-commande-select {
+            width: 100%;
+        }
+    }
+    #screen-cloture-vendeur {
+        background: #f4f6fb;
+        min-height: 100vh;
+        padding: 24px 16px 90px;
+    }
+    .cloture-vendeur-wrapper {
+        max-width: 1040px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    .cloture-vendeur-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    .cloture-vendeur-header h1 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .cloture-vendeur-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+        border: 1px solid #d1d5db;
+        border-radius: 999px;
+        padding: 6px 14px;
+        font-size: 14px;
+        color: #1f2937;
+        cursor: pointer;
+        box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+        transition: background 0.2s ease, transform 0.2s ease;
+    }
+    .cloture-vendeur-back:hover {
+        background: #e5e7eb;
+        transform: translateY(-1px);
+    }
+    .cloture-vendeur-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+    }
+    .cloture-control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 220px;
+    }
+    .cloture-control-group label {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #94a3b8;
+    }
+    .cloture-vendeur-input,
+    .cloture-vendeur-select {
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 15px;
+        background: #fff;
+        color: #1e293b;
+        min-height: 42px;
+    }
+    .cloture-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+    .cloture-card {
+        background: #fff;
+        border-radius: 18px;
+        padding: 18px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .cloture-card span {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    .cloture-card strong {
+        font-size: 24px;
+        color: #111827;
+    }
+    .cloture-card small {
+        font-size: 12px;
+        color: #64748b;
+    }
+    .cloture-details {
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+    }
+    .cloture-detail-block {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .cloture-detail-title {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #94a3b8;
+        margin: 0;
+    }
+    .cloture-detail-highlight {
+        font-size: 22px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .cloture-difference {
+        font-size: 18px;
+        font-weight: 600;
+    }
+    .cloture-difference.positive {
+        color: #16a34a;
+    }
+    .cloture-difference.negative {
+        color: #dc2626;
+    }
+    .cloture-accounts-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    .cloture-accounts-table th,
+    .cloture-accounts-table td {
+        padding: 10px 12px;
+        font-size: 14px;
+        text-align: left;
+    }
+    .cloture-accounts-table thead {
+        background: #f1f5f9;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-size: 12px;
+        color: #475569;
+    }
+    .cloture-accounts-table tbody tr:nth-child(even) {
+        background: #f9fafb;
+    }
+    .cloture-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .cloture-actions textarea {
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        padding: 12px;
+        resize: vertical;
+        min-height: 90px;
+        font-size: 14px;
+        color: #1e293b;
+    }
+    .cloture-save-feedback {
+        font-size: 13px;
+        color: #64748b;
+    }
+    .cloture-history {
+        background: #fff;
+        border-radius: 18px;
+        padding: 20px;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    }
+    .cloture-history h3 {
+        margin-top: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    .cloture-history-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .cloture-history-item {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #f8fafc;
+        font-size: 13px;
+        color: #475569;
+    }
+    .cloture-empty-state {
+        padding: 22px;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 22px rgba(15, 23, 42, 0.08);
+        font-size: 14px;
+        color: #64748b;
+        text-align: center;
+    }
+    @media (max-width: 720px) {
+        .cloture-vendeur-controls {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        .cloture-control-group {
             width: 100%;
         }
     }
@@ -10990,6 +11325,580 @@ function handleImeiTextareaPaste(event) {
 
 document.addEventListener('DOMContentLoaded', setupManualImeiInputListeners);
 
+function ouvrirClotureVendeurDepuisHistorique() {
+  const dateInput = document.getElementById('filterHistoryDate');
+  const vendorSelect = document.getElementById('filterSalesByUser');
+  const dateValue = dateInput && dateInput.value ? dateInput.value : '';
+  const vendorValue = vendorSelect && vendorSelect.value && vendorSelect.value !== 'all'
+    ? vendorSelect.value
+    : '';
+  if (dateValue) {
+    clotureVendeurState.date = dateValue;
+  }
+  if (vendorValue) {
+    clotureVendeurState.vendeur = vendorValue;
+  }
+  window.location.hash = 'cloture-vendeur';
+}
+
+async function initClotureVendeurScreen() {
+  const dateInput = document.getElementById('clotureVendeurDate');
+  const selectEl = document.getElementById('clotureVendeurSelect');
+  if (!dateInput || !selectEl) {
+    return;
+  }
+
+  if (!clotureVendeurState.listenersReady) {
+    dateInput.addEventListener('change', () => {
+      clotureVendeurState.date = dateInput.value;
+      rafraichirClotureVendeur();
+    });
+    selectEl.addEventListener('change', () => {
+      clotureVendeurState.vendeur = selectEl.value;
+      rafraichirClotureVendeur();
+    });
+    clotureVendeurState.listenersReady = true;
+  }
+
+  const todayString = new Date().toISOString().split('T')[0];
+  if (!clotureVendeurState.date) {
+    const historiqueDate = document.getElementById('filterHistoryDate');
+    clotureVendeurState.date = (historiqueDate && historiqueDate.value) || todayString;
+  }
+  dateInput.value = clotureVendeurState.date;
+
+  const vendors = await chargerListeVendeursPourCloture();
+  peuplerSelectCloture(vendors);
+  if (clotureVendeurState.vendeur && vendors.includes(clotureVendeurState.vendeur)) {
+    selectEl.value = clotureVendeurState.vendeur;
+  } else {
+    selectEl.value = '';
+  }
+
+  if (clotureVendeurState.date && selectEl.value) {
+    await rafraichirClotureVendeur();
+  } else {
+    afficherMessageCloture('Selectionnez un vendeur et une date pour lancer la cloture.');
+  }
+
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+async function chargerListeVendeursPourCloture(force = false) {
+  if (!force && Array.isArray(clotureVendeurState.users) && clotureVendeurState.users.length) {
+    return clotureVendeurState.users;
+  }
+  try {
+    const snapshot = await dbFirestore.collection('users').orderBy('name').get();
+    const names = new Set();
+    snapshot.forEach(doc => {
+      const data = doc.data() || {};
+      if (data.name) {
+        names.add(data.name);
+      }
+    });
+    clotureVendeurState.users = Array.from(names);
+    return clotureVendeurState.users;
+  } catch (err) {
+    console.error('Erreur lors du chargement des vendeurs pour la cloture:', err);
+    return clotureVendeurState.users || [];
+  }
+}
+
+function peuplerSelectCloture(vendorNames) {
+  const selectEl = document.getElementById('clotureVendeurSelect');
+  if (!selectEl) {
+    return;
+  }
+  const currentValue = selectEl.value;
+  selectEl.innerHTML = '<option value=\"\">Selectionnez un vendeur</option>';
+  vendorNames.forEach(name => {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    selectEl.appendChild(option);
+  });
+  if (currentValue && vendorNames.includes(currentValue)) {
+    selectEl.value = currentValue;
+  }
+}
+
+function afficherMessageCloture(message) {
+  const messageEl = document.getElementById('clotureVendeurMessage');
+  const summaryEl = document.getElementById('clotureVendeurSummary');
+  const loaderEl = document.getElementById('clotureVendeurLoader');
+  if (loaderEl) {
+    loaderEl.style.display = 'none';
+  }
+  if (messageEl) {
+    messageEl.textContent = message;
+    messageEl.style.display = 'block';
+  }
+  if (summaryEl) {
+    summaryEl.style.display = 'none';
+  }
+}
+
+function afficherLoaderCloture(visible) {
+  const loaderEl = document.getElementById('clotureVendeurLoader');
+  const messageEl = document.getElementById('clotureVendeurMessage');
+  const summaryEl = document.getElementById('clotureVendeurSummary');
+  if (!loaderEl || !messageEl || !summaryEl) {
+    return;
+  }
+  loaderEl.style.display = visible ? 'block' : 'none';
+  if (visible) {
+    messageEl.style.display = 'none';
+    summaryEl.style.display = 'none';
+  }
+}
+
+async function rafraichirClotureVendeur() {
+  const dateInput = document.getElementById('clotureVendeurDate');
+  const selectEl = document.getElementById('clotureVendeurSelect');
+  if (!dateInput || !selectEl) {
+    return;
+  }
+  const dateValue = dateInput.value;
+  const vendorValue = selectEl.value;
+  clotureVendeurState.date = dateValue;
+  clotureVendeurState.vendeur = vendorValue;
+
+  if (!dateValue || !vendorValue) {
+    afficherMessageCloture('Selectionnez un vendeur et une date pour lancer la cloture.');
+    return;
+  }
+
+  afficherLoaderCloture(true);
+  clotureVendeurLoading = true;
+  try {
+    const result = await calculerClotureVendeur(new Date(dateValue), vendorValue);
+    clotureVendeurState.totals = result.totals;
+    clotureVendeurState.history = result.history || [];
+    clotureVendeurState.existing = result.existing || null;
+    if (clotureVendeurState.existing && clotureVendeurState.existing.cashRemis != null) {
+      clotureVendeurState.cashRemis = String(clotureVendeurState.existing.cashRemis);
+    } else if (clotureVendeurState.cashRemis === '' || clotureVendeurState.cashRemis == null) {
+      clotureVendeurState.cashRemis = String(result.totals.cashAttendu || '');
+    }
+    rendreClotureVendeur();
+  } catch (err) {
+    console.error('Erreur pendant le calcul de la cloture vendeur:', err);
+    afficherMessageCloture('Impossible de calculer la cloture. Reessayez dans un instant.');
+  } finally {
+    clotureVendeurLoading = false;
+    afficherLoaderCloture(false);
+  }
+}
+
+function rendreClotureVendeur() {
+  const summaryEl = document.getElementById('clotureVendeurSummary');
+  const messageEl = document.getElementById('clotureVendeurMessage');
+  const totals = clotureVendeurState.totals;
+  if (!summaryEl || !messageEl) {
+    return;
+  }
+  if (!totals) {
+    afficherMessageCloture('Aucune vente trouvee pour cette selection.');
+    return;
+  }
+  messageEl.style.display = 'none';
+  summaryEl.style.display = 'flex';
+
+  setText('clotureTotalVentes', formatXof(totals.totalVentes || 0));
+  setText('clotureTotalVentesCount', `${totals.ventesCount || 0} vente${totals.ventesCount === 1 ? '' : 's'}`);
+  setText('clotureCashAttendu', formatXof(totals.cashAttendu || 0));
+  setText('clotureMomoEncaisse', formatXof(totals.momoEncaisse || 0));
+  setText('clotureMomoMonnaie', formatXof(totals.momoMonnaie || 0));
+  setText('clotureCashAttenduLabel', formatXof(totals.cashAttendu || 0));
+
+  const cashInput = document.getElementById('clotureCashRemisInput');
+  if (cashInput && cashInput !== document.activeElement) {
+    cashInput.value = clotureVendeurState.cashRemis != null ? clotureVendeurState.cashRemis : '';
+  }
+  mettreAJourClotureCalculs();
+  renderClotureAccounts(totals.accounts || []);
+  renderClotureSales(totals.sales || []);
+  renderClotureHistory(clotureVendeurState.history || []);
+  const notesEl = document.getElementById('clotureNotes');
+  if (notesEl && clotureVendeurState.existing && typeof clotureVendeurState.existing.notes === 'string') {
+    notesEl.value = clotureVendeurState.existing.notes;
+  }
+}
+
+function setText(elementId, text) {
+  const el = document.getElementById(elementId);
+  if (el) {
+    el.textContent = text;
+  }
+}
+
+function mettreAJourClotureCalculs() {
+  const totals = clotureVendeurState.totals;
+  const cashInput = document.getElementById('clotureCashRemisInput');
+  if (!totals || !cashInput) {
+    return;
+  }
+  const cashValue = parseFloat(cashInput.value || '0');
+  clotureVendeurState.cashRemis = cashInput.value;
+  const momoEncaisse = Number(totals.momoEncaisse || 0);
+  const momoMonnaie = Number(totals.momoMonnaie || 0);
+  const actualTotal = (Number.isFinite(cashValue) ? cashValue : 0) + momoEncaisse - momoMonnaie;
+  const difference = actualTotal - Number(totals.totalVentes || 0);
+
+  setText('clotureCalculTotal', formatXof(actualTotal));
+  const diffEl = document.getElementById('clotureDifference');
+  if (diffEl) {
+    diffEl.textContent = formatXof(difference);
+    diffEl.classList.remove('positive', 'negative');
+    if (difference > 0.5) {
+      diffEl.classList.add('positive');
+    } else if (difference < -0.5) {
+      diffEl.classList.add('negative');
+    }
+  }
+  const diffLabel = document.getElementById('clotureDifferenceLabel');
+  if (diffLabel) {
+    if (Math.abs(difference) < 0.5) {
+      diffLabel.textContent = 'Cloture equilibree';
+    } else if (difference > 0) {
+      diffLabel.textContent = 'Surplus a expliquer';
+    } else {
+      diffLabel.textContent = 'Manque a justifier';
+    }
+  }
+}
+
+function renderClotureAccounts(accounts) {
+  const container = document.getElementById('clotureAccountsContainer');
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(accounts) || !accounts.length) {
+    container.innerHTML = '<p class="cloture-empty-state" style="margin:0;">Aucun paiement enregistré.</p>';
+    return;
+  }
+  const rows = accounts.map(acc => {
+    const name = acc.compteNom || acc.compteId || 'Compte';
+    return `<tr>
+      <td>${aideCommandeEscapeHtml(name)}</td>
+      <td>${formatXof(acc.encaisse || 0)}</td>
+      <td>${formatXof(acc.monnaie || 0)}</td>
+      <td>${formatXof(acc.net || 0)}</td>
+    </tr>`;
+  }).join('');
+  container.innerHTML = `<table class="cloture-accounts-table">
+    <thead>
+      <tr>
+        <th>Compte</th>
+        <th>Encaissements</th>
+        <th>Monnaie</th>
+        <th>Net</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+function renderClotureSales(sales) {
+  const container = document.getElementById('clotureSalesList');
+  if (!container) {
+    return;
+  }
+  if (!Array.isArray(sales) || !sales.length) {
+    container.innerHTML = '<p class="cloture-empty-state" style="margin:0;">Aucune vente trouvée pour cette journée.</p>';
+    return;
+  }
+  const entries = sales.map(sale => {
+    const lines = Array.isArray(sale.payments) && sale.payments.length
+      ? sale.payments.map(p => `${aideCommandeEscapeHtml(p.label)} : ${formatXof(p.net || p.encaisse || 0)}`).join(' · ')
+      : 'Paiements non détaillés';
+    const heure = sale.heure || (sale.timestamp ? new Date(sale.timestamp).toLocaleTimeString('fr-FR') : '');
+    return `<div class="cloture-history-item">
+      <div><strong>${heure || '--:--'}</strong></div>
+      <div>${aideCommandeEscapeHtml(sale.client || 'Client')}</div>
+      <div>${formatXof(sale.total || 0)}</div>
+      <div>${lines}</div>
+    </div>`;
+  }).join('');
+  container.innerHTML = entries;
+}
+
+function renderClotureHistory(history) {
+  const listEl = document.getElementById('clotureHistoryList');
+  const feedbackEl = document.getElementById('clotureSaveFeedback');
+  if (!listEl || !feedbackEl) {
+    return;
+  }
+  if (!Array.isArray(history) || !history.length) {
+    listEl.innerHTML = '<li class="cloture-empty-state" style="margin:0;">Aucune cloture enregistree pour ce vendeur.</li>';
+  } else {
+    listEl.innerHTML = history.map(item => {
+      const date = item.dateString || '';
+      const diff = formatXof(item.difference || 0);
+      return `<li class="cloture-history-item">
+        <span><strong>Date :</strong> ${aideCommandeEscapeHtml(date)}</span>
+        <span><strong>Cash remis :</strong> ${formatXof(item.cashRemis || 0)}</span>
+        <span><strong>Différence :</strong> ${diff}</span>
+      </li>`;
+    }).join('');
+  }
+  if (clotureVendeurState.existing) {
+    const savedBy = clotureVendeurState.existing.createdByNom || 'Enregistré';
+    feedbackEl.textContent = `Cloture enregistree par ${savedBy} le ${clotureVendeurState.existing.dateString || ''}.`;
+  } else {
+    feedbackEl.textContent = '';
+  }
+}
+
+async function enregistrerClotureVendeur() {
+  if (clotureVendeurLoading) {
+    return;
+  }
+  const totals = clotureVendeurState.totals;
+  const dateValue = clotureVendeurState.date;
+  const vendorValue = clotureVendeurState.vendeur;
+  const notesEl = document.getElementById('clotureNotes');
+  const feedbackEl = document.getElementById('clotureSaveFeedback');
+  const cashValue = parseFloat(clotureVendeurState.cashRemis || '0');
+  if (!totals || !dateValue || !vendorValue || !Number.isFinite(cashValue)) {
+    showToast('Selectionnez un vendeur, une date et remplissez le cash remis.');
+    return;
+  }
+  const momoEncaisse = Number(totals.momoEncaisse || 0);
+  const momoMonnaie = Number(totals.momoMonnaie || 0);
+  const actualTotal = cashValue + momoEncaisse - momoMonnaie;
+  const difference = actualTotal - Number(totals.totalVentes || 0);
+  const user = firebase.auth().currentUser;
+  const dateString = dateValue;
+  const docId = `${dateString}_${normaliserCleCloture(vendorValue)}`;
+  const payload = {
+    vendeur: vendorValue,
+    dateString,
+    totalVentes: Number(totals.totalVentes || 0),
+    ventesCount: Number(totals.ventesCount || 0),
+    cashAttendu: Number(totals.cashAttendu || 0),
+    momoEncaisse,
+    momoMonnaie,
+    cashRemis: cashValue,
+    calculTotal: actualTotal,
+    difference,
+    notes: notesEl ? notesEl.value.trim() : '',
+    comptes: totals.accounts || [],
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    updatedByUid: user ? user.uid : null,
+    updatedByNom: user ? (user.displayName || user.email || '') : null
+  };
+  if (!clotureVendeurState.existing) {
+    payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+    payload.createdByUid = payload.updatedByUid;
+    payload.createdByNom = payload.updatedByNom;
+  }
+  try {
+    await dbFirestore.collection('cloturesVendeurs').doc(docId).set(payload, { merge: true });
+    clotureVendeurState.existing = {
+      ...payload,
+      id: docId
+    };
+    feedbackEl.textContent = 'Cloture sauvegardee avec succes.';
+    showToast('Cloture sauvegardee.');
+    clotureVendeurState.history = await chargerHistoriqueCloture(vendorValue);
+    renderClotureHistory(clotureVendeurState.history);
+  } catch (err) {
+    console.error('Erreur lors de la sauvegarde de la cloture vendeur:', err);
+    showToast("Erreur pendant l'enregistrement de la cloture.");
+  }
+}
+
+async function chargerHistoriqueCloture(vendor) {
+  if (!vendor) {
+    return [];
+  }
+  try {
+    const snapshot = await dbFirestore.collection('cloturesVendeurs')
+      .where('vendeur', '==', vendor)
+      .orderBy('dateString', 'desc')
+      .limit(5)
+      .get();
+    const history = [];
+    snapshot.forEach(doc => {
+      history.push({ id: doc.id, ...doc.data() });
+    });
+    return history;
+  } catch (err) {
+    console.warn('Impossible de charger l historique de cloture:', err);
+    return [];
+  }
+}
+
+function classifyClotureAccount(compteId, compteNom) {
+  const value = (compteId || compteNom || '').toString().toLowerCase();
+  if (!value) {
+    return 'autre';
+  }
+  if (value.includes('momo') || value.includes('mobile')) {
+    return 'momo';
+  }
+  if (value.includes('caisse') || value.includes('cash') || value.includes('espece')) {
+    return 'cash';
+  }
+  return 'autre';
+}
+
+function normaliserCleCloture(value) {
+  return (value || 'inconnu')
+    .toString()
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'inconnu';
+}
+
+async function calculerClotureVendeur(dateObj, vendor) {
+  const start = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0, 0);
+  const end = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59, 999);
+  const startTs = firebase.firestore.Timestamp.fromDate(start);
+  const endTs = firebase.firestore.Timestamp.fromDate(end);
+
+  let query = dbFirestore.collection('ventes')
+    .where('timestamp', '>=', startTs)
+    .where('timestamp', '<=', endTs)
+    .orderBy('timestamp', 'asc');
+
+  if (vendor) {
+    query = query.where('enregistreParNom', '==', vendor);
+  }
+
+  const snapshot = await query.get();
+  const accountsMap = new Map();
+  const sales = [];
+  let totalVentes = 0;
+  let ventesCount = 0;
+
+  snapshot.forEach(doc => {
+    const data = doc.data() || {};
+    if ((data.status || '').toString().toLowerCase().startsWith('annul')) {
+      return;
+    }
+    const total = Number(data.overallTotal || 0);
+    totalVentes += total;
+    ventesCount += 1;
+    const payments = Array.isArray(data.paymentsDetails) ? data.paymentsDetails : [];
+    const salePayments = [];
+    if (payments.length) {
+      payments.forEach(payment => {
+        const compteId = payment.compteId || '';
+        const compteNom = payment.compteNom || compteId || 'Compte';
+        const key = (compteId || compteNom).toString().toLowerCase();
+        const encaisse = Number(payment.montantEncaisse || 0);
+        const monnaie = Number(payment.monnaieRendue || 0);
+        let net = payment.netEncaisse != null ? Number(payment.netEncaisse) : encaisse - monnaie;
+        if (!Number.isFinite(net)) {
+          net = encaisse - monnaie;
+        }
+        const type = classifyClotureAccount(compteId, compteNom);
+        if (!accountsMap.has(key)) {
+          accountsMap.set(key, {
+            compteId: compteId || null,
+            compteNom: compteNom || 'Compte',
+            encaisse: 0,
+            monnaie: 0,
+            net: 0,
+            type
+          });
+        }
+        const entry = accountsMap.get(key);
+        entry.encaisse += encaisse;
+        entry.monnaie += monnaie;
+        entry.net += net;
+        salePayments.push({
+          label: compteNom || compteId || 'Compte',
+          encaisse,
+          monnaie,
+          net
+        });
+      });
+    } else {
+      const fallbackKey = 'sans-compte';
+      if (!accountsMap.has(fallbackKey)) {
+        accountsMap.set(fallbackKey, {
+          compteId: null,
+          compteNom: 'Sans detail',
+          encaisse: 0,
+          monnaie: 0,
+          net: 0,
+          type: 'cash'
+        });
+      }
+      const entry = accountsMap.get(fallbackKey);
+      entry.encaisse += total;
+      entry.net += total;
+      salePayments.push({
+        label: 'Sans detail',
+        encaisse: total,
+        monnaie: 0,
+        net: total
+      });
+    }
+
+    const saleTimestamp = data.timestamp && typeof data.timestamp.toDate === 'function'
+      ? data.timestamp.toDate()
+      : (data.dateVente ? new Date(data.dateVente) : null);
+
+    sales.push({
+      id: doc.id,
+      client: data.clientNom || 'Client',
+      total,
+      heure: data.heureVente || (saleTimestamp ? saleTimestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''),
+      payments: salePayments
+    });
+  });
+
+  const accounts = Array.from(accountsMap.values()).sort((a, b) => (b.net || 0) - (a.net || 0));
+  let cashAttendu = 0;
+  let momoEncaisse = 0;
+  let momoMonnaie = 0;
+  accounts.forEach(acc => {
+    if (acc.type === 'cash') {
+      cashAttendu += acc.net || 0;
+    } else if (acc.type === 'momo') {
+      momoEncaisse += acc.encaisse || 0;
+      momoMonnaie += acc.monnaie || 0;
+    }
+  });
+
+  const dateString = start.toISOString().split('T')[0];
+  const docId = `${dateString}_${normaliserCleCloture(vendor)}`;
+  const docRef = dbFirestore.collection('cloturesVendeurs').doc(docId);
+  let existingData = null;
+  const existingSnap = await docRef.get();
+  if (existingSnap.exists) {
+    existingData = existingSnap.data() || {};
+    existingData.id = docId;
+  }
+
+  let history = [];
+  if (vendor) {
+    history = await chargerHistoriqueCloture(vendor);
+  }
+
+  return {
+    totals: {
+      totalVentes,
+      ventesCount,
+      cashAttendu,
+      momoEncaisse,
+      momoMonnaie,
+      accounts,
+      sales
+    },
+    existing: existingData,
+    history
+  };
+}
+
 function confirmerScanApprovisionnementDynamsoft() {
   if (scanUsageMode === 'appro') {
       if (tempScannedImeis.length !== currentApproItemForScan.quantite) {
@@ -15577,6 +16486,9 @@ function voirHistoriqueStock(stockId, e) {
     case 'aide-commande':
       initializeAideCommandePage();
       break;
+    case 'cloture-vendeur':
+      initClotureVendeurScreen();
+      break;
     case 'livraison-detail':
         prepareLivraisonDetailScreen();
         break;
@@ -15708,6 +16620,17 @@ let aideCommandeState = {
 };
 let aideCommandeLoadingPromise = null;
 const aideCommandeLastPurchaseCache = new Map();
+let clotureVendeurState = {
+  date: null,
+  vendeur: '',
+  totals: null,
+  cashRemis: '',
+  existing: null,
+  history: [],
+  users: [],
+  listenersReady: false
+};
+let clotureVendeurLoading = false;
 
 function initializeAideCommandePage(forceReload = false) {
   const topList = document.getElementById('aideCommandeTopList');
