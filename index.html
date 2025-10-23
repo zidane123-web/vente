@@ -37,7 +37,8 @@
 
     body.role-employe #nav-tresorerie,
 body.role-employe #nav-menu,
-body.role-employe #nav-appro-hist {
+body.role-employe #nav-appro-hist,
+body.role-employe #nav-aide-commande {
   display: none !important;
 }
 
@@ -16597,7 +16598,7 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs', 'canaux-performance']);
+      const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'aide-commande', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs', 'canaux-performance']);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'vendre') {
           window.location.hash = 'vendre';
@@ -20046,6 +20047,7 @@ function majCartesTresorerie() {
       const navMenu = document.getElementById("nav-menu");
       const navTresorerie = document.getElementById("nav-tresorerie");
       const navApproHist = document.getElementById("nav-appro-hist");
+      const navAideCommande = document.getElementById("nav-aide-commande");
       const navDettes = document.getElementById("nav-dettes-fournisseurs");
       const tresorerieMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='tresorerie']");
       const dettesMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='dettes-fournisseurs']");
@@ -20064,6 +20066,10 @@ function majCartesTresorerie() {
       if (navApproHist) {
         navApproHist.classList.remove('hidden-by-role');
         navApproHist.style.display = "flex";
+      }
+      if (navAideCommande) {
+        navAideCommande.classList.remove('hidden-by-role');
+        navAideCommande.style.display = "flex";
       }
       if (navDettes) {
         navDettes.classList.remove('hidden-by-role');
@@ -20102,6 +20108,10 @@ function majCartesTresorerie() {
         if (navApproHist) {
           navApproHist.classList.add('hidden-by-role');
           navApproHist.style.setProperty('display', 'none', 'important');
+        }
+        if (navAideCommande) {
+          navAideCommande.classList.add('hidden-by-role');
+          navAideCommande.style.setProperty('display', 'none', 'important');
         }
         if (navDettes) {
           navDettes.classList.add('hidden-by-role');
