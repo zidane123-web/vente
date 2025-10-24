@@ -15538,6 +15538,15 @@ function renderVentePayments() {
   container.innerHTML = '';
 
   ventePayments.forEach(payment => {
+    const compteNom = typeof getCompteNomById === 'function'
+      ? getCompteNomById(payment.compteId || '')
+      : (payment.compteId || '');
+    const compteType = typeof classifyClotureAccount === 'function'
+      ? classifyClotureAccount(payment.compteId, compteNom)
+      : '';
+    const shouldShowProofActions = compteType === 'momo';
+    const hasProofs = !!(payment.encaissePhoto || payment.monnaiePhoto);
+
     const row = document.createElement('div');
     row.className = 'vente-payment-row vente-payment-row-vente';
     row.dataset.paymentId = payment.id;
@@ -15567,6 +15576,9 @@ function renderVentePayments() {
 
     const proofsWrapper = document.createElement('div');
     proofsWrapper.className = 'vente-payment-proof-wrapper';
+    if (!shouldShowProofActions && !hasProofs) {
+      proofsWrapper.style.display = 'none';
+    }
     card.appendChild(proofsWrapper);
 
     const encaisseInput = document.createElement('input');
@@ -15591,6 +15603,7 @@ function renderVentePayments() {
 
     const proofsActions = document.createElement('div');
     proofsActions.className = 'vente-payment-proof-actions';
+    proofsActions.style.display = shouldShowProofActions ? 'grid' : 'none';
     proofsWrapper.appendChild(proofsActions);
 
     const encaisseBtn = document.createElement('button');
@@ -15690,6 +15703,9 @@ function onVentePaymentFieldChange(paymentId, field, value) {
   }
 
   payment[field] = value;
+  if (field === 'compteId') {
+    renderVentePayments();
+  }
   rafraichirResumePaiementVente();
 }
 
