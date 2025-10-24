@@ -14,7 +14,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.17.2/firebase-auth-compat.js"></script>
   <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/lucide@0.474.0/dist/umd/lucide.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
   <!-- Link to the manifest -->
 <link rel="manifest" href="manifest.json">
@@ -3738,7 +3738,7 @@ async function populateUserFilters() {
         });
     });
 
-    lucide.createIcons();
+    refreshLucideIcons();
 }
 
 /**
@@ -6839,7 +6839,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Manually trigger the display for the default tab
         tabs.listenerFunction({ detail: { value: tabs.value } });
     }
-    lucide.createIcons();
+    refreshLucideIcons();
 }
     async function recordSupplierPayment() {
     if (!currentDetailedSupplierData || !currentDetailedSupplierData.procurements) {
@@ -7933,7 +7933,7 @@ function renderDepenses(docs) {
     `;
     container.appendChild(div);
   });
-  lucide.createIcons();
+  refreshLucideIcons();
 }
 
 // 2️⃣ Charge les 10 premières
@@ -8020,7 +8020,7 @@ function renderDepenses(docs) {
     container.appendChild(div);
   });
 
-  lucide.createIcons();     // une seule fois par lot
+  refreshLucideIcons();     // une seule fois par lot
 }
 
     /**
@@ -9196,7 +9196,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
       });
 
       if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-          lucide.createIcons();
+          refreshLucideIcons();
       }
   }
 
@@ -11131,7 +11131,7 @@ function lancerScanDynamsoft(item, options = {}) {
 
   // Afficher le bouton pour lancer le premier scan
   afficherBoutonDeScan();
-  lucide.createIcons(); // Pour l'icône dans le bouton de saisie manuelle
+  refreshLucideIcons(); // Pour l'icône dans le bouton de saisie manuelle
 }
 
 function lancerScanDynamsoftReception(item, index) {
@@ -11533,7 +11533,7 @@ async function initClotureVendeurScreen() {
   }
 
   if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 }
 
@@ -12360,7 +12360,7 @@ function renderCommandeReceptionItems() {
 
     container.innerHTML = html;
     if (typeof lucide !== 'undefined' && lucide.createIcons) {
-        lucide.createIcons();
+        refreshLucideIcons();
     }
     actualiserTotalReception();
 }
@@ -13001,7 +13001,7 @@ async function chargerDettesFournisseurs() {
         listEl.innerHTML = '<p class="placeholder">Impossible de charger les dettes fournisseurs.</p>';
     } finally {
         if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-            lucide.createIcons();
+            refreshLucideIcons();
         }
     }
 }
@@ -13062,7 +13062,7 @@ function renderSupplierDebtList(searchTerm = '') {
 
     listEl.innerHTML = html;
     if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-        lucide.createIcons();
+        refreshLucideIcons();
     }
 }
 async function enregistrerPaiementFournisseur() {
@@ -14411,7 +14411,7 @@ async function enregistrerModificationClient() {
           showStep(currentStep);
         }
         if (typeof lucide !== 'undefined') {
-          lucide.createIcons();
+          refreshLucideIcons();
         }
       }, 60);
     }
@@ -14457,7 +14457,7 @@ async function enregistrerModificationClient() {
       }
       searchClientsVente();
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
     }
 
@@ -14471,7 +14471,7 @@ async function enregistrerModificationClient() {
       }
       searchLivreurs();
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
     }
 
@@ -14543,7 +14543,7 @@ async function enregistrerModificationClient() {
       setClientType(document.getElementById('clientType')?.value || currentClientType || '');
       updateClientSelectedSummary();
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
     }
 
@@ -14640,7 +14640,7 @@ async function enregistrerModificationClient() {
         item.classList.toggle('selected', item.dataset.clientId === (client.id || ''));
       });
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
       if (typeof showToast === 'function' && client.nom) {
         showToast(`Client ${client.nom} sélectionné.`);
@@ -15128,7 +15128,7 @@ function populateLivraisonDetailView(sale) {
   updateLivraisonActionButtons(sale, totals);
 
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 }
 
@@ -15767,7 +15767,7 @@ function renderVentePayments() {
   });
 
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 }
 
@@ -16045,7 +16045,7 @@ function debounce(func, delay) {
       if (btn) {
         btn.innerHTML = `<i data-lucide="user-minus"></i> Dépense Papa : ${balance.toLocaleString()} FCFA`;
         // Recharge les icônes Lucide
-        lucide.createIcons();
+        refreshLucideIcons();
       }
     }).catch(error => {
       console.error("Erreur lors de la mise à jour du bouton Dépense Papa :", error);
@@ -16747,7 +16747,7 @@ function renderSalaryScreen() {
   ensureSalaryListeners();
 
   if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 }
 // Hash Router pour la navigation
@@ -16846,7 +16846,7 @@ function voirHistoriqueStock(stockId, e) {
     case 'ajouter-client':
       resetCreateClientForm();
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
       setTimeout(() => document.getElementById('newClientName')?.focus(), 80);
       break;
@@ -16856,7 +16856,7 @@ function voirHistoriqueStock(stockId, e) {
     case 'ajouter-livreur':
       resetCreateLivreurForm();
       if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
       setTimeout(() => document.getElementById('newLivreurName')?.focus(), 80);
       break;
@@ -16870,7 +16870,7 @@ function voirHistoriqueStock(stockId, e) {
      case 'scan-dynamsoft':
       // Rien de spécial à faire ici, l'écran sera déjà affiché.
       // On s'assure que les icônes sont bien rendues.
-      lucide.createIcons(); 
+      refreshLucideIcons(); 
       break;
     case 'historique':
          populateUserFilters();
@@ -17038,6 +17038,12 @@ function getClotureUserContext() {
     return { canViewAll: true, vendorName: null, vendorUid: null };
   }
   return { canViewAll: false, vendorName, vendorUid };
+}
+
+function refreshLucideIcons() {
+  if (typeof window !== 'undefined' && window.lucide && typeof window.lucide.createIcons === 'function') {
+    window.lucide.createIcons();
+  }
 }
 
 function initializeAideCommandePage(forceReload = false) {
@@ -17791,7 +17797,7 @@ function selectLivreurForSale(livreur) {
     item.classList.toggle('selected', item.dataset.livreurId === (livreur.id || ''));
   });
   if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
   if (typeof showToast === 'function' && livreur.nom) {
     showToast(`Livreur ${livreur.nom} sélectionné.`);
@@ -17909,7 +17915,7 @@ function ouvrirModalTypeVente() {
   if (modal) {
     modal.style.display = 'flex';
     if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-      lucide.createIcons();
+      refreshLucideIcons();
     }
   }
 }
@@ -17946,7 +17952,7 @@ function mettreAJourBadgeTypeVente() {
   const label = isDelivery ? 'Livraison' : 'Vente directe';
   badge.innerHTML = `<i data-lucide="${iconName}"></i><span>${label}</span>`;
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
   toggleDeliveryFields();
 }
@@ -17999,7 +18005,7 @@ function ouvrirPerformanceUtilisateur() {
   chargerPerformanceUtilisateur();
 
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 }
 
@@ -18604,7 +18610,7 @@ function continuerDepuisPanier() {
               Aucune vente enregistrée…
             </p>
           </div>`;
-        lucide.createIcons();
+        refreshLucideIcons();
         return;
       }
       ventes.forEach(sale => {
@@ -19182,7 +19188,7 @@ fournisseurInput.addEventListener("input", debounce(async function () { // Added
     }
 
     // Refresh Lucide icons for the new 'plus' icon if added
-    lucide.createIcons();
+    refreshLucideIcons();
 
   } catch (err) {
     console.error("Erreur lors de la récupération des fournisseurs : " + err.message);
@@ -19271,7 +19277,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
       cont.appendChild(card);
     });
 
-    lucide.createIcons();
+    refreshLucideIcons();
   })
   .catch(err=>console.error("filterStockItems :",err.message));
 }
@@ -19355,7 +19361,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
             cont.appendChild(card);
         });
 
-        lucide.createIcons();
+        refreshLucideIcons();
     })
     .catch(err => console.error("filterStockCategory :", err.message));
 }
@@ -19574,7 +19580,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
       });
     });
     window.addEventListener('load', () => {
-      lucide.createIcons();
+      refreshLucideIcons();
     });
     let comptesCache = [];   // [{id:'caisse', nom:'Caisse', solde:…}, …]
 
@@ -20191,7 +20197,7 @@ function majCartesTresorerie() {
 
       // 3. Perform initial UI updates
       updateDepensePapaBalance();
-      lucide.createIcons();
+      refreshLucideIcons();
       // =================== FIX ENDS HERE =====================
 
       // Display the app now that everything is ready
@@ -21421,7 +21427,7 @@ async function closeDayAndPrint() {
       closeButton.disabled = false;
       closeButton.innerHTML = originalHtml;
       if (typeof lucide !== 'undefined' && lucide.createIcons) {
-        lucide.createIcons();
+        refreshLucideIcons();
       }
     }
 
@@ -21760,7 +21766,7 @@ switch(d.type) {
 });
 
 // On s'assure que les nouvelles icônes sont bien affichées
-lucide.createIcons();
+refreshLucideIcons();
     })
     .catch(err => {
       console.error("Erreur historique :", err);
@@ -22401,7 +22407,7 @@ function ouvrirModalLivraisonEncaissement() {
   rafraichirResumePaiementLivraison();
   modal.style.display = 'flex';
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 }
 
@@ -22489,7 +22495,7 @@ function renderLivraisonPayments() {
   });
 
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
-    lucide.createIcons();
+    refreshLucideIcons();
   }
 
   rafraichirResumePaiementLivraison();
