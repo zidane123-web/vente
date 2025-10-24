@@ -6380,6 +6380,11 @@ document.addEventListener('DOMContentLoaded', () => {
         color: #1e293b;
         min-height: 42px;
     }
+    .cloture-vendeur-select.cloture-select-locked {
+        background: #f5f5f5;
+        color: #64748b;
+        cursor: not-allowed;
+    }
     .cloture-summary-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -11469,6 +11474,7 @@ async function initClotureVendeurScreen() {
   if (!dateInput || !selectEl) {
     return;
   }
+  const context = getClotureUserContext();
 
   if (!clotureVendeurState.listenersReady) {
     dateInput.addEventListener('change', () => {
@@ -11476,7 +11482,10 @@ async function initClotureVendeurScreen() {
       rafraichirClotureVendeur();
     });
     selectEl.addEventListener('change', () => {
-      clotureVendeurState.vendeur = selectEl.value;
+      const selectedName = selectEl.value ? selectEl.value.trim() : '';
+      clotureVendeurState.vendeur = selectedName;
+      const latestContext = getClotureUserContext();
+      clotureVendeurState.vendeurUid = latestContext.canViewAll ? null : latestContext.vendorUid || null;
       rafraichirClotureVendeur();
     });
     clotureVendeurState.listenersReady = true;
@@ -11490,17 +11499,37 @@ async function initClotureVendeurScreen() {
   dateInput.value = clotureVendeurState.date;
 
   const vendors = await chargerListeVendeursPourCloture();
-  peuplerSelectCloture(vendors);
-  if (clotureVendeurState.vendeur && vendors.includes(clotureVendeurState.vendeur)) {
-    selectEl.value = clotureVendeurState.vendeur;
+  peuplerSelectCloture(vendors, context);
+  if (context.canViewAll) {
+    if (clotureVendeurState.vendeur && vendors.includes(clotureVendeurState.vendeur)) {
+      selectEl.value = clotureVendeurState.vendeur;
+    } else {
+      selectEl.value = '';
+      clotureVendeurState.vendeur = '';
+    }
+    clotureVendeurState.vendeurUid = null;
   } else {
-    selectEl.value = '';
+    const preferredName = (clotureVendeurState.vendeur && clotureVendeurState.vendeur.trim()) ||
+      (context.vendorName || (vendors[0] || '')).trim();
+    if (preferredName) {
+      selectEl.value = preferredName;
+      clotureVendeurState.vendeur = preferredName;
+    } else {
+      selectEl.value = '';
+      clotureVendeurState.vendeur = '';
+    }
+    clotureVendeurState.vendeurUid = context.vendorUid || null;
   }
 
   if (clotureVendeurState.date && selectEl.value) {
     await rafraichirClotureVendeur();
   } else {
-    afficherMessageCloture('Selectionnez un vendeur et une date pour lancer la cloture.');
+    const message = context.canViewAll
+      ? 'Selectionnez un vendeur et une date pour lancer la cloture.'
+      : (selectEl.value
+        ? 'Selectionnez une date pour lancer la cloture.'
+        : 'Profil vendeur introuvable. Contactez un administrateur.');
+    afficherMessageCloture(message);
   }
 
   if (typeof lucide !== 'undefined') {
@@ -11509,6 +11538,14 @@ async function initClotureVendeurScreen() {
 }
 
 async function chargerListeVendeursPourCloture(force = false) {
+  const context = getClotureUserContext();
+  if (!context.canViewAll) {
+    const singleName = context.vendorName ? [context.vendorName] : [];
+    clotureVendeurState.users = singleName;
+    clotureVendeurState.vendeurUid = context.vendorUid || null;
+    return clotureVendeurState.users;
+  }
+  clotureVendeurState.vendeurUid = null;
   if (!force && Array.isArray(clotureVendeurState.users) && clotureVendeurState.users.length) {
     return clotureVendeurState.users;
   }
@@ -11529,20 +11566,40 @@ async function chargerListeVendeursPourCloture(force = false) {
   }
 }
 
-function peuplerSelectCloture(vendorNames) {
+function peuplerSelectCloture(vendorNames, context = getClotureUserContext()) {
   const selectEl = document.getElementById('clotureVendeurSelect');
   if (!selectEl) {
     return;
   }
   const currentValue = selectEl.value;
-  selectEl.innerHTML = '<option value=\"\">Selectionnez un vendeur</option>';
-  vendorNames.forEach(name => {
+  const canViewAll = context && context.canViewAll;
+  const cleanedNames = Array.isArray(vendorNames) ? vendorNames.filter(name => typeof name === 'string' && name.trim()) : [];
+  if (canViewAll) {
+    selectEl.innerHTML = '<option value=\"\">Selectionnez un vendeur</option>';
+  } else {
+    selectEl.innerHTML = '';
+  }
+  if (!cleanedNames.length && !canViewAll) {
     const option = document.createElement('option');
-    option.value = name;
-    option.textContent = name;
+    option.value = '';
+    option.textContent = 'Vendeur introuvable';
     selectEl.appendChild(option);
-  });
-  if (currentValue && vendorNames.includes(currentValue)) {
+  } else {
+    cleanedNames.forEach(name => {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = name;
+      selectEl.appendChild(option);
+    });
+  }
+  selectEl.disabled = !canViewAll;
+  selectEl.classList.toggle('cloture-select-locked', !canViewAll);
+  if (!canViewAll) {
+    selectEl.setAttribute('aria-disabled', 'true');
+  } else {
+    selectEl.removeAttribute('aria-disabled');
+  }
+  if (currentValue && cleanedNames.includes(currentValue)) {
     selectEl.value = currentValue;
   }
 }
@@ -11583,20 +11640,48 @@ async function rafraichirClotureVendeur() {
   if (!dateInput || !selectEl) {
     return;
   }
+  const context = getClotureUserContext();
   const dateValue = dateInput.value;
-  const vendorValue = selectEl.value;
+  let vendorValue = selectEl.value;
+  let vendorUid = context.canViewAll ? null : context.vendorUid || null;
   clotureVendeurState.date = dateValue;
+  if (!context.canViewAll) {
+    const enforcedName = (clotureVendeurState.vendeur && clotureVendeurState.vendeur.trim()) ||
+      (context.vendorName || '').trim();
+    if (enforcedName) {
+      vendorValue = enforcedName;
+      if (selectEl.value !== enforcedName) {
+        selectEl.value = enforcedName;
+      }
+    } else {
+      vendorValue = '';
+    }
+  }
+  vendorValue = vendorValue ? vendorValue.trim() : '';
   clotureVendeurState.vendeur = vendorValue;
+  clotureVendeurState.vendeurUid = vendorUid;
 
   if (!dateValue || !vendorValue) {
-    afficherMessageCloture('Selectionnez un vendeur et une date pour lancer la cloture.');
+    let message;
+    if (!dateValue && !vendorValue) {
+      message = context.canViewAll
+        ? 'Selectionnez un vendeur et une date pour lancer la cloture.'
+        : 'Selectionnez une date pour lancer la cloture.';
+    } else if (!dateValue) {
+      message = 'Selectionnez une date pour lancer la cloture.';
+    } else {
+      message = context.canViewAll
+        ? 'Selectionnez un vendeur pour lancer la cloture.'
+        : 'Profil vendeur introuvable. Contactez un administrateur.';
+    }
+    afficherMessageCloture(message);
     return;
   }
 
   afficherLoaderCloture(true);
   clotureVendeurLoading = true;
   try {
-    const result = await calculerClotureVendeur(new Date(dateValue), vendorValue);
+    const result = await calculerClotureVendeur(new Date(dateValue), vendorValue, vendorUid);
     clotureVendeurState.totals = result.totals;
     clotureVendeurState.history = result.history || [];
     clotureVendeurState.existing = result.existing || null;
@@ -11822,6 +11907,7 @@ async function enregistrerClotureVendeur() {
   const docId = `${dateString}_${normaliserCleCloture(vendorValue)}`;
   const payload = {
     vendeur: vendorValue,
+    vendeurUid: clotureVendeurState.vendeurUid || null,
     dateString,
     totalVentes: Number(totals.totalVentes || 0),
     ventesCount: Number(totals.ventesCount || 0),
@@ -11911,7 +11997,7 @@ function ouvrirPreuvePaiement(src) {
   }
 }
 
-async function calculerClotureVendeur(dateObj, vendor) {
+async function calculerClotureVendeur(dateObj, vendor, vendorUid) {
   const start = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 0, 0, 0, 0);
   const end = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 23, 59, 59, 999);
   const startTs = firebase.firestore.Timestamp.fromDate(start);
@@ -11922,7 +12008,9 @@ async function calculerClotureVendeur(dateObj, vendor) {
     .where('timestamp', '<=', endTs)
     .orderBy('timestamp', 'asc');
 
-  if (vendor) {
+  if (vendorUid) {
+    query = query.where('enregistreParUid', '==', vendorUid);
+  } else if (vendor) {
     query = query.where('enregistreParNom', '==', vendor);
   }
 
@@ -16929,6 +17017,7 @@ const aideCommandeLastPurchaseCache = new Map();
 let clotureVendeurState = {
   date: null,
   vendeur: '',
+  vendeurUid: null,
   totals: null,
   cashRemis: '',
   existing: null,
@@ -16937,6 +17026,19 @@ let clotureVendeurState = {
   listenersReady: false
 };
 let clotureVendeurLoading = false;
+
+function getClotureUserContext() {
+  const role = typeof window !== 'undefined' ? window.userRole : null;
+  const privilegedRoles = new Set(['admin', 'patron']);
+  const canViewAll = !!role && privilegedRoles.has(role);
+  const user = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+  const vendorName = user ? (user.displayName || user.email || '').trim() : '';
+  const vendorUid = user && user.uid ? user.uid : '';
+  if (canViewAll) {
+    return { canViewAll: true, vendorName: null, vendorUid: null };
+  }
+  return { canViewAll: false, vendorName, vendorUid };
+}
 
 function initializeAideCommandePage(forceReload = false) {
   const topList = document.getElementById('aideCommandeTopList');
