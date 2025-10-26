@@ -1189,6 +1189,101 @@ body.role-employe #screen-accueil .accueil-actions {
     .modal .btn-modal-option:active {
       transform: scale(0.97);
     }
+    .purchase-modal-content {
+      max-width: 520px;
+      padding: 20px 24px 24px;
+    }
+    .purchase-modal-body {
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .purchase-modal-card {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      box-shadow: 0 18px 35px rgba(52, 72, 128, 0.18);
+      padding: 18px 20px;
+      margin-top: 12px;
+    }
+    .purchase-modal-card .main-content-wrapper {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+    .purchase-modal-card .avatar-circle {
+      width: 44px;
+      height: 44px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      color: #fff;
+      font-weight: 600;
+    }
+    .purchase-modal-card .left-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+    .purchase-modal-card .supplier-name {
+      font-weight: 600;
+      font-size: 16px;
+      color: #222;
+      margin-bottom: 4px;
+    }
+    .purchase-modal-card .purchase-date {
+      font-size: 13px;
+      color: #6b7280;
+    }
+    .purchase-modal-card .item-list-container {
+      margin-top: 8px;
+    }
+    .purchase-modal-card .item-line {
+      margin: 0;
+      font-size: 14px;
+      color: #374151;
+    }
+    .purchase-modal-card .right-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      min-width: 120px;
+    }
+    .purchase-modal-card .total-amount {
+      font-weight: 600;
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+    .purchase-modal-card .payment-method {
+      font-size: 13px;
+      color: #6b7280;
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .movement-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+      padding: 16px;
+      background: #f4f6fb;
+      border-radius: var(--border-radius);
+      font-size: 13px;
+      color: #374151;
+    }
+    .movement-summary strong {
+      display: inline-block;
+      margin-right: 4px;
+      color: #111827;
+    }
+    .purchase-modal-note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
     .modal-warning-list {
       margin: 15px 0;
       padding-left: 20px;
@@ -5028,45 +5123,98 @@ function generateInvoicePDF(sale) {
    * Charge et affiche l'historique des variations de stock pour un article.
    * @param {string} articleId - L'ID de l'article dans la collection 'stock'.
    */
-  function loadArticleStockHistory(articleId) {
+  async function loadArticleStockHistory(articleId) {
     const container = document.getElementById("historyContent");
-    container.innerHTML = "<p>Chargement de l'historique du stock…</p>";
+    container.innerHTML = "<p>Chargement de l'historique du stock...</p>";
 
-    dbFirestore.collection("stock").doc(articleId).collection("history")
-      .orderBy("timestamp", "desc").limit(50) // On limite aux 50 derniers mouvements
-      .get()
-      .then(snapshot => {
-        if (snapshot.empty) {
-          container.innerHTML = "<p>Aucune variation de stock enregistrée pour cet article.</p>";
-          return;
+    try {
+      let articleName = '';
+      if (articleId) {
+        const stockDoc = await dbFirestore.collection("stock").doc(articleId).get();
+        if (stockDoc.exists) {
+          articleName = stockDoc.data().name || '';
+        }
+      }
+
+      const snapshot = await dbFirestore
+        .collection("stock")
+        .doc(articleId)
+        .collection("history")
+        .orderBy("timestamp", "desc")
+        .limit(50)
+        .get();
+
+      if (snapshot.empty) {
+        container.innerHTML = "<p>Aucune variation de stock enregistrée pour cet article.</p>";
+        return;
+      }
+
+      container.innerHTML = '<h3>Historique des Mouvements de Stock</h3>';
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const dateObj = d.timestamp && typeof d.timestamp.toDate === "function"
+          ? d.timestamp.toDate()
+          : null;
+        const date = dateObj ? dateObj.toLocaleString("fr-FR") : "Date indisponible";
+        const change = d.change || 0;
+        const signe = change > 0 ? "+" : "";
+        const color = change > 0 ? "green" : "red";
+
+        let typeMouvement = "Mouvement";
+        switch (d.type) {
+          case "approvisionnement":
+          case "approvisionnement-reception":
+            typeMouvement = "Approvisionnement";
+            break;
+          case "vente":
+            typeMouvement = "Vente";
+            break;
+          case "annulation_achat":
+            typeMouvement = "Annulation achat";
+            break;
+          case "annulation_vente":
+            typeMouvement = "Retour vente";
+            break;
         }
 
-        container.innerHTML = '<h3>Historique des Mouvements de Stock</h3>';
-        snapshot.forEach(doc => {
-          const d = doc.data();
-          // Ligne corrigée
-const date = d.timestamp.toDate().toLocaleString("fr-FR");
-          const change = d.change || 0;
-          const signe = change > 0 ? "+" : "";
-          const color = change > 0 ? "green" : "red";
-          const typeMouvement = d.type === 'approvisionnement' ? 'Approvisionnement' : 'Vente';
+        const row = document.createElement("div");
+        row.className = "vente-card";
+        row.style.marginBottom = '8px';
+        row.innerHTML = `
+          <p>
+            <strong>${date}</strong> - <span>${typeMouvement}</span><br>
+            Mouvement : <span style="color:${color}; font-weight:bold;">${signe}${change}</span> unités<br>
+            Nouveau Stock : <strong>${d.newStock != null ? d.newStock : 'N/A'}</strong>
+          </p>`;
 
-          const row = document.createElement("div");
-          row.className = "vente-card"; // Réutilisation d'un style existant
-          row.style.marginBottom = '8px';
-          row.innerHTML = `
-            <p>
-              <strong>${date}</strong> - <span>${typeMouvement}</span><br>
-              Mouvement : <span style="color:${color}; font-weight:bold;">${signe}${change}</span> unités<br>
-              Nouveau Stock : <strong>${d.newStock}</strong>
-            </p>`;
-          container.appendChild(row);
-        });
-      })
-      .catch(err => {
-        console.error("Erreur chargement historique stock:", err);
-        container.innerHTML = "<p>Erreur de chargement de l'historique.</p>";
+        if (['approvisionnement', 'approvisionnement-reception'].includes(d.type)) {
+          row.classList.add('history-item-clickable');
+          const openPurchaseModal = () => {
+            if (d.sourceApproId) {
+              ouvrirModalAchatStock(d.sourceApproId, d, articleName || d.sourceApproItemName || '');
+            } else if (typeof showToast === 'function') {
+              showToast("Aucun détail disponible pour cet achat.", "warning");
+            } else {
+              alert("Aucun détail disponible pour cet achat.");
+            }
+          };
+          row.addEventListener('click', openPurchaseModal);
+          row.setAttribute('role', 'button');
+          row.setAttribute('tabindex', '0');
+          row.addEventListener('keydown', evt => {
+            if (evt.key === 'Enter' || evt.key === ' ') {
+              evt.preventDefault();
+              openPurchaseModal();
+            }
+          });
+        }
+
+        container.appendChild(row);
       });
+    } catch (err) {
+      console.error("Erreur chargement historique stock:", err);
+      container.innerHTML = "<p>Erreur de chargement de l'historique.</p>";
+    }
   }
 
   // Lancement de la configuration des onglets au chargement de la page.
@@ -7471,6 +7619,13 @@ async function generateSupplierCreditPDF() {
       align-items: center;
       border-bottom: 1px solid #EEE;
     }
+    .history-item-clickable {
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    .history-item-clickable:hover {
+      background: rgba(56, 128, 255, 0.08);
+    }
     .history-item:last-child {
       border-bottom: none;
     }
@@ -9775,6 +9930,8 @@ function retirerApproItem(index) {
             return payload;
         });
 
+        const approRef = dbFirestore.collection("approvisionnement").doc();
+
         // La mise à jour du stock reste la même dans les deux cas
         if (typeAchat !== 'commande') {
 
@@ -9815,7 +9972,9 @@ function retirerApproItem(index) {
                     change: +item.quantite,
                     newStock: newStockQty,
                     type: 'approvisionnement',
-                    costOfChange: item.quantite * item.adjustedPrixAchat
+                    costOfChange: item.quantite * item.adjustedPrixAchat,
+                    sourceApproId: approRef.id,
+                    sourceApproItemName: item.produit
                 });
 
                 if (item.category === 'telephones' && item.imeis && item.imeis.length > 0) {
@@ -9830,7 +9989,6 @@ function retirerApproItem(index) {
             }
         }
 
-        const approRef = dbFirestore.collection("approvisionnement").doc();
         const totalCostFromSupplier = finalItemsForFirestore.reduce((acc, item) => acc + parseFloat(item.coutTotal), 0);
         
         // Construction de l'objet d'achat
@@ -12615,7 +12773,8 @@ async function soumettreReceptionCommande() {
                             newStock: newStock,
                             type: 'approvisionnement-reception',
                             costOfChange: receptionQty * unitCost,
-                            sourceApproId: approRef.id
+                            sourceApproId: approRef.id,
+                            sourceApproItemName: (draftItem && draftItem.produit) || orderItem.produit || stockData.name || ''
                         });
 
                         if ((draftItem.category === 'telephones' || orderItem.category === 'telephones') && draftItem.imeis && draftItem.imeis.length > 0) {
@@ -13973,6 +14132,16 @@ async function annulerCommandeFournisseur(approId, event) {
         <button class="btn-modern" onclick="validerEncaissementLivraison()">
           <i data-lucide="check-circle"></i> Valider l'encaissement
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Détail d'un mouvement d'achat -->
+  <div id="modalStockPurchase" class="modal">
+    <div class="modal-content purchase-modal-content">
+      <span class="close" onclick="fermerModalStockPurchase()">&times;</span>
+      <div id="modalStockPurchaseBody" class="purchase-modal-body">
+        <p style="text-align:center; color:#6b7280;">Chargement du detail d'achat...</p>
       </div>
     </div>
   </div>
@@ -17927,6 +18096,202 @@ function fermerModalTypeVente() {
   }
 }
 
+function fermerModalStockPurchase() {
+  const modal = document.getElementById('modalStockPurchase');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function normaliserNomProduitStock(nom) {
+  return (nom || '').toString().trim().toLowerCase();
+}
+
+function formatterMontantStock(valeur) {
+  const nombre = parseFloat(valeur);
+  if (!isFinite(nombre)) {
+    return '0 FCFA';
+  }
+  return `${nombre.toLocaleString('fr-FR')} FCFA`;
+}
+
+function construireCarteAchatModal(appro, mouvement, articleNom) {
+  const fournisseur = appro.fournisseur || 'Fournisseur';
+  const initials = fournisseur
+    .split(' ')
+    .map(part => part && part[0] ? part[0] : '')
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
+  const avatarColor = typeof getAvatarColor === 'function' ? getAvatarColor(fournisseur) : '#3f51b5';
+  const timestamp = appro.timestamp && typeof appro.timestamp.toDate === 'function'
+    ? appro.timestamp.toDate()
+    : (appro.timestamp ? new Date(appro.timestamp) : null);
+  const dateAppro = timestamp && !isNaN(timestamp.getTime())
+    ? timestamp.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    : 'Date indisponible';
+
+  const cible = normaliserNomProduitStock(articleNom || (mouvement && mouvement.sourceApproItemName) || '');
+  const itemsArray = Array.isArray(appro.items) ? appro.items : [];
+  const matchedItems = cible
+    ? itemsArray.filter(item => normaliserNomProduitStock(item.produit) === cible)
+    : itemsArray;
+
+  let itemListHTML = '';
+  matchedItems.forEach(item => {
+    const quantity = item.quantite != null ? item.quantite : (item.receivedQty != null ? item.receivedQty : 0);
+    const unitPrice = parseFloat(item.prixAchat || item.adjustedPrixAchat || 0) || 0;
+    itemListHTML += `<p class="item-line">${quantity} x ${item.produit || 'Article'} - ${unitPrice.toLocaleString('fr-FR')} FCFA</p>`;
+  });
+  if (!itemListHTML) {
+    itemListHTML = '<p class="item-line" style="color:#888;">Aucun article correspondant dans cet achat.</p>';
+  }
+
+  const fraisTransport = parseFloat(appro.fraisTransport || 0) || 0;
+  const fraisTransportDisplay = fraisTransport > 0
+    ? `<p class="item-line">Frais transport: <strong>${fraisTransport.toLocaleString('fr-FR')} FCFA</strong></p>`
+    : '';
+
+  const remainingAmount = parseFloat(appro.remainingAmount || 0) || 0;
+  const isPaid = !!appro.isPaid && remainingAmount <= 0;
+  let paymentStatusText = isPaid ? 'PAYE' : 'DUE';
+  let amountColor = isPaid ? '#3880ff' : '#f04141';
+  let remainingAmountDisplay = '';
+
+  if (!isPaid && remainingAmount > 0) {
+    remainingAmountDisplay = `<div class="purchase-date" style="color:${amountColor};">Solde: ${remainingAmount.toLocaleString('fr-FR')} FCFA</div>`;
+  } else if (appro.paymentMethod === 'depot') {
+    paymentStatusText = 'DEPOT';
+    amountColor = '#6c757d';
+  } else if (isPaid) {
+    if (Array.isArray(appro.paymentsDetails) && appro.paymentsDetails.length > 0) {
+      const comptes = [...new Set(appro.paymentsDetails.map(p => {
+        const compteId = p.compteId || p.account || '';
+        const compteNom = p.compteNom || (typeof getCompteNomById === 'function' ? getCompteNomById(compteId) : '');
+        return compteNom || compteId;
+      }))].filter(Boolean);
+      paymentStatusText = comptes.length > 0 ? comptes.join(' + ') : 'PAYE';
+    } else if (appro.paymentMethod === 'credit') {
+      paymentStatusText = 'REGLE';
+    } else if (appro.paymentMethod && appro.paymentMethod !== 'paid') {
+      paymentStatusText = appro.paymentMethod.toUpperCase();
+    } else {
+      paymentStatusText = 'PAYE';
+    }
+  }
+
+  const mouvementQty = mouvement && typeof mouvement.change !== 'undefined'
+    ? Number(mouvement.change)
+    : null;
+  const mouvementCost = mouvement && typeof mouvement.costOfChange !== 'undefined'
+    ? Number(mouvement.costOfChange)
+    : null;
+  const mouvementStock = mouvement && typeof mouvement.newStock !== 'undefined'
+    ? Number(mouvement.newStock)
+    : null;
+  const mouvementTypeLabel = mouvement
+    ? (mouvement.type === 'approvisionnement-reception' ? 'Reception commande' : 'Achat')
+    : 'Achat';
+
+  const productCost = (() => {
+    if (typeof mouvementCost === 'number' && !isNaN(mouvementCost)) {
+      return mouvementCost;
+    }
+    if (matchedItems.length > 0) {
+      return matchedItems.reduce((total, item) => {
+        const qty = parseFloat(item.quantite || item.receivedQty || 0) || 0;
+        const unit = parseFloat(item.adjustedPrixAchat || item.prixAchat || 0) || 0;
+        return total + qty * unit;
+      }, 0);
+    }
+    return 0;
+  })();
+
+  const mouvementQtyDisplay = mouvementQty != null && !isNaN(mouvementQty)
+    ? (mouvementQty > 0 ? '+' : '') + mouvementQty
+    : 'N/A';
+  const mouvementStockDisplay = mouvementStock != null && !isNaN(mouvementStock)
+    ? mouvementStock
+    : 'N/A';
+
+  const mouvementSummaryHtml = `
+    <div class="movement-summary">
+      <div><strong>Type:</strong> ${mouvementTypeLabel}</div>
+      <div><strong>Quantite:</strong> ${mouvementQtyDisplay}</div>
+      <div><strong>Valeur:</strong> ${formatterMontantStock(productCost)}</div>
+      <div><strong>Stock apres:</strong> ${mouvementStockDisplay}</div>
+    </div>
+  `;
+
+  const autresArticles = itemsArray.length > matchedItems.length
+    ? itemsArray.length - matchedItems.length
+    : 0;
+  const achatTotal = parseFloat(appro.totalCost || appro.receivedTotalCost || appro.orderTotalCost || 0) || 0;
+  const noteParts = [];
+  if (autresArticles > 0) {
+    noteParts.push(`Cet achat contient ${autresArticles} autre${autresArticles > 1 ? 's' : ''} article${autresArticles > 1 ? 's' : ''}.`);
+  }
+  if (achatTotal && Math.abs(achatTotal - productCost) > 1) {
+    noteParts.push(`Total achat: ${formatterMontantStock(achatTotal)}.`);
+  }
+  const noteHtml = noteParts.length ? `<p class="purchase-modal-note">${noteParts.join(' ')}</p>` : '';
+
+  return `
+    <div class="purchase-modal-card">
+      <div class="main-content-wrapper">
+        <div class="avatar-circle" style="background-color:${avatarColor};">${initials || 'F'}</div>
+        <div class="left-info">
+          <div class="supplier-name">${fournisseur}</div>
+          <div class="purchase-date">${dateAppro}</div>
+          <div class="item-list-container">${itemListHTML}</div>
+          ${fraisTransportDisplay}
+          ${remainingAmountDisplay}
+          <div class="recorded-by-tag">Saisi par : <strong>${appro.enregistreParNom || 'N/A'}</strong></div>
+        </div>
+        <div class="right-info">
+          <div class="total-amount" style="color:${amountColor};">XOF ${(productCost || 0).toLocaleString('fr-FR')}</div>
+          <div class="payment-method">${paymentStatusText}</div>
+        </div>
+      </div>
+      ${mouvementSummaryHtml}
+      ${noteHtml}
+    </div>
+  `;
+}
+
+async function ouvrirModalAchatStock(approId, mouvement, articleNom) {
+  const modal = document.getElementById('modalStockPurchase');
+  const body = document.getElementById('modalStockPurchaseBody');
+  if (!modal || !body) {
+    console.warn('Modal achat stock indisponible.');
+    return;
+  }
+
+  modal.style.display = 'flex';
+  body.innerHTML = "<p style=\"text-align:center; color:#6b7280;\">Chargement du detail d'achat...</p>";
+
+  if (!approId) {
+    body.innerHTML = "<p style=\"text-align:center; color:#ef4444;\">Reference d'achat manquante.</p>";
+    return;
+  }
+
+  try {
+    const approDoc = await dbFirestore.collection('approvisionnement').doc(approId).get();
+    if (!approDoc.exists) {
+      body.innerHTML = '<p style="text-align:center; color:#ef4444;">Impossible de trouver cet achat.</p>';
+      return;
+    }
+    const approData = approDoc.data();
+    body.innerHTML = construireCarteAchatModal(approData, mouvement, articleNom);
+    if (typeof refreshLucideIcons === 'function') {
+      refreshLucideIcons();
+    }
+  } catch (error) {
+    console.error('Erreur modal achat stock :', error);
+    body.innerHTML = '<p style="text-align:center; color:#ef4444;">Erreur lors du chargement du detail.</p>';
+  }
+}
+
 function selectionnerTypeVente(mode) {
   currentSaleMode = mode === 'delivery' ? 'delivery' : 'direct';
   mettreAJourBadgeTypeVente();
@@ -18716,6 +19081,9 @@ function continuerDepuisPanier() {
       }
       if (event.target === document.getElementById("modalSaleType")) {
         fermerModalTypeVente();
+      }
+      if (event.target === document.getElementById("modalStockPurchase")) {
+        fermerModalStockPurchase();
       }
       if (event.target === document.getElementById("modalPerformance")) {
         fermerModalPerformance();
@@ -21700,78 +22068,110 @@ window.addEventListener('hashchange', handleHashChange);
  *
  * @param {string} stockId
  */
-function chargerHistoriqueStock(stockId) {
+async function chargerHistoriqueStock(stockId) {
   const container = document.getElementById("stockHistoryContainer");
-  container.innerHTML = "<p>Chargement de l'historique…</p>";
+  container.innerHTML = "<p>Chargement de l'historique...</p>";
 
-  dbFirestore
-    .collection("stock")
-    .doc(stockId)
-    .collection("history")
-    .orderBy("timestamp", "desc")
-    .get()
-    .then(snapshot => {
-      container.innerHTML = "";
-      if (snapshot.empty) {
-        container.innerHTML = "<p>Aucune variation de stock.</p>";
-        return;
+  try {
+    let articleName = '';
+    if (stockId) {
+      const stockDoc = await dbFirestore.collection("stock").doc(stockId).get();
+      if (stockDoc.exists) {
+        articleName = stockDoc.data().name || '';
       }
-      // NOUVEAU BLOC À COLLER À LA PLACE DE L'ANCIEN
-snapshot.forEach(doc => {
-    const d = doc.data();
-    const date = d.timestamp?.toDate ? d.timestamp.toDate().toLocaleString("fr-FR") : "Date invalide";
-    const change = d.change || 0;
-    const signe = change > 0 ? "+" : "";
+    }
 
-    // Logique pour déterminer le libellé et l'icône
-    let typeDisplay = 'Mouvement';
-    let iconHtml = '<i data-lucide="help-circle"></i>';
+    const snapshot = await dbFirestore
+      .collection("stock")
+      .doc(stockId)
+      .collection("history")
+      .orderBy("timestamp", "desc")
+      .get();
 
-    // NOUVEAU BLOC À COLLER À LA PLACE DE L'ANCIEN
-switch(d.type) {
-    case 'approvisionnement':
-        typeDisplay = 'Achat';
-        iconHtml = '<i data-lucide="arrow-up" style="color: green;"></i>'; // Flèche haute
-        break;
-    case 'vente':
-        typeDisplay = 'Vente';
-        iconHtml = '<i data-lucide="arrow-down" style="color: red;"></i>'; // Flèche basse
-        break;
-    case 'annulation_achat':
-        typeDisplay = 'Annulation Achat';
-        iconHtml = '<i data-lucide="arrow-down" style="color: orange;"></i>'; // Flèche basse (stock diminue)
-        break;
-    case 'annulation_vente':
-        typeDisplay = 'Annulation Vente (Retour)';
-        iconHtml = '<i data-lucide="arrow-up" style="color: #3880ff;"></i>'; // Flèche haute (stock augmente)
-        break;
-}
+    container.innerHTML = "";
+    if (snapshot.empty) {
+      container.innerHTML = "<p>Aucune variation de stock.</p>";
+      return;
+    }
 
-    const row = document.createElement("div");
-    row.className = "history-item"; // On utilise un style simple
-    row.style.cssText = "display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee;";
+    snapshot.forEach(doc => {
+      const d = doc.data();
+      const dateObj = d.timestamp && typeof d.timestamp.toDate === "function"
+        ? d.timestamp.toDate()
+        : null;
+      const date = dateObj ? dateObj.toLocaleString("fr-FR") : "Date indisponible";
+      const change = d.change || 0;
+      const signe = change > 0 ? "+" : "";
 
-    row.innerHTML = `
+      let typeDisplay = "Mouvement";
+      let iconHtml = '<i data-lucide="help-circle"></i>';
+      switch (d.type) {
+        case "approvisionnement":
+        case "approvisionnement-reception":
+          typeDisplay = "Approvisionnement";
+          iconHtml = '<i data-lucide="arrow-up" style="color: green;"></i>';
+          break;
+        case "vente":
+          typeDisplay = "Vente";
+          iconHtml = '<i data-lucide="arrow-down" style="color: red;"></i>';
+          break;
+        case "annulation_achat":
+          typeDisplay = "Annulation achat";
+          iconHtml = '<i data-lucide="arrow-down" style="color: orange;"></i>';
+          break;
+        case "annulation_vente":
+          typeDisplay = "Retour vente";
+          iconHtml = '<i data-lucide="arrow-up" style="color: #3880ff;"></i>';
+          break;
+      }
+
+      const row = document.createElement("div");
+      row.className = "history-item";
+      row.style.cssText = "display: flex; align-items: center; padding: 12px; border-bottom: 1px solid #eee;";
+      row.innerHTML = `
         <div style="margin-right: 12px; font-size: 24px; line-height: 1;">${iconHtml}</div>
         <div style="flex-grow: 1;">
-            <strong style="font-size: 1em;">${typeDisplay}</strong><br>
-            <small style="color: #666;">${date}</small>
+          <strong style="font-size: 1em;">${typeDisplay}</strong><br>
+          <small style="color: #666;">${date}</small>
         </div>
         <div style="text-align: right;">
-            <strong style="color: ${change > 0 ? 'green' : 'red'}; font-size: 1.1em;">${signe}${change}</strong><br>
-            <small>Stock final: ${d.newStock}</small>
+          <strong style="color: ${change > 0 ? 'green' : 'red'}; font-size: 1.1em;">${signe}${change}</strong><br>
+          <small>Stock final: ${d.newStock != null ? d.newStock : 'N/A'}</small>
         </div>
-    `;
-    container.appendChild(row);
-});
+      `;
 
-// On s'assure que les nouvelles icônes sont bien affichées
-refreshLucideIcons();
-    })
-    .catch(err => {
-      console.error("Erreur historique :", err);
-      container.innerHTML = "<p>Erreur de chargement.</p>";
+      if (['approvisionnement', 'approvisionnement-reception'].includes(d.type)) {
+        row.classList.add('history-item-clickable');
+        const openPurchaseModal = () => {
+          if (d.sourceApproId) {
+            ouvrirModalAchatStock(d.sourceApproId, d, articleName || d.sourceApproItemName || '');
+          } else if (typeof showToast === 'function') {
+            showToast("Aucun detail disponible pour cet achat.", "warning");
+          } else {
+            alert("Aucun detail disponible pour cet achat.");
+          }
+        };
+        row.addEventListener('click', openPurchaseModal);
+        row.setAttribute('role', 'button');
+        row.setAttribute('tabindex', '0');
+        row.addEventListener('keydown', evt => {
+          if (evt.key === 'Enter' || evt.key === ' ') {
+            evt.preventDefault();
+            openPurchaseModal();
+          }
+        });
+      }
+
+      container.appendChild(row);
     });
+
+    if (typeof refreshLucideIcons === 'function') {
+      refreshLucideIcons();
+    }
+  } catch (err) {
+    console.error("Erreur historique :", err);
+    container.innerHTML = "<p>Erreur de chargement.</p>";
+  }
 }
 
 /**
@@ -21873,7 +22273,9 @@ function annulerAchatTransaction(approId, approData) {
                     change: -cancelledQty,
                     type: 'annulation_achat',
                     refId: approId,
-                    newStock: newStock
+                    newStock: newStock,
+                    sourceApproId: approId,
+                    sourceApproItemName: item.produit || ''
                 });
 
                 if (item.category === 'telephones' && item.imeis && item.imeis.length > 0) {
@@ -22725,3 +23127,4 @@ async function finaliserLivraisonReussie() {
 </script>
 </body>
 </html>
+
