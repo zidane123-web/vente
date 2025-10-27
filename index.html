@@ -1284,6 +1284,69 @@ body.role-employe #screen-accueil .accueil-actions {
       color: #6b7280;
       line-height: 1.4;
     }
+    .history-reason {
+      display: block;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .stock-adjust-modal {
+      max-width: 420px;
+      padding: 22px 24px 26px;
+    }
+    .stock-adjust-modal h2 {
+      text-align: center;
+      margin-bottom: 12px;
+      color: var(--primary-color);
+    }
+    .stock-adjust-hint {
+      font-size: 13px;
+      color: #6b7280;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+    .stock-adjust-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .stock-adjust-form label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+    }
+    .stock-adjust-form input,
+    .stock-adjust-form textarea {
+      width: 100%;
+      border: 1px solid #d6d9e4;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      resize: vertical;
+      background: #fff;
+    }
+    .stock-adjust-form input:focus,
+    .stock-adjust-form textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(56, 128, 255, 0.18);
+    }
+    .stock-adjust-error {
+      margin-top: -4px;
+      font-size: 13px;
+      color: #b91c1c;
+      background: rgba(248, 113, 113, 0.12);
+      border-radius: 6px;
+      padding: 8px 10px;
+    }
+    .stock-adjust-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 8px;
+    }
     .modal-warning-list {
       margin: 15px 0;
       padding-left: 20px;
@@ -4789,6 +4852,13 @@ function generateInvoicePDF(sale) {
 
             <span class="product-price-label">Coût d'achat</span>
             <span id="detail-purchase-cost" class="product-price-value">...</span>
+
+            <div class="product-actions">
+              <button type="button" class="btn-modern adjust-stock-btn" onclick="ouvrirModalAjustementStock()">
+                <i data-lucide="sliders"></i>
+                Ajustement stock
+              </button>
+            </div>
           </div>
           
           <div class="add-image-box">
@@ -4914,6 +4984,30 @@ function generateInvoicePDF(sale) {
     font-weight: 600;
     color: var(--ion-text-color);
     margin-bottom: 12px;
+}
+#screen-article-detail .product-actions {
+    margin-top: 12px;
+}
+#screen-article-detail .adjust-stock-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 12px 24px rgba(56, 128, 255, 0.25);
+}
+#screen-article-detail .adjust-stock-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 30px rgba(56, 128, 255, 0.28);
+}
+#screen-article-detail .adjust-stock-btn i {
+    font-size: 18px;
 }
 #screen-article-detail .add-image-box {
     width: 100px;
@@ -5175,6 +5269,9 @@ function generateInvoicePDF(sale) {
           case "annulation_vente":
             typeMouvement = "Retour vente";
             break;
+          case "ajustement_stock":
+            typeMouvement = "Ajustement stock";
+            break;
         }
 
         const row = document.createElement("div");
@@ -5185,6 +5282,7 @@ function generateInvoicePDF(sale) {
             <strong>${date}</strong> - <span>${typeMouvement}</span><br>
             Mouvement : <span style="color:${color}; font-weight:bold;">${signe}${change}</span> unités<br>
             Nouveau Stock : <strong>${d.newStock != null ? d.newStock : 'N/A'}</strong>
+            ${d.reason ? `<br><span class="history-reason">Raison : ${escapeHtmlStock(d.reason)}</span>` : ''}
           </p>`;
 
         if (['approvisionnement', 'approvisionnement-reception'].includes(d.type)) {
@@ -14145,6 +14243,31 @@ async function annulerCommandeFournisseur(approId, event) {
       </div>
     </div>
   </div>
+
+  <!-- Modal: Ajustement de stock -->
+  <div id="modalStockAdjustment" class="modal">
+    <div class="modal-content stock-adjust-modal">
+      <span class="close" onclick="fermerModalAjustementStock()">&times;</span>
+      <h2>Ajustement de stock</h2>
+      <p class="stock-adjust-hint">
+        Indiquez la variation souhaitée. Utilisez un nombre positif pour augmenter et un nombre négatif pour diminuer.
+      </p>
+      <form id="formStockAdjustment" class="stock-adjust-form" onsubmit="event.preventDefault(); soumettreAjustementStock();">
+        <label for="adjustStockQuantity">Quantité à ajuster</label>
+        <input type="number" id="adjustStockQuantity" step="1" placeholder="+5 ou -2" required>
+
+        <label for="adjustStockReason">Commentaire</label>
+        <textarea id="adjustStockReason" rows="3" placeholder="Expliquez la raison de l'ajustement" required></textarea>
+
+        <p id="adjustStockError" class="stock-adjust-error" style="display:none;"></p>
+
+        <div class="stock-adjust-actions">
+          <button type="button" class="btn-modern secondary" onclick="fermerModalAjustementStock()">Annuler</button>
+          <button type="submit" class="btn-modern">Valider l'ajustement</button>
+        </div>
+      </form>
+    </div>
+  </div>
   
   <!-- Modal: Performance utilisateur -->
   <div id="modalPerformance" class="modal">
@@ -18115,6 +18238,12 @@ function formatterMontantStock(valeur) {
   return `${nombre.toLocaleString('fr-FR')} FCFA`;
 }
 
+function escapeHtmlStock(valeur) {
+  const helper = document.createElement('div');
+  helper.textContent = valeur == null ? '' : valeur;
+  return helper.innerHTML;
+}
+
 function construireCarteAchatModal(appro, mouvement, articleNom) {
   const fournisseur = appro.fournisseur || 'Fournisseur';
   const initials = fournisseur
@@ -18289,6 +18418,144 @@ async function ouvrirModalAchatStock(approId, mouvement, articleNom) {
   } catch (error) {
     console.error('Erreur modal achat stock :', error);
     body.innerHTML = '<p style="text-align:center; color:#ef4444;">Erreur lors du chargement du detail.</p>';
+  }
+}
+
+function ouvrirModalAjustementStock() {
+  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
+    (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
+  if (isEmployee) {
+    if (typeof showToast === 'function') {
+      showToast("Ajustement non autorisé pour votre profil.", "error");
+    } else {
+      alert("Ajustement non autorisé pour votre profil.");
+    }
+    return;
+  }
+  if (!currentArticleId) {
+    if (typeof showToast === 'function') {
+      showToast("Sélectionnez un article avant l'ajustement.", "warning");
+    } else {
+      alert("Sélectionnez un article avant l'ajustement.");
+    }
+    return;
+  }
+  const modal = document.getElementById('modalStockAdjustment');
+  if (!modal) {
+    console.warn('Modal ajustement stock introuvable.');
+    return;
+  }
+  const qtyInput = document.getElementById('adjustStockQuantity');
+  const reasonInput = document.getElementById('adjustStockReason');
+  const errorEl = document.getElementById('adjustStockError');
+  if (qtyInput) qtyInput.value = '';
+  if (reasonInput) reasonInput.value = '';
+  if (errorEl) errorEl.style.display = 'none';
+  modal.style.display = 'flex';
+  setTimeout(() => {
+    qtyInput?.focus();
+  }, 80);
+}
+
+function fermerModalAjustementStock() {
+  const modal = document.getElementById('modalStockAdjustment');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+async function soumettreAjustementStock() {
+  const qtyInput = document.getElementById('adjustStockQuantity');
+  const reasonInput = document.getElementById('adjustStockReason');
+  const errorEl = document.getElementById('adjustStockError');
+  const submitBtn = document.querySelector('#formStockAdjustment button[type=\"submit\"]');
+
+  if (!qtyInput || !reasonInput) {
+    console.error('Formulaire ajustement incomplet.');
+    return;
+  }
+
+  const rawQty = parseFloat(qtyInput.value);
+  const qty = Number.isFinite(rawQty) ? Math.trunc(rawQty) : NaN;
+  const reason = reasonInput.value.trim();
+
+  const displayError = msg => {
+    if (errorEl) {
+      errorEl.textContent = msg;
+      errorEl.style.display = 'block';
+    } else {
+      alert(msg);
+    }
+  };
+
+  if (!Number.isFinite(qty) || qty === 0) {
+    displayError("Saisissez une quantité non nulle (positive ou négative).");
+    qtyInput.focus();
+    return;
+  }
+  if (!reason || reason.length < 3) {
+    displayError("Expliquez brièvement la raison de l'ajustement (minimum 3 caractères).");
+    reasonInput.focus();
+    return;
+  }
+  if (!currentArticleId) {
+    displayError("Aucun article sélectionné.");
+    return;
+  }
+
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    displayError("Session expirée. Veuillez vous reconnecter.");
+    return;
+  }
+
+  if (errorEl) errorEl.style.display = 'none';
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    await dbFirestore.runTransaction(async tx => {
+      const docRef = dbFirestore.collection("stock").doc(currentArticleId);
+      const snapshot = await tx.get(docRef);
+      if (!snapshot.exists) {
+        throw new Error("Article introuvable en base.");
+      }
+      const data = snapshot.data() || {};
+      const currentStock = parseFloat(data.stock || 0);
+      const newStock = currentStock + qty;
+      if (newStock < 0) {
+        throw new Error("Impossible de descendre le stock en dessous de 0.");
+      }
+
+      tx.update(docRef, {
+        stock: newStock
+      });
+
+      const historyRef = docRef.collection("history").doc();
+      tx.set(historyRef, {
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        change: qty,
+        newStock: newStock,
+        type: 'ajustement_stock',
+        reason: reason,
+        adjustedBy: user.displayName || user.email || user.uid || 'Utilisateur',
+        adjustedByUid: user.uid || null
+      });
+    });
+
+    fermerModalAjustementStock();
+    if (typeof showToast === 'function') {
+      showToast("Ajustement stock enregistré.", "success");
+    }
+    loadArticleDetail();
+    loadArticleStockHistory(currentArticleId);
+    if (typeof currentHistoryStockId !== 'undefined' && currentHistoryStockId === currentArticleId) {
+      chargerHistoriqueStock(currentArticleId);
+    }
+  } catch (error) {
+    console.error("Erreur ajustement stock:", error);
+    displayError(error.message || "Erreur lors de l'ajustement du stock.");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 
@@ -19084,6 +19351,9 @@ function continuerDepuisPanier() {
       }
       if (event.target === document.getElementById("modalStockPurchase")) {
         fermerModalStockPurchase();
+      }
+      if (event.target === document.getElementById("modalStockAdjustment")) {
+        fermerModalAjustementStock();
       }
       if (event.target === document.getElementById("modalPerformance")) {
         fermerModalPerformance();
@@ -22123,6 +22393,10 @@ async function chargerHistoriqueStock(stockId) {
           typeDisplay = "Retour vente";
           iconHtml = '<i data-lucide="arrow-up" style="color: #3880ff;"></i>';
           break;
+        case "ajustement_stock":
+          typeDisplay = "Ajustement stock";
+          iconHtml = '<i data-lucide="settings" style="color: #6366f1;"></i>';
+          break;
       }
 
       const row = document.createElement("div");
@@ -22133,6 +22407,7 @@ async function chargerHistoriqueStock(stockId) {
         <div style="flex-grow: 1;">
           <strong style="font-size: 1em;">${typeDisplay}</strong><br>
           <small style="color: #666;">${date}</small>
+          ${d.reason ? `<span class="history-reason">Raison : ${escapeHtmlStock(d.reason)}</span>` : ''}
         </div>
         <div style="text-align: right;">
           <strong style="color: ${change > 0 ? 'green' : 'red'}; font-size: 1.1em;">${signe}${change}</strong><br>
