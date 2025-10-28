@@ -47,8 +47,7 @@ body.role-employe .delete-btn {
 }
 
 body.role-employe #screen-accueil .ako-quick-item[data-role="manager"],
-body.role-employe #screen-accueil .ako-card.receivables,
-body.role-employe #screen-accueil .ako-card.recent {
+body.role-employe #screen-accueil .ako-card.receivables {
   display: none !important;
 }
 
@@ -616,38 +615,6 @@ body.role-employe #screen-accueil .ako-quick-grid {
       right: 18px;
       top: 18px;
       box-shadow: 0 0 0 4px rgba(255, 159, 61, 0.25);
-    }
-    .ako-recent-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--ako-text);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      font-size: 13px;
-    }
-    .ako-chip-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .ako-chip {
-      border: 1px solid var(--ako-stroke);
-      background: #f3f4f6;
-      color: #374151;
-      border-radius: 999px;
-      height: 36px;
-      padding: 0 16px;
-      display: inline-flex;
-      align-items: center;
-      font-weight: 600;
-      font-size: 14px;
-      border-bottom-width: 2px;
-    }
-    .ako-chip.is-active {
-      background: var(--ako-blue);
-      color: #fff;
-      border-color: transparent;
     }
     .ako-hidden-data {
       display: none !important;
@@ -2402,12 +2369,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
 
       <section class="ako-card ako-card-quick" aria-label="Actions rapides">
         <div class="ako-quick-grid">
-          <button class="ako-quick-item" type="button" onclick="ouvrirModalTypeVente()" aria-label="Nouvelle facture">
+          <button class="ako-quick-item" type="button" onclick="ouvrirModalTypeVente()" aria-label="Enregistrer une vente">
             <span class="ako-quick-avatar">
               <i data-lucide="file-plus"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>Nouvelle facture</span>
+            <span>Enregistrer une vente</span>
           </button>
           <button class="ako-quick-item" type="button" onclick="window.location.hash='clients'" aria-label="Nouveau client">
             <span class="ako-quick-avatar">
@@ -2440,7 +2407,7 @@ body.role-employe #screen-accueil .ako-quick-grid {
             <p>Surveillez les montants en cours et en retard dus par vos clients.</p>
             <button class="ako-btn-pill" type="button" onclick="ouvrirModalTypeVente()">
               <i data-lucide="plus"></i>
-              <span>Créer une facture</span>
+              <span>Enregistrer une vente</span>
             </button>
           </div>
           <div class="ako-receivables-visual" aria-hidden="true">
@@ -2455,20 +2422,6 @@ body.role-employe #screen-accueil .ako-quick-grid {
           <span id="accueil-depenses">0 FCFA</span>
           <span id="accueil-stock-items">0</span>
           <span id="accueil-stock-detail"></span>
-        </div>
-      </section>
-
-      <section class="ako-card recent" aria-labelledby="recentTransactionsTitle">
-        <header class="ako-recent-header">
-          <i data-lucide="refresh-cw"></i>
-          <h2 id="recentTransactionsTitle">Transactions récentes</h2>
-        </header>
-        <div class="ako-chip-group" role="tablist" aria-label="Filtres de transactions">
-          <button class="ako-chip is-active" type="button" role="tab" aria-selected="true">Factures</button>
-          <button class="ako-chip" type="button" role="tab" aria-selected="false">Devis</button>
-          <button class="ako-chip" type="button" role="tab" aria-selected="false">Dépenses</button>
-        </div>
-        <div class="ako-hidden-data" aria-hidden="true">
           <span id="accueil-livraisons-count">0</span>
           <span id="accueil-livraisons-subtext">Cliquer pour consulter</span>
           <span id="accueil-ventes-livraison">0 livraisons en attente</span>
