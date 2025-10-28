@@ -46,18 +46,14 @@ body.role-employe .delete-btn {
   display: none !important;
 }
 
-body.role-employe #screen-accueil .accueil-grid {
+body.role-employe #screen-accueil .ako-quick-item[data-role="manager"],
+body.role-employe #screen-accueil .ako-card.receivables,
+body.role-employe #screen-accueil .ako-card.recent {
   display: none !important;
 }
 
-body.role-employe #screen-accueil .btn-accueil-achat,
-body.role-employe #screen-accueil .btn-accueil-tresorerie {
-  display: none !important;
-}
-
-body.role-employe #screen-accueil .accueil-actions {
-  justify-content: center;
-  gap: 12px;
+body.role-employe #screen-accueil .ako-quick-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .performance-metrics {
@@ -359,78 +355,327 @@ body.role-employe #screen-accueil .accueil-actions {
       font-size: 12px;
     }
     #screen-accueil {
-      background: #f5f5fa;
-      padding: 15px;
+      --ako-blue: #2b6de9;
+      --ako-dark: #0e1326;
+      --ako-success: #27c29a;
+      --ako-orange: #ff9f3d;
+      --ako-red: #ff4155;
+      --ako-bg: #f5f7fb;
+      --ako-card: #ffffff;
+      --ako-stroke: #e6e8ec;
+      --ako-text: #0f172a;
+      --ako-muted: #6b7280;
+      background: var(--ako-bg);
       min-height: 100vh;
+      padding: 0;
     }
-    .accueil-container {
+    .ako-dashboard {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--ako-bg);
+    }
+    .ako-appbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      align-items: center;
+      height: 56px;
+      padding: 0 12px;
+      background: #fff;
+      border-bottom: 1px solid var(--ako-stroke);
+    }
+    .ako-icon-btn {
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 999px;
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ako-text);
+      cursor: pointer;
+    }
+    .ako-brand {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--ako-text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .ako-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .ako-icon-circle {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid var(--ako-stroke);
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ako-text);
+    }
+    .ako-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      padding: 2px 6px;
+      line-height: 1;
+      border-radius: 999px;
+      background: var(--ako-red);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 600;
+      border: 2px solid #fff;
+    }
+    .ako-tabs {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      height: 56px;
+      padding: 0 16px;
+      background: #fff;
+      border-bottom: 1px solid var(--ako-stroke);
+    }
+    .ako-tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      background: transparent;
+      color: var(--ako-muted);
+      font-weight: 600;
+      font-size: 15px;
+      cursor: pointer;
+      padding: 10px 0;
+    }
+    .ako-tab.is-active {
+      color: var(--ako-blue);
+      font-weight: 700;
+    }
+    .ako-tab-indicator {
+      position: absolute;
+      bottom: 0;
+      left: 16px;
+      width: 110px;
+      height: 3px;
+      border-radius: 2px;
+      background: var(--ako-blue);
+    }
+    .ako-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+    }
+    .ako-welcome {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .ako-welcome-icon {
+      font-size: 20px;
+    }
+    .ako-welcome-text h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--ako-text);
+    }
+    .ako-welcome-text p {
+      margin: 4px 0 0;
+      color: var(--ako-muted);
+      font-size: 15px;
+    }
+    .ako-date {
+      margin-top: 6px;
+      font-size: 13px;
+      color: var(--ako-muted);
+    }
+    .ako-card {
+      background: var(--ako-card);
+      border: 1px solid var(--ako-stroke);
+      border-radius: 16px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+      padding: 18px;
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
-    .accueil-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .accueil-header h2 {
-      margin: 0;
-      font-size: 20px;
-      color: var(--text-color);
-    }
-    .accueil-header p {
-      margin: 2px 0 0 0;
-      color: #6b7280;
-      font-size: 13px;
-    }
-    .accueil-grid {
+    .ako-quick-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 12px;
     }
-    .accueil-card {
-      background: #fff;
-      border-radius: var(--border-radius);
-      padding: 16px;
-      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
-      display: flex;
-      flex-direction: column;
+    .ako-quick-item {
+      display: grid;
       gap: 6px;
-    }
-    .accueil-card.accueil-card-link {
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
-    }
-    .accueil-card.accueil-card-link:focus,
-    .accueil-card.accueil-card-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
-      outline: none;
-    }
-    .accueil-card span {
+      place-items: center;
+      border: none;
+      background: transparent;
+      color: var(--ako-text);
+      font-weight: 600;
       font-size: 13px;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      text-align: center;
+      cursor: pointer;
     }
-    .accueil-card strong {
-      font-size: 22px;
-      color: var(--text-color);
+    .ako-quick-avatar {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 999px;
+      background: rgba(43, 109, 233, 0.1);
+      color: var(--ako-blue);
     }
-    .accueil-card small {
+    .ako-quick-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #fff;
+      color: var(--ako-blue);
+      border: 2px solid var(--ako-card);
       font-size: 12px;
-      color: #94a3b8;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
     }
-    .accueil-actions {
+    .ako-card.receivables {
+      gap: 12px;
+    }
+    .ako-receivables-content {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+    }
+    .ako-receivables-content h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ako-text);
+    }
+    .ako-receivables-content p {
+      margin: 6px 0 16px;
+      color: var(--ako-muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .ako-btn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 20px;
+      height: 44px;
+      border-radius: 999px;
+      background: var(--ako-dark);
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      border: none;
+      cursor: pointer;
+    }
+    .ako-receivables-visual {
+      width: 100px;
+      height: 72px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(43, 109, 233, 0.12), rgba(39, 194, 154, 0.18));
+      position: relative;
+      overflow: hidden;
+    }
+    .ako-chart-line {
+      position: absolute;
+      inset: 16px;
+      border-bottom: 2px solid rgba(43, 109, 233, 0.4);
+      border-left: 2px solid rgba(43, 109, 233, 0.4);
+      transform: skewY(-10deg);
+      border-radius: 4px;
+    }
+    .ako-chart-point {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--ako-orange);
+      right: 18px;
+      top: 18px;
+      box-shadow: 0 0 0 4px rgba(255, 159, 61, 0.25);
+    }
+    .ako-recent-header {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+      align-items: center;
+      gap: 8px;
+      color: var(--ako-text);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      font-size: 13px;
     }
-    .accueil-actions .btn-modern {
-      flex: 1 1 160px;
-      justify-content: center;
+    .ako-chip-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .ako-chip {
+      border: 1px solid var(--ako-stroke);
+      background: #f3f4f6;
+      color: #374151;
+      border-radius: 999px;
+      height: 36px;
+      padding: 0 16px;
+      display: inline-flex;
+      align-items: center;
+      font-weight: 600;
+      font-size: 14px;
+      border-bottom-width: 2px;
+    }
+    .ako-chip.is-active {
+      background: var(--ako-blue);
+      color: #fff;
+      border-color: transparent;
+    }
+    .ako-hidden-data {
+      display: none !important;
+    }
+    @media (max-width: 420px) {
+      .ako-tabs {
+        gap: 16px;
+      }
+      .ako-tab-indicator {
+        width: 96px;
+      }
+      .ako-quick-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .ako-receivables-content {
+        grid-template-columns: 1fr;
+      }
+      .ako-receivables-visual {
+        margin-top: 4px;
+      }
+    }
+    @media (max-width: 360px) {
+      .ako-main {
+        padding: 12px;
+      }
+      .ako-appbar {
+        padding: 0 8px;
+      }
     }
     .client-search-hint {
       font-size: 14px;
@@ -2118,63 +2363,118 @@ body.role-employe #screen-accueil .accueil-actions {
     <!-- Screen 1: Nouvelle Vente - Multi-steps -->
     
 <section id="screen-accueil" class="screen active">
-  <header>
-    <button class="back-btn" onclick="window.location.hash='menu'">
-      <i data-lucide="arrow-left"></i>
-    </button>
-    <h1>Accueil</h1>
-  </header>
-  <div class="accueil-container">
-    <div class="accueil-header">
-      <div>
-        <h2>Vue d'ensemble quotidienne</h2>
-        <p id="accueil-date">--</p>
-      </div>
-    </div>
-    <div class="accueil-grid">
-      <div class="accueil-card">
-        <span>Ventes du jour</span>
-        <strong id="accueil-ventes-count">0</strong>
-        <small id="accueil-ventes-livraison">0 livraisons en attente</small>
-      </div>
-      <div class="accueil-card accueil-card-link" role="button" tabindex="0" onclick="ouvrirLivraisonsDepuisAccueil()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); ouvrirLivraisonsDepuisAccueil();}">
-        <span>Livraisons en cours</span>
-        <strong id="accueil-livraisons-count">0</strong>
-        <small id="accueil-livraisons-subtext">Cliquer pour consulter</small>
-      </div>
-      <div class="accueil-card">
-        <span>Chiffre d'affaires</span>
-        <strong id="accueil-ventes-ca">0 FCFA</strong>
-        <small id="accueil-ventes-profit">Profit : 0 FCFA</small>
-      </div>
-      <div class="accueil-card">
-        <span>Dépenses du jour</span>
-        <strong id="accueil-depenses">0 FCFA</strong>
-        <small>Charges enregistrées aujourd'hui</small>
-      </div>
-      <div class="accueil-card">
-        <span>Articles en stock</span>
-        <strong id="accueil-stock-items">0</strong>
-        <small id="accueil-stock-detail"></small>
-      </div>
-    </div>
-    <div class="accueil-actions">
-      <button type="button" class="btn-modern btn-accueil-vente" onclick="ouvrirModalTypeVente()">
-        <i data-lucide="shopping-cart"></i> Nouvelle vente
+  <div class="ako-dashboard">
+    <header class="ako-appbar">
+      <button class="ako-icon-btn" type="button" aria-label="Open menu" onclick="window.location.hash='menu'">
+        <i data-lucide="menu"></i>
       </button>
-      <button type="button" class="btn-modern secondary btn-accueil-achat" onclick="window.location.hash='approvisionnement'">
-        <i data-lucide="archive"></i> Enregistrer un achat
+      <div class="ako-brand">Ako</div>
+      <div class="ako-actions">
+        <button class="ako-icon-circle" type="button" aria-label="Help">
+          <i data-lucide="help-circle"></i>
+        </button>
+        <button class="ako-icon-circle" type="button" aria-label="Notifications">
+          <span class="ako-badge" aria-label="1 nouvelle notification">01</span>
+          <i data-lucide="bell"></i>
+        </button>
+      </div>
+    </header>
+    <nav class="ako-tabs" role="tablist" aria-label="Navigation principale">
+      <button class="ako-tab is-active" type="button" role="tab" aria-selected="true" tabindex="0">
+        <i data-lucide="layout-dashboard"></i>
+        <span>Dashboard</span>
       </button>
-      <button type="button" class="btn-modern secondary btn-accueil-stock" onclick="window.location.hash='stock'">
-        <i data-lucide="package"></i> Voir le stock
+      <button class="ako-tab" type="button" role="tab" aria-selected="false" tabindex="-1">
+        <i data-lucide="sparkles"></i>
+        <span>Getting Started</span>
       </button>
-      <button type="button" class="btn-modern secondary btn-accueil-tresorerie" onclick="window.location.hash='tresorerie'">
-        <i data-lucide="dollar-sign"></i> Voir trésorerie
-      </button>
-      <button type="button" class="btn-modern secondary btn-accueil-performance" onclick="ouvrirPerformanceUtilisateur()">
-        <i data-lucide="trending-up"></i> Voir ma performance
-      </button>
-    </div>
+      <span class="ako-tab-indicator" aria-hidden="true"></span>
+    </nav>
+    <main class="ako-main">
+      <section class="ako-welcome" aria-labelledby="akoWelcomeTitle">
+        <div class="ako-welcome-icon" aria-hidden="true">✨</div>
+        <div class="ako-welcome-text">
+          <h1 id="akoWelcomeTitle">Welcome AKODA ZIDANE</h1>
+          <p>Here's your organization's overview</p>
+          <p class="ako-date" id="accueil-date" aria-live="polite">--</p>
+        </div>
+      </section>
+
+      <section class="ako-card ako-card-quick" aria-label="Quick actions">
+        <div class="ako-quick-grid">
+          <button class="ako-quick-item" type="button" onclick="ouvrirModalTypeVente()" aria-label="New Invoice">
+            <span class="ako-quick-avatar">
+              <i data-lucide="file-plus"></i>
+              <span class="ako-quick-badge">+</span>
+            </span>
+            <span>New Invoice</span>
+          </button>
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='clients'" aria-label="New Customer">
+            <span class="ako-quick-avatar">
+              <i data-lucide="user-plus"></i>
+              <span class="ako-quick-badge">+</span>
+            </span>
+            <span>New Customer</span>
+          </button>
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='depenses'" aria-label="New Expense" data-role="manager">
+            <span class="ako-quick-avatar">
+              <i data-lucide="credit-card"></i>
+              <span class="ako-quick-badge">+</span>
+            </span>
+            <span>New Expense</span>
+          </button>
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='start-day'" aria-label="Add Log Time" data-role="manager">
+            <span class="ako-quick-avatar">
+              <i data-lucide="timer"></i>
+              <span class="ako-quick-badge">+</span>
+            </span>
+            <span>Add Log Time</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="ako-card receivables" aria-labelledby="receivablesTitle">
+        <div class="ako-receivables-content">
+          <div>
+            <h2 id="receivablesTitle">View Your Receivables Summary</h2>
+            <p>Keep an eye on current and overdue amount your customers owe you.</p>
+            <button class="ako-btn-pill" type="button" onclick="ouvrirModalTypeVente()">
+              <i data-lucide="plus"></i>
+              <span>Create Invoice</span>
+            </button>
+          </div>
+          <div class="ako-receivables-visual" aria-hidden="true">
+            <span class="ako-chart-line"></span>
+            <span class="ako-chart-point"></span>
+          </div>
+        </div>
+        <div class="ako-hidden-data" aria-hidden="true">
+          <span id="accueil-ventes-count">0</span>
+          <span id="accueil-ventes-ca">0 FCFA</span>
+          <span id="accueil-ventes-profit">Profit : 0 FCFA</span>
+          <span id="accueil-depenses">0 FCFA</span>
+          <span id="accueil-stock-items">0</span>
+          <span id="accueil-stock-detail"></span>
+        </div>
+      </section>
+
+      <section class="ako-card recent" aria-labelledby="recentTransactionsTitle">
+        <header class="ako-recent-header">
+          <i data-lucide="refresh-cw"></i>
+          <h2 id="recentTransactionsTitle">Recent Transactions</h2>
+        </header>
+        <div class="ako-chip-group" role="tablist" aria-label="Transaction filters">
+          <button class="ako-chip is-active" type="button" role="tab" aria-selected="true">Invoices</button>
+          <button class="ako-chip" type="button" role="tab" aria-selected="false">Quotes</button>
+          <button class="ako-chip" type="button" role="tab" aria-selected="false">Expenses</button>
+        </div>
+        <div class="ako-hidden-data" aria-hidden="true">
+          <span id="accueil-livraisons-count">0</span>
+          <span id="accueil-livraisons-subtext">Cliquer pour consulter</span>
+          <span id="accueil-ventes-livraison">0 livraisons en attente</span>
+        </div>
+      </section>
+    </main>
   </div>
 </section>
 <section id="screen-vendre" class="screen">
