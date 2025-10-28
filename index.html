@@ -1832,44 +1832,6 @@ body.role-employe #screen-accueil .ako-quick-grid {
   color: #ffffff;
 }
 
-#screen-menu .drawer-item .drawer-chevron {
-  margin-left: auto;
-  color: inherit;
-  transition: transform 0.2s ease;
-}
-
-#screen-menu .drawer-item[aria-expanded="true"] .drawer-chevron {
-  transform: rotate(180deg);
-}
-
-#screen-menu .drawer-submenu {
-  display: none;
-  flex-direction: column;
-  gap: 4px;
-  padding: 4px 0 0 52px;
-}
-
-#screen-menu .drawer-submenu[aria-hidden="false"] {
-  display: flex;
-}
-
-#screen-menu .drawer-subitem {
-  background: transparent;
-  border: none;
-  padding: 8px 0;
-  text-align: left;
-  font-size: 14px;
-  font-weight: 500;
-  color: #6B7280;
-  cursor: pointer;
-}
-
-#screen-menu .drawer-subitem:hover,
-#screen-menu .drawer-subitem:focus-visible {
-  color: #111827;
-  outline: none;
-}
-
 #screen-menu .drawer-account-menu {
   position: absolute;
   right: 0;
@@ -7839,56 +7801,59 @@ async function generateSupplierCreditPDF() {
         <nav class="drawer-nav" role="navigation" aria-label="Menu principal">
           <button class="drawer-item menu-list-item" type="button" data-hash="accueil" onclick="window.location.hash='accueil'" data-drawer-focus>
             <span class="drawer-icon"><i data-lucide="home"></i></span>
-            <span>Home</span>
+            <span>Accueil</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="clients" onclick="window.location.hash='clients'">
             <span class="drawer-icon"><i data-lucide="users"></i></span>
-            <span>Customers</span>
+            <span>Clients</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="stock" onclick="window.location.hash='stock'">
             <span class="drawer-icon"><i data-lucide="package"></i></span>
-            <span>Items</span>
+            <span>Stock</span>
           </button>
-          <button class="drawer-item menu-list-item" type="button" onclick="openDrawerComingSoon('Quotes')">
-            <span class="drawer-icon"><i data-lucide="file-text"></i></span>
-            <span>Quotes</span>
+          <button class="drawer-item menu-list-item" type="button" data-hash="approvisionnement" onclick="window.location.hash='approvisionnement'">
+            <span class="drawer-icon"><i data-lucide="archive"></i></span>
+            <span>Approvisionnements</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="livraisons" onclick="window.location.hash='livraisons'">
+            <span class="drawer-icon"><i data-lucide="truck"></i></span>
+            <span>Livraisons</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="historique" onclick="window.location.hash='historique'">
-            <span class="drawer-icon"><i data-lucide="receipt-text"></i></span>
-            <span>Invoices</span>
-          </button>
-          <button class="drawer-item menu-list-item" type="button" data-hash="vendre" onclick="window.location.hash='vendre'">
-            <span class="drawer-icon"><i data-lucide="file-check-2"></i></span>
-            <span>Sales Receipts</span>
+            <span class="drawer-icon"><i data-lucide="history"></i></span>
+            <span>Historique des ventes</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="tresorerie" onclick="window.location.hash='tresorerie'">
             <span class="drawer-icon"><i data-lucide="wallet"></i></span>
-            <span>Payments Received</span>
+            <span>Trésorerie</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="depenses" onclick="window.location.hash='depenses'">
             <span class="drawer-icon"><i data-lucide="credit-card"></i></span>
-            <span>Expenses</span>
+            <span>Dépenses</span>
           </button>
-          <button class="drawer-item menu-list-item has-sub" type="button" aria-expanded="false" onclick="toggleDrawerTimeTracking(this)">
-            <span class="drawer-icon"><i data-lucide="clock-4"></i></span>
-            <span>Time Tracking</span>
-            <span class="drawer-chevron"><i data-lucide="chevron-down"></i></span>
+          <button class="drawer-item menu-list-item" type="button" data-hash="dettes-fournisseurs" onclick="window.location.hash='dettes-fournisseurs'">
+            <span class="drawer-icon"><i data-lucide="file-text"></i></span>
+            <span>Dettes fournisseurs</span>
           </button>
-          <div class="drawer-submenu" id="drawerTimeTrackingSubmenu" aria-hidden="true">
-            <button class="drawer-subitem" type="button" onclick="window.location.hash='start-day'">Timesheets</button>
-            <button class="drawer-subitem" type="button" onclick="openDrawerComingSoon('Approvals')">Approvals</button>
-          </div>
           <button class="drawer-item menu-list-item" type="button" data-hash="rapports" onclick="window.location.hash='rapports'">
             <span class="drawer-icon"><i data-lucide="bar-chart-3"></i></span>
-            <span>Reports</span>
+            <span>Rapports &amp; statistiques</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="canaux-performance" onclick="window.location.hash='canaux-performance'">
+            <span class="drawer-icon"><i data-lucide="line-chart"></i></span>
+            <span>Performance canaux</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="profit" onclick="window.location.hash='profit'">
+            <span class="drawer-icon"><i data-lucide="trending-up"></i></span>
+            <span>Profit</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="parametres" onclick="window.location.hash='parametres'">
             <span class="drawer-icon"><i data-lucide="settings"></i></span>
-            <span>Settings</span>
+            <span>Paramètres</span>
           </button>
-          <button class="drawer-item menu-list-item" type="button" data-hash="advance" onclick="window.location.hash='advance'">
-            <span class="drawer-icon"><i data-lucide="layers"></i></span>
-            <span>Advanced Billing</span>
+          <button class="drawer-item menu-list-item" type="button" onclick="deconnexion()">
+            <span class="drawer-icon"><i data-lucide="log-out"></i></span>
+            <span>Déconnexion</span>
           </button>
         </nav>
       </aside>
@@ -17533,24 +17498,6 @@ function fermerDrawerMenu() {
   }
 }
 
-function toggleDrawerTimeTracking(button) {
-  const submenu = document.getElementById('drawerTimeTrackingSubmenu');
-  if (!submenu || !button) return;
-  const expanded = button.getAttribute('aria-expanded') === 'true';
-  button.setAttribute('aria-expanded', String(!expanded));
-  submenu.setAttribute('aria-hidden', expanded ? 'true' : 'false');
-  drawerFocusables = collectDrawerFocusables();
-}
-
-function openDrawerComingSoon(label) {
-  const message = `${label} sera disponible prochainement.`;
-  if (typeof showToast === 'function') {
-    showToast(message, 'info');
-  } else {
-    console.info(message);
-  }
-}
-
 function toggleDrawerAccountMenu() {
   const toggle = document.getElementById('drawerAccountToggle');
   const menu = document.getElementById('drawerAccountMenu');
@@ -17608,8 +17555,6 @@ function updateDrawerActiveItem(hash) {
 }
 
 window.fermerDrawerMenu = fermerDrawerMenu;
-window.toggleDrawerTimeTracking = toggleDrawerTimeTracking;
-window.openDrawerComingSoon = openDrawerComingSoon;
 window.toggleDrawerAccountMenu = toggleDrawerAccountMenu;
 
 // Votre fonction enregistrerSnapshotDaily ici
