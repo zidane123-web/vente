@@ -15133,11 +15133,13 @@ function resetLivraisonDetailScreen() {
     successBtn.disabled = true;
     successBtn.classList.remove('primary');
     successBtn.classList.add('success');
+    successBtn.style.display = '';
     const label = successBtn.querySelector('.btn-label');
     if (label) label.textContent = 'Marquer comme réussie';
   }
   if (failBtn) {
     failBtn.disabled = true;
+    failBtn.style.display = '';
     const label = failBtn.querySelector('.btn-label');
     if (label) label.textContent = 'Marquer comme échouée';
   }
@@ -15443,9 +15445,11 @@ function updateLivraisonActionButtons(sale, totals) {
     if (successBtn) {
       successBtn.disabled = true;
       successBtn.classList.remove('primary', 'success');
+      successBtn.style.display = '';
     }
     if (failBtn) {
       failBtn.disabled = true;
+      failBtn.style.display = '';
     }
     if (addPaymentBtn) {
       addPaymentBtn.disabled = true;
@@ -15457,6 +15461,7 @@ function updateLivraisonActionButtons(sale, totals) {
   }
 
   if (successBtn) {
+    successBtn.style.display = isSuccess ? 'none' : '';
     successBtn.disabled = isSuccess;
     successBtn.classList.remove('primary', 'success');
     const label = successBtn.querySelector('.btn-label');
@@ -15472,6 +15477,7 @@ function updateLivraisonActionButtons(sale, totals) {
     }
   }
   if (failBtn) {
+    failBtn.style.display = isSuccess ? 'none' : '';
     failBtn.disabled = isFailed;
     const label = failBtn.querySelector('.btn-label');
     if (label) label.textContent = isFailed ? 'Livraison ?chou?e' : 'Marquer comme ?chou?e';
