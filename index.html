@@ -2448,7 +2448,7 @@ body.drawer-open {
 <section id="screen-accueil" class="screen active">
   <div class="ako-dashboard">
     <header class="ako-appbar">
-      <button class="ako-icon-btn" type="button" aria-label="Ouvrir le menu" onclick="window.location.hash='menu'">
+      <button class="ako-icon-btn" type="button" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
         <i data-lucide="menu"></i>
       </button>
       <div class="ako-brand">Ako</div>
@@ -3034,7 +3034,7 @@ body.drawer-open {
     <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button onclick="window.location.hash='menu'">
+          <ion-button onclick="openDrawerMenu()">
             <ion-icon name="arrow-back-outline"></ion-icon>
           </ion-button>
         </ion-buttons>
@@ -4890,7 +4890,7 @@ function generateInvoicePDF(sale) {
   </style>
 
   <header>
-    <button class="back-btn" onclick="window.location.hash='menu'">
+    <button class="back-btn" onclick="openDrawerMenu()">
       <i data-lucide="arrow-left"></i>
     </button>
     <h1>Performance des canaux</h1>
@@ -5080,7 +5080,7 @@ function generateInvoicePDF(sale) {
     <!-- Section Avance de Paiement -->
 <section id="screen-advance" class="screen">
   <header>
-    <button class="back-btn" onclick="window.location.hash='menu'">
+    <button class="back-btn" onclick="openDrawerMenu()">
       <i data-lucide="arrow-left"></i> Retour
     </button>
     <h1>Enregistrer une Avance</h1>
@@ -7861,7 +7861,7 @@ async function generateSupplierCreditPDF() {
 
 <section id="screen-salaires" class="screen">
   <header>
-    <button class="back-btn" onclick="window.location.hash='menu'">
+    <button class="back-btn" onclick="openDrawerMenu()">
       <i data-lucide="arrow-left"></i>
     </button>
     <h1>Gestion des Salaires</h1>
@@ -7931,7 +7931,7 @@ async function generateSupplierCreditPDF() {
 
     <section id="screen-repertoire-imei" class="screen">
       <header>
-        <button class="back-btn" onclick="window.location.hash='menu'">
+        <button class="back-btn" onclick="openDrawerMenu()">
           <i data-lucide="arrow-left"></i>
         </button>
         <h1>Répertoire d'IMEI</h1>
@@ -8409,7 +8409,7 @@ async function generateSupplierCreditPDF() {
   </style>
 
   <header>
-    <button class="back-btn-fb" onclick="window.location.hash='menu'">
+    <button class="back-btn-fb" onclick="openDrawerMenu()">
       <i data-lucide="arrow-left"></i>
     </button>
     <h1>Dépenses</h1>
@@ -8620,7 +8620,7 @@ function renderDepenses(docs) {
 <!-- ===== Début de la section Rapports & Statistiques ===== -->
 <section id="screen-rapports" class="screen">
   <header class="rapport-header">
-    <button class="btn-back" onclick="window.location.hash='menu'">
+    <button class="btn-back" onclick="openDrawerMenu()">
       <i data-lucide="arrow-left"></i>
     </button>
     <h1>Rapports & Statistiques</h1>
@@ -9311,7 +9311,7 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
 <!-- Section Approvisionnement -->
 <section id="screen-approvisionnement" class="screen">
     <header>
-        <button class="back-btn" onclick="window.location.hash='menu'">
+        <button class="back-btn" onclick="openDrawerMenu()">
             <i data-lucide="arrow-left"></i> Retour
         </button>
         <h1>Nouvel Achat</h1>
@@ -11117,7 +11117,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
 
 <section id="screen-dettes-fournisseurs" class="screen">
   <header>
-    <button class="back-btn" onclick="window.location.hash='menu'">
+    <button class="back-btn" onclick="openDrawerMenu()">
       <i data-lucide="arrow-left"></i> Retour
     </button>
     <h1>Dettes fournisseurs</h1>
@@ -11326,7 +11326,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
       <ion-header class="ion-no-border">
         <ion-toolbar>
           <ion-buttons slot="start">
-            <ion-button onclick="window.location.hash='menu'">
+            <ion-button onclick="openDrawerMenu()">
               <ion-icon name="arrow-back-outline"></ion-icon>
             </ion-button>
           </ion-buttons>
@@ -14492,7 +14492,7 @@ async function annulerCommandeFournisseur(approId, event) {
         <i data-lucide="receipt-text"></i>
         <span>Dettes</span>
       </div>
-      <div class="nav-item" id="nav-menu" onclick="window.location.hash='menu'">
+      <div class="nav-item" id="nav-menu" onclick="openDrawerMenu()">
         <i data-lucide="menu"></i>
         <span>Menu</span>
   </div>
@@ -17426,6 +17426,10 @@ function openDrawerMenu() {
   }, 60);
   document.addEventListener('keydown', handleDrawerKeydown, true);
   closeDrawerAccountMenu();
+  updateDrawerActiveItem(lastDrawerTarget);
+  if (typeof refreshLucideIcons === 'function') {
+    setTimeout(() => refreshLucideIcons(), 0);
+  }
 }
 
 function closeDrawerMenu(options = {}) {
@@ -17454,12 +17458,12 @@ function closeDrawerMenu(options = {}) {
 }
 
 function handleDrawerKeydown(event) {
-  if (window.location.hash !== '#menu') {
+  if (!document.body.classList.contains('drawer-open')) {
     return;
   }
   if (event.key === 'Escape') {
     event.preventDefault();
-    fermerDrawerMenu();
+    closeDrawerMenu();
     return;
   }
   if (event.key !== 'Tab') {
@@ -17487,15 +17491,7 @@ function handleDrawerKeydown(event) {
 }
 
 function fermerDrawerMenu() {
-  if (window.location.hash === '#menu') {
-    if (window.history.length > 1) {
-      window.history.back();
-    } else {
-      window.location.hash = 'accueil';
-    }
-  } else {
-    closeDrawerMenu();
-  }
+  closeDrawerMenu();
 }
 
 function toggleDrawerAccountMenu() {
@@ -17554,6 +17550,7 @@ function updateDrawerActiveItem(hash) {
   }
 }
 
+window.openDrawerMenu = openDrawerMenu;
 window.fermerDrawerMenu = fermerDrawerMenu;
 window.toggleDrawerAccountMenu = toggleDrawerAccountMenu;
 
@@ -17627,20 +17624,19 @@ function voirHistoriqueStock(stockId, e) {
 
   if (hash === 'menu') {
     openDrawerMenu();
-    if (typeof refreshLucideIcons === 'function') {
-      setTimeout(() => refreshLucideIcons(), 0);
-    }
-    updateDrawerActiveItem(lastDrawerTarget);
-  } else {
-    closeDrawerMenu({ restoreFocus: false });
-    window.scrollTo(0, 0);
-    updateDrawerActiveItem(hash);
+    return;
   }
+
+  lastDrawerTarget = hash;
+
+  if (document.body.classList.contains('drawer-open')) {
+    closeDrawerMenu({ restoreFocus: false });
+  }
+  updateDrawerActiveItem(hash);
+  window.scrollTo(0, 0);
 
   // Gérer les cas spécifiques selon le hash
   switch (hash) {
-    case 'menu':
-      break;
     case 'vendre':
       break;
     case 'choisir-client':
@@ -21353,7 +21349,7 @@ function majCartesTresorerie() {
       document.getElementById("app").style.display = "block";
 
       if (window.userRole === "patron") {
-        const allowedHashes = ['#stock', '#historique', '#menu'];
+        const allowedHashes = ['#stock', '#historique'];
         if (!allowedHashes.includes(window.location.hash)) {
           window.location.hash = 'stock';
         }
