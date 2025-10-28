@@ -1683,159 +1683,310 @@ body.role-employe #screen-accueil .ako-quick-grid {
       margin-bottom: 8px;
       font-size: 16px;
     }
- /* ===============================
-   Interface Menu (Thème Clair)
-   =============================== */
+/* =============================== Drawer Menu =============================== */
 #screen-menu {
-    /* Garder le padding de base ou ajuster si nécessaire */
-    padding: 0; /* Suppression du padding ici pour le gérer au niveau des .menu-group */
+  position: fixed;
+  inset: 0;
+  padding: 0 !important;
+  display: none;
+  z-index: 4010;
 }
 
-#screen-menu .menu {
-    padding: 15px; /* Padding général pour l'ensemble du contenu du menu */
+#screen-menu.active {
+  display: block;
+}
+
+#screen-menu .drawer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.24s ease;
+  pointer-events: none;
+}
+
+#screen-menu.active .drawer-scrim {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+#screen-menu .drawer-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: min(360px, 84vw);
+  max-width: 360px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  transform: translateX(-100%);
+  transition: transform 0.24s ease;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+  border-radius: 0;
+}
+
+#screen-menu.active .drawer-panel {
+  transform: translateX(0);
+}
+
+#screen-menu .drawer-account {
+  position: relative;
+  display: grid;
+  grid-template-columns: 48px 1fr 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 16px 18px;
+  padding-top: calc(env(safe-area-inset-top, 0px) + 16px);
+  border-bottom: 1px solid #E6E8EC;
+}
+
+#screen-menu .drawer-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #EEF2FF;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2B6DE9;
+}
+
+#screen-menu .drawer-name {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+}
+
+#screen-menu .drawer-mail {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  margin-top: 4px;
+}
+
+#screen-menu .drawer-caret {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid #E6E8EC;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #111827;
+  cursor: pointer;
+}
+
+#screen-menu .drawer-nav {
+  padding: 12px 8px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#screen-menu .drawer-item {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#screen-menu .drawer-item:focus-visible,
+#screen-menu .drawer-item:hover {
+  outline: none;
+  background: #F5F7FB;
+}
+
+#screen-menu .drawer-item.is-active {
+  background: #2B6DE9;
+  color: #ffffff;
+}
+
+#screen-menu .drawer-item .drawer-icon {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: currentColor;
+}
+
+#screen-menu .drawer-item.is-active .drawer-icon {
+  color: #ffffff;
+}
+
+#screen-menu .drawer-item .drawer-chevron {
+  margin-left: auto;
+  color: inherit;
+  transition: transform 0.2s ease;
+}
+
+#screen-menu .drawer-item[aria-expanded="true"] .drawer-chevron {
+  transform: rotate(180deg);
+}
+
+#screen-menu .drawer-submenu {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 0 0 52px;
+}
+
+#screen-menu .drawer-submenu[aria-hidden="false"] {
+  display: flex;
+}
+
+#screen-menu .drawer-subitem {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6B7280;
+  cursor: pointer;
+}
+
+#screen-menu .drawer-subitem:hover,
+#screen-menu .drawer-subitem:focus-visible {
+  color: #111827;
+  outline: none;
+}
+
+#screen-menu .drawer-account-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  background: #ffffff;
+  border: 1px solid #E6E8EC;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
+  padding: 8px;
+  min-width: 190px;
+  display: none;
+  z-index: 2;
+}
+
+#screen-menu .drawer-account-menu[aria-hidden="false"] {
+  display: grid;
+  gap: 4px;
+}
+
+#screen-menu .drawer-account-menu button {
+  background: transparent;
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  cursor: pointer;
+}
+
+#screen-menu .drawer-account-menu button:hover,
+#screen-menu .drawer-account-menu button:focus-visible {
+  background: #F5F7FB;
+  outline: none;
+}
+
+#screen-menu .drawer-account-menu button.danger {
+  color: #DC2626;
+}
+
+body.drawer-open {
+  overflow: hidden;
 }
 
 #screen-salaires {
-    padding: 20px;
+  padding: 20px;
 }
 
 #screen-salaires .salary-grid {
-    display: grid;
-    gap: 15px;
-    margin-bottom: 20px;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: grid;
+  gap: 15px;
+  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
 #screen-salaires .salary-card {
-    background: var(--white);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 16px;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
 }
 
 #screen-salaires .salary-card h3 {
-    font-size: 16px;
-    color: var(--primary-color);
-    margin-bottom: 8px;
+  font-size: 16px;
+  color: var(--primary-color);
+  margin-bottom: 8px;
 }
 
 #screen-salaires .salary-card p {
-    font-size: 20px;
-    font-weight: 600;
-    margin: 0;
-    color: #0f172a;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  color: #0f172a;
 }
 
 #screen-salaires .salary-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 #screen-salaires .salary-actions .btn-modern.secondary {
-    background: linear-gradient(45deg, #64748b, #334155);
+  background: linear-gradient(45deg, #64748b, #334155);
 }
 
 #screen-salaires .salary-actions .btn-modern.secondary:hover {
-    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.35);
+  box-shadow: 0 6px 16px rgba(100, 116, 139, 0.35);
 }
 
 #screen-salaires .salary-list {
-    background: var(--white);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
 #screen-salaires .salary-list table {
-    width: 100%;
-    border-collapse: collapse;
+  width: 100%;
+  border-collapse: collapse;
 }
 
 #screen-salaires .salary-list th,
 #screen-salaires .salary-list td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #f1f5f9;
-    text-align: left;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
 }
 
 #screen-salaires .salary-list thead {
-    background: #f8fafc;
-    font-weight: 600;
-    color: var(--primary-color);
+  background: #f8fafc;
+  font-weight: 600;
+  color: var(--primary-color);
 }
 
 #screen-salaires .empty-state {
-    padding: 24px;
-    text-align: center;
-    color: #94a3b8;
-}
-#screen-menu .header,
-#screen-menu .profile-section {
-    /* Garder ces styles car ils sont déjà bons */
-    margin-bottom: 20px; /* Légère augmentation pour plus d'espace */
-}
-
-/* NOUVEAUX STYLES POUR LES GROUPES DE MENU ET LEURS ÉLÉMENTS */
-
-.menu-group {
-    margin-bottom: 25px; /* Espace entre chaque groupe de menu */
-}
-
-.menu-group-title {
-    font-size: 16px;
-    font-weight: bold;
-    color: #555; /* Couleur de texte plus foncée pour le titre de groupe */
-    margin-bottom: 10px; /* Espace sous le titre du groupe */
-    padding-left: 5px; /* Petite indentation pour aligner avec les icônes */
-    text-transform: uppercase; /* Comme dans l'exemple eBay */
-    letter-spacing: 0.5px;
-}
-
-.menu-list {
-    list-style: none; /* Supprime les puces par défaut des listes */
-    padding: 0;
-    margin: 0;
-    background-color: var(--white); /* Fond blanc pour la liste */
-    border-radius: var(--border-radius); /* Bords arrondis */
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05); /* Légère ombre pour la profondeur */
-    overflow: hidden; /* Pour que les bords arrondis s'appliquent bien */
-}
-
-.menu-list-item {
-    display: flex; /* Permet d'aligner l'icône et le texte */
-    align-items: center; /* Aligne verticalement au centre */
-    padding: 15px; /* Espacement interne confortable */
-    color: var(--text-color);
-    font-size: 17px; /* Taille de police plus lisible */
-    font-weight: 500;
-    border-bottom: 1px solid #eee; /* Ligne de séparation entre les éléments */
-    cursor: pointer;
-    transition: background-color 0.1s ease-in-out; /* Effet de transition pour le clic */
-}
-
-.menu-list-item:last-child {
-    border-bottom: none; /* Pas de bordure après le dernier élément de la liste */
-}
-
-.menu-list-item:active {
-    background-color: #f0f0f0; /* Couleur de fond au clic/toucher */
-}
-
-.menu-list-item i {
-    font-size: 24px; /* Taille des icônes */
-    margin-right: 15px; /* Espacement entre l'icône et le texte */
-    color: var(--primary-color); /* Couleur des icônes */
-}
-
-/* Ajustements pour les éléments "Déconnexion", "FAQ", etc. pour qu'ils aient la même apparence */
-/* Ciblez spécifiquement si nécessaire, ou laissez le .menu-list-item général s'appliquer */
-.menu-list-item[onclick="deconnexion()"] {
-    color: #dc3545; /* Rouge pour Déconnexion */
-}
-.menu-list-item[onclick="deconnexion()"] i {
-    color: #dc3545; /* Icône rouge aussi */
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
 }
     /* CSS pour l'écran de recherche d'article */
     #searchProduitInput {
@@ -7664,125 +7815,81 @@ async function generateSupplierCreditPDF() {
   </script>
 </section>
 
-    <!-- Screen 6: Menu Principal (Thème Clair) -->
-    <section id="screen-menu" class="screen">
-    <div class="menu">
-      
-
-        <div class="menu-group">
-            <h3 class="menu-group-title">Gestion Quotidienne</h3>
-            <ul class="menu-list">
-                <li class="menu-list-item" onclick="window.location.hash='accueil'">
-                    <i data-lucide="layout-dashboard"></i>
-                    <span>Accueil</span>
-                </li>
-                <li class="menu-list-item" onclick="ouvrirModalTypeVente()">
-                    <i data-lucide="shopping-cart"></i>
-                    <span>Nouvelle Vente</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='stock'">
-                    <i data-lucide="package"></i>
-                    <span>Stock</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='approvisionnement'">
-                    <i data-lucide="archive"></i>
-                    <span>Approvisionnement</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='livraisons'">
-                    <i data-lucide="truck"></i>
-                    <span>Livraisons</span>
-                </li>
-            </ul>
-        </div>
-
-        <div class="menu-group">
-            <h3 class="menu-group-title">Comptabilité & Rapports</h3>
-            <ul class="menu-list">
-                <li class="menu-list-item" onclick="window.location.hash='tresorerie'">
-                    <i data-lucide="dollar-sign"></i>
-                    <span>Trésorerie</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='depenses'">
-                    <i data-lucide="file-minus"></i>
-                    <span>Dépenses</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='dettes-fournisseurs'">
-                    <i data-lucide="receipt-text"></i>
-                    <span>Dettes Fournisseurs</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='rapports'">
-                    <i data-lucide="file-text"></i>
-                    <span>Rapports & Statistiques</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='canaux-performance'">
-                    <i data-lucide="bar-chart-3"></i>
-                    <span>Performance des canaux</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='profit'">
-                    <i data-lucide="trending-up"></i>
-                    <span>Profit</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='advance'">
-                    <i data-lucide="dollar-sign"></i>
-                    <span>Avance de Paiement</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='salaires'">
-                    <i data-lucide="wallet"></i>
-                    <span>Salaires</span>
-                </li>
-                 <li class="menu-list-item" onclick="window.location.hash='depots-fournisseurs'">
-                    <i data-lucide="archive-restore"></i>
-                    <span>Gestion des Dépôts</span>
-                </li>
-            </ul>
-        </div>
-
-        <div class="menu-group">
-            <h3 class="menu-group-title">Base de Données</h3>
-            <ul class="menu-list">
-                <li class="menu-list-item" onclick="window.location.hash='historique'">
-                    <i data-lucide="clock"></i>
-                    <span>Historique des Ventes</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='clients'">
-                    <i data-lucide="users"></i>
-                    <span>Clients</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='vendeurs'">
-                    <i data-lucide="users"></i>
-                    <span>Canaux de vente</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='repertoire-imei'">
-                    <i data-lucide="list"></i>
-                    <span>Répertoire d'IMEI</span>
-                </li>
-            </ul>
-        </div>
-
-        <div class="menu-group">
-            <h3 class="menu-group-title">Plus</h3>
-            <ul class="menu-list">
-                <li class="menu-list-item" onclick="window.location.hash='notifications'">
-                    <i data-lucide="bell-ring"></i>
-                    <span>Notifications</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='faq'">
-                    <i data-lucide="help-circle"></i>
-                    <span>FAQ</span>
-                </li>
-                <li class="menu-list-item" onclick="window.location.hash='parametres'">
-                    <i data-lucide="settings"></i>
-                    <span>Paramètres</span>
-                </li>
-                <li class="menu-list-item" onclick="deconnexion()">
-                    <i data-lucide="log-out"></i>
-                    <span>Déconnexion</span>
-                </li>
-            </ul>
-        </div>
-
-        </div>
-
+    <!-- Drawer Menu -->
+    <section id="screen-menu" class="screen" aria-hidden="true">
+      <div class="drawer-scrim" id="menuDrawerScrim" aria-hidden="true" onclick="fermerDrawerMenu()"></div>
+      <aside class="drawer-panel" id="menuDrawerPanel" role="dialog" aria-modal="true" aria-labelledby="menuDrawerTitle" aria-hidden="true" tabindex="-1">
+        <header class="drawer-account">
+          <div class="drawer-avatar" aria-hidden="true">A</div>
+          <div>
+            <div class="drawer-name" id="menuDrawerTitle">Ako</div>
+            <div class="drawer-mail">zidaneakoda1.2@gmail.com</div>
+          </div>
+          <button class="drawer-caret" type="button" id="drawerAccountToggle" aria-label="Changer de compte" aria-expanded="false" onclick="toggleDrawerAccountMenu()">
+            <i data-lucide="chevron-down"></i>
+          </button>
+          <div class="drawer-account-menu" id="drawerAccountMenu" role="menu" aria-hidden="true">
+            <button type="button" role="menuitem">Changer d'organisation</button>
+            <button type="button" role="menuitem" class="danger" onclick="deconnexion()">Déconnexion</button>
+          </div>
+        </header>
+        <nav class="drawer-nav" role="navigation" aria-label="Menu principal">
+          <button class="drawer-item menu-list-item" type="button" data-hash="accueil" onclick="window.location.hash='accueil'" data-drawer-focus>
+            <span class="drawer-icon"><i data-lucide="home"></i></span>
+            <span>Home</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="clients" onclick="window.location.hash='clients'">
+            <span class="drawer-icon"><i data-lucide="users"></i></span>
+            <span>Customers</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="stock" onclick="window.location.hash='stock'">
+            <span class="drawer-icon"><i data-lucide="package"></i></span>
+            <span>Items</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" onclick="openDrawerComingSoon('Quotes')">
+            <span class="drawer-icon"><i data-lucide="file-text"></i></span>
+            <span>Quotes</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="historique" onclick="window.location.hash='historique'">
+            <span class="drawer-icon"><i data-lucide="receipt-text"></i></span>
+            <span>Invoices</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="vendre" onclick="window.location.hash='vendre'">
+            <span class="drawer-icon"><i data-lucide="file-check-2"></i></span>
+            <span>Sales Receipts</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="tresorerie" onclick="window.location.hash='tresorerie'">
+            <span class="drawer-icon"><i data-lucide="wallet"></i></span>
+            <span>Payments Received</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="depenses" onclick="window.location.hash='depenses'">
+            <span class="drawer-icon"><i data-lucide="credit-card"></i></span>
+            <span>Expenses</span>
+          </button>
+          <button class="drawer-item menu-list-item has-sub" type="button" aria-expanded="false" onclick="toggleDrawerTimeTracking(this)">
+            <span class="drawer-icon"><i data-lucide="clock-4"></i></span>
+            <span>Time Tracking</span>
+            <span class="drawer-chevron"><i data-lucide="chevron-down"></i></span>
+          </button>
+          <div class="drawer-submenu" id="drawerTimeTrackingSubmenu" aria-hidden="true">
+            <button class="drawer-subitem" type="button" onclick="window.location.hash='start-day'">Timesheets</button>
+            <button class="drawer-subitem" type="button" onclick="openDrawerComingSoon('Approvals')">Approvals</button>
+          </div>
+          <button class="drawer-item menu-list-item" type="button" data-hash="rapports" onclick="window.location.hash='rapports'">
+            <span class="drawer-icon"><i data-lucide="bar-chart-3"></i></span>
+            <span>Reports</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="parametres" onclick="window.location.hash='parametres'">
+            <span class="drawer-icon"><i data-lucide="settings"></i></span>
+            <span>Settings</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="advance" onclick="window.location.hash='advance'">
+            <span class="drawer-icon"><i data-lucide="layers"></i></span>
+            <span>Advanced Billing</span>
+          </button>
+        </nav>
+      </aside>
+    </section>
 
 <section id="screen-salaires" class="screen">
   <header>
@@ -17321,6 +17428,187 @@ function renderSalaryScreen() {
     showScreenByHash(hash);
     }
 window.handleHashChange = handleHashChange;
+
+let drawerFocusables = [];
+let drawerLastFocusedElement = null;
+let drawerAccountOutsideHandler = null;
+let lastDrawerTarget = 'accueil';
+
+function collectDrawerFocusables() {
+  const drawer = document.getElementById('menuDrawerPanel');
+  if (!drawer) return [];
+  const selector = 'button, [href], [tabindex]:not([tabindex="-1"])';
+  return Array.from(drawer.querySelectorAll(selector)).filter(el => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true' && el.offsetParent !== null);
+}
+
+function openDrawerMenu() {
+  const container = document.getElementById('screen-menu');
+  const drawer = document.getElementById('menuDrawerPanel');
+  if (!container || !drawer) return;
+  container.setAttribute('aria-hidden', 'false');
+  drawer.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('drawer-open');
+  drawerLastFocusedElement = document.activeElement;
+  drawerFocusables = collectDrawerFocusables();
+  const focusTarget = drawer.querySelector('[data-drawer-focus]') || drawerFocusables[0] || drawer;
+  setTimeout(() => {
+    if (focusTarget && typeof focusTarget.focus === 'function') {
+      focusTarget.focus();
+    }
+  }, 60);
+  document.addEventListener('keydown', handleDrawerKeydown, true);
+  closeDrawerAccountMenu();
+}
+
+function closeDrawerMenu(options = {}) {
+  const { restoreFocus = true } = options;
+  const container = document.getElementById('screen-menu');
+  const drawer = document.getElementById('menuDrawerPanel');
+  if (container) {
+    container.setAttribute('aria-hidden', 'true');
+  }
+  if (drawer) {
+    drawer.setAttribute('aria-hidden', 'true');
+  }
+  document.body.classList.remove('drawer-open');
+  document.removeEventListener('keydown', handleDrawerKeydown, true);
+  closeDrawerAccountMenu();
+  drawerFocusables = [];
+
+  if (restoreFocus) {
+    const hamburger = document.querySelector('.ako-icon-btn[aria-label="Ouvrir le menu"]');
+    const target = drawerLastFocusedElement && typeof drawerLastFocusedElement.focus === 'function'
+      ? drawerLastFocusedElement
+      : hamburger;
+    setTimeout(() => target && target.focus && target.focus(), 50);
+  }
+  drawerLastFocusedElement = null;
+}
+
+function handleDrawerKeydown(event) {
+  if (window.location.hash !== '#menu') {
+    return;
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    fermerDrawerMenu();
+    return;
+  }
+  if (event.key !== 'Tab') {
+    return;
+  }
+  if (!drawerFocusables.length) {
+    drawerFocusables = collectDrawerFocusables();
+  }
+  if (!drawerFocusables.length) {
+    return;
+  }
+  const first = drawerFocusables[0];
+  const last = drawerFocusables[drawerFocusables.length - 1];
+  if (event.shiftKey) {
+    if (document.activeElement === first || document.activeElement === document.getElementById('menuDrawerPanel')) {
+      event.preventDefault();
+      last.focus();
+    }
+  } else {
+    if (document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+}
+
+function fermerDrawerMenu() {
+  if (window.location.hash === '#menu') {
+    if (window.history.length > 1) {
+      window.history.back();
+    } else {
+      window.location.hash = 'accueil';
+    }
+  } else {
+    closeDrawerMenu();
+  }
+}
+
+function toggleDrawerTimeTracking(button) {
+  const submenu = document.getElementById('drawerTimeTrackingSubmenu');
+  if (!submenu || !button) return;
+  const expanded = button.getAttribute('aria-expanded') === 'true';
+  button.setAttribute('aria-expanded', String(!expanded));
+  submenu.setAttribute('aria-hidden', expanded ? 'true' : 'false');
+  drawerFocusables = collectDrawerFocusables();
+}
+
+function openDrawerComingSoon(label) {
+  const message = `${label} sera disponible prochainement.`;
+  if (typeof showToast === 'function') {
+    showToast(message, 'info');
+  } else {
+    console.info(message);
+  }
+}
+
+function toggleDrawerAccountMenu() {
+  const toggle = document.getElementById('drawerAccountToggle');
+  const menu = document.getElementById('drawerAccountMenu');
+  if (!toggle || !menu) return;
+  const expanded = toggle.getAttribute('aria-expanded') === 'true';
+  if (expanded) {
+    closeDrawerAccountMenu();
+    return;
+  }
+  toggle.setAttribute('aria-expanded', 'true');
+  menu.setAttribute('aria-hidden', 'false');
+  drawerAccountOutsideHandler = (event) => {
+    if (!menu.contains(event.target) && event.target !== toggle) {
+      closeDrawerAccountMenu();
+    }
+  };
+  document.addEventListener('click', drawerAccountOutsideHandler);
+}
+
+function closeDrawerAccountMenu() {
+  const toggle = document.getElementById('drawerAccountToggle');
+  const menu = document.getElementById('drawerAccountMenu');
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', 'false');
+  }
+  if (menu) {
+    menu.setAttribute('aria-hidden', 'true');
+  }
+  if (drawerAccountOutsideHandler) {
+    document.removeEventListener('click', drawerAccountOutsideHandler);
+    drawerAccountOutsideHandler = null;
+  }
+}
+
+function updateDrawerActiveItem(hash) {
+  const items = document.querySelectorAll('#screen-menu .drawer-item');
+  let matched = false;
+  items.forEach(item => {
+    const isMatch = item.dataset.hash === hash;
+    item.classList.toggle('is-active', isMatch);
+    if (isMatch) {
+      item.setAttribute('aria-current', 'page');
+      matched = true;
+    } else {
+      item.removeAttribute('aria-current');
+    }
+  });
+  if (!matched) {
+    const defaultItem = document.querySelector('#screen-menu .drawer-item[data-hash="accueil"]');
+    if (defaultItem) {
+      defaultItem.classList.add('is-active');
+      defaultItem.setAttribute('aria-current', 'page');
+    }
+  }
+}
+
+window.fermerDrawerMenu = fermerDrawerMenu;
+window.toggleDrawerTimeTracking = toggleDrawerTimeTracking;
+window.openDrawerComingSoon = openDrawerComingSoon;
+window.toggleDrawerAccountMenu = toggleDrawerAccountMenu;
+
 // Votre fonction enregistrerSnapshotDaily ici
 function enregistrerSnapshotDaily() {
   const today = new Date();
@@ -17378,6 +17666,10 @@ function voirHistoriqueStock(stockId, e) {
     window.location.hash = 'vendre';
   }
 
+  if (hash !== 'menu') {
+    lastDrawerTarget = hash;
+  }
+
   // Mettre à jour l'état actif de la navigation
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
   const activeNav = document.getElementById(`nav-${hash}`);
@@ -17385,10 +17677,22 @@ function voirHistoriqueStock(stockId, e) {
     activeNav.classList.add('active');
   }
 
-  window.scrollTo(0, 0);
+  if (hash === 'menu') {
+    openDrawerMenu();
+    if (typeof refreshLucideIcons === 'function') {
+      setTimeout(() => refreshLucideIcons(), 0);
+    }
+    updateDrawerActiveItem(lastDrawerTarget);
+  } else {
+    closeDrawerMenu({ restoreFocus: false });
+    window.scrollTo(0, 0);
+    updateDrawerActiveItem(hash);
+  }
 
   // Gérer les cas spécifiques selon le hash
   switch (hash) {
+    case 'menu':
+      break;
     case 'vendre':
       break;
     case 'choisir-client':
@@ -21153,10 +21457,10 @@ function majCartesTresorerie() {
         navDettes.style.display = "flex";
       }
       if (tresorerieMenuItem) {
-        tresorerieMenuItem.style.display = "flex";
+        tresorerieMenuItem.style.display = "grid";
       }
       if (dettesMenuItem) {
-        dettesMenuItem.style.display = "flex";
+        dettesMenuItem.style.display = "grid";
       }
       if (exportStockBtn) {
         exportStockBtn.style.removeProperty('display');
