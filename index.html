@@ -15426,6 +15426,12 @@ function populateLivraisonDetailView(sale) {
   }
 }
 
+function normalizeLivraisonStatus(status) {
+  if (!status) return '';
+  const value = status.toString().toLowerCase();
+  const normalized = typeof value.normalize === 'function' ? value.normalize('NFD') : value;
+  return normalized.replace(/[\u0300-\u036f]/g, '').replace(/[^a-z]/g, '');
+}
 
 
 function updateLivraisonActionButtons(sale, totals) {
@@ -15434,8 +15440,9 @@ function updateLivraisonActionButtons(sale, totals) {
   const statusDesc = document.getElementById('livraisonDetailStatusDescription');
   const addPaymentBtn = document.querySelector('.delivery-add-payment-btn');
 
-  const isSuccess = sale.deliveryStatus === 'r?ussie';
-  const isFailed = sale.deliveryStatus === '?chou?e';
+  const normalizedStatus = normalizeLivraisonStatus(sale.deliveryStatus);
+  const isSuccess = normalizedStatus === 'reussie' || normalizedStatus === 'russie';
+  const isFailed = normalizedStatus === 'echouee' || normalizedStatus === 'echoue';
   const outstanding = totals ? totals.outstanding : computeLivraisonTotals(sale).outstanding;
   const canClose = !isSuccess && !isFailed && outstanding <= 0.5;
   const canManage = peutGererLivraison(sale);
