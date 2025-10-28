@@ -515,7 +515,7 @@ body.role-employe #screen-accueil .ako-quick-grid {
     }
     .ako-quick-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 12px;
     }
     .ako-quick-item {
@@ -2369,33 +2369,26 @@ body.role-employe #screen-accueil .ako-quick-grid {
 
       <section class="ako-card ako-card-quick" aria-label="Actions rapides">
         <div class="ako-quick-grid">
-          <button class="ako-quick-item" type="button" onclick="ouvrirModalTypeVente()" aria-label="Enregistrer une vente">
-            <span class="ako-quick-avatar">
-              <i data-lucide="file-plus"></i>
-              <span class="ako-quick-badge">+</span>
-            </span>
-            <span>Enregistrer une vente</span>
-          </button>
-          <button class="ako-quick-item" type="button" onclick="window.location.hash='clients'" aria-label="Nouveau client">
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='ajouter-client'" aria-label="Enregistrer un client">
             <span class="ako-quick-avatar">
               <i data-lucide="user-plus"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>Nouveau client</span>
+            <span>Enregistrer un client</span>
           </button>
-          <button class="ako-quick-item" type="button" onclick="window.location.hash='depenses'" aria-label="Nouvelle dépense" data-role="manager">
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='ajouter-livreur'" aria-label="Enregistrer un livreur">
             <span class="ako-quick-avatar">
-              <i data-lucide="credit-card"></i>
+              <i data-lucide="truck"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>Nouvelle dépense</span>
+            <span>Enregistrer un livreur</span>
           </button>
-          <button class="ako-quick-item" type="button" onclick="window.location.hash='start-day'" aria-label="Ajouter un pointage" data-role="manager">
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='start-day'" aria-label="Ouvrir le journal">
             <span class="ako-quick-avatar">
-              <i data-lucide="timer"></i>
+              <i data-lucide="book-open"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>Ajouter un pointage</span>
+            <span>Journal</span>
           </button>
         </div>
       </section>
