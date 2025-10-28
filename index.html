@@ -2365,12 +2365,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
 <section id="screen-accueil" class="screen active">
   <div class="ako-dashboard">
     <header class="ako-appbar">
-      <button class="ako-icon-btn" type="button" aria-label="Open menu" onclick="window.location.hash='menu'">
+      <button class="ako-icon-btn" type="button" aria-label="Ouvrir le menu" onclick="window.location.hash='menu'">
         <i data-lucide="menu"></i>
       </button>
       <div class="ako-brand">Ako</div>
       <div class="ako-actions">
-        <button class="ako-icon-circle" type="button" aria-label="Help">
+        <button class="ako-icon-circle" type="button" aria-label="Aide">
           <i data-lucide="help-circle"></i>
         </button>
         <button class="ako-icon-circle" type="button" aria-label="Notifications">
@@ -2382,11 +2382,11 @@ body.role-employe #screen-accueil .ako-quick-grid {
     <nav class="ako-tabs" role="tablist" aria-label="Navigation principale">
       <button class="ako-tab is-active" type="button" role="tab" aria-selected="true" tabindex="0">
         <i data-lucide="layout-dashboard"></i>
-        <span>Dashboard</span>
+        <span>Tableau de bord</span>
       </button>
       <button class="ako-tab" type="button" role="tab" aria-selected="false" tabindex="-1">
         <i data-lucide="sparkles"></i>
-        <span>Getting Started</span>
+        <span>Prise en main</span>
       </button>
       <span class="ako-tab-indicator" aria-hidden="true"></span>
     </nav>
@@ -2394,41 +2394,41 @@ body.role-employe #screen-accueil .ako-quick-grid {
       <section class="ako-welcome" aria-labelledby="akoWelcomeTitle">
         <div class="ako-welcome-icon" aria-hidden="true">✨</div>
         <div class="ako-welcome-text">
-          <h1 id="akoWelcomeTitle">Welcome AKODA ZIDANE</h1>
-          <p>Here's your organization's overview</p>
+          <h1 id="akoWelcomeTitle">Bienvenue AKODA ZIDANE</h1>
+          <p>Voici l'aperçu de votre organisation</p>
           <p class="ako-date" id="accueil-date" aria-live="polite">--</p>
         </div>
       </section>
 
-      <section class="ako-card ako-card-quick" aria-label="Quick actions">
+      <section class="ako-card ako-card-quick" aria-label="Actions rapides">
         <div class="ako-quick-grid">
-          <button class="ako-quick-item" type="button" onclick="ouvrirModalTypeVente()" aria-label="New Invoice">
+          <button class="ako-quick-item" type="button" onclick="ouvrirModalTypeVente()" aria-label="Nouvelle facture">
             <span class="ako-quick-avatar">
               <i data-lucide="file-plus"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>New Invoice</span>
+            <span>Nouvelle facture</span>
           </button>
-          <button class="ako-quick-item" type="button" onclick="window.location.hash='clients'" aria-label="New Customer">
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='clients'" aria-label="Nouveau client">
             <span class="ako-quick-avatar">
               <i data-lucide="user-plus"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>New Customer</span>
+            <span>Nouveau client</span>
           </button>
-          <button class="ako-quick-item" type="button" onclick="window.location.hash='depenses'" aria-label="New Expense" data-role="manager">
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='depenses'" aria-label="Nouvelle dépense" data-role="manager">
             <span class="ako-quick-avatar">
               <i data-lucide="credit-card"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>New Expense</span>
+            <span>Nouvelle dépense</span>
           </button>
-          <button class="ako-quick-item" type="button" onclick="window.location.hash='start-day'" aria-label="Add Log Time" data-role="manager">
+          <button class="ako-quick-item" type="button" onclick="window.location.hash='start-day'" aria-label="Ajouter un pointage" data-role="manager">
             <span class="ako-quick-avatar">
               <i data-lucide="timer"></i>
               <span class="ako-quick-badge">+</span>
             </span>
-            <span>Add Log Time</span>
+            <span>Ajouter un pointage</span>
           </button>
         </div>
       </section>
@@ -2436,11 +2436,11 @@ body.role-employe #screen-accueil .ako-quick-grid {
       <section class="ako-card receivables" aria-labelledby="receivablesTitle">
         <div class="ako-receivables-content">
           <div>
-            <h2 id="receivablesTitle">View Your Receivables Summary</h2>
-            <p>Keep an eye on current and overdue amount your customers owe you.</p>
+            <h2 id="receivablesTitle">Consultez le résumé de vos créances</h2>
+            <p>Surveillez les montants en cours et en retard dus par vos clients.</p>
             <button class="ako-btn-pill" type="button" onclick="ouvrirModalTypeVente()">
               <i data-lucide="plus"></i>
-              <span>Create Invoice</span>
+              <span>Créer une facture</span>
             </button>
           </div>
           <div class="ako-receivables-visual" aria-hidden="true">
@@ -2461,12 +2461,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
       <section class="ako-card recent" aria-labelledby="recentTransactionsTitle">
         <header class="ako-recent-header">
           <i data-lucide="refresh-cw"></i>
-          <h2 id="recentTransactionsTitle">Recent Transactions</h2>
+          <h2 id="recentTransactionsTitle">Transactions récentes</h2>
         </header>
-        <div class="ako-chip-group" role="tablist" aria-label="Transaction filters">
-          <button class="ako-chip is-active" type="button" role="tab" aria-selected="true">Invoices</button>
-          <button class="ako-chip" type="button" role="tab" aria-selected="false">Quotes</button>
-          <button class="ako-chip" type="button" role="tab" aria-selected="false">Expenses</button>
+        <div class="ako-chip-group" role="tablist" aria-label="Filtres de transactions">
+          <button class="ako-chip is-active" type="button" role="tab" aria-selected="true">Factures</button>
+          <button class="ako-chip" type="button" role="tab" aria-selected="false">Devis</button>
+          <button class="ako-chip" type="button" role="tab" aria-selected="false">Dépenses</button>
         </div>
         <div class="ako-hidden-data" aria-hidden="true">
           <span id="accueil-livraisons-count">0</span>
