@@ -17426,6 +17426,10 @@ function openDrawerMenu() {
   }, 60);
   document.addEventListener('keydown', handleDrawerKeydown, true);
   closeDrawerAccountMenu();
+  updateDrawerActiveItem(lastDrawerTarget);
+  if (typeof refreshLucideIcons === 'function') {
+    setTimeout(() => refreshLucideIcons(), 0);
+  }
 }
 
 function closeDrawerMenu(options = {}) {
@@ -17601,6 +17605,14 @@ function voirHistoriqueStock(stockId, e) {
 
 
   function showScreenByHash(hash) {
+  if (hash === 'menu') {
+    openDrawerMenu();
+    updateDrawerActiveItem(lastDrawerTarget);
+    return;
+  }
+
+  let effectiveHash = hash;
+
   // Masquer tous les écrans
   const allScreens = document.querySelectorAll('.screen');
   allScreens.forEach(screen => screen.classList.remove('active'));
@@ -17610,37 +17622,28 @@ function voirHistoriqueStock(stockId, e) {
   if (targetScreen) {
     targetScreen.classList.add('active');
   } else {
+    effectiveHash = 'vendre';
     document.getElementById('screen-vendre').classList.add('active');
     window.location.hash = 'vendre';
   }
 
-  if (hash !== 'menu') {
-    lastDrawerTarget = hash;
-  }
+  lastDrawerTarget = effectiveHash;
 
   // Mettre à jour l'état actif de la navigation
   document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-  const activeNav = document.getElementById(`nav-${hash}`);
+  const activeNav = document.getElementById(`nav-${effectiveHash}`);
   if (activeNav) {
     activeNav.classList.add('active');
   }
 
-  if (hash === 'menu') {
-    openDrawerMenu();
-    if (typeof refreshLucideIcons === 'function') {
-      setTimeout(() => refreshLucideIcons(), 0);
-    }
-    updateDrawerActiveItem(lastDrawerTarget);
-  } else {
+  if (document.body.classList.contains('drawer-open')) {
     closeDrawerMenu({ restoreFocus: false });
-    window.scrollTo(0, 0);
-    updateDrawerActiveItem(hash);
   }
+  window.scrollTo(0, 0);
+  updateDrawerActiveItem(effectiveHash);
 
   // Gérer les cas spécifiques selon le hash
-  switch (hash) {
-    case 'menu':
-      break;
+  switch (effectiveHash) {
     case 'vendre':
       break;
     case 'choisir-client':
