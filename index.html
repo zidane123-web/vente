@@ -35,13 +35,6 @@
       display: none !important;
     }
 
-    body.role-employe #nav-tresorerie,
-body.role-employe #nav-menu,
-body.role-employe #nav-appro-hist,
-body.role-employe #nav-aide-commande {
-  display: none !important;
-}
-
 body.role-employe .delete-btn {
   display: none !important;
 }
@@ -176,10 +169,6 @@ body.role-employe #screen-accueil .ako-quick-grid {
       display: none !important;
     }
 
-    .nav-item.hidden-by-role {
-      display: none !important;
-    }
-
     /* Désactivation globale de la sélection de texte (sauf input et textarea) */
     body *:not(input):not(textarea) {
       user-select: none;
@@ -215,7 +204,7 @@ body.role-employe #screen-accueil .ako-quick-grid {
    }
 
     /* Désactivation de l'effet de sélection (outline) sur boutons, liens et éléments cliquables */
-    button, a, div.section, div.nav-item, div.shortcut {
+    button, a, div.section, div.shortcut {
       outline: none;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
@@ -1575,65 +1564,6 @@ body.role-employe #screen-accueil .ako-quick-grid {
       gap: 12px;
       margin-top: 20px;
     }
-    /* Bottom Navigation Modernisée */
-    .bottom-nav-pro {
-      display: flex;
-      justify-content: space-around;
-      background: #fff;
-      border-top: 1px solid #ddd;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      padding: 5px 0;
-    }
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      flex: 1;
-      font-size: 12px;
-      color: #555;
-      transition: color 0.3s ease;
-      padding: 5px 0;
-      position: relative;
-      overflow: hidden;
-      cursor: pointer;
-      user-select: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-    }
-    .nav-item.active {
-      color: var(--primary-color);
-      font-weight: bold;
-      background: rgba(0, 96, 100, 0.1);
-      border-radius: 12px;
-    }
-    body.drawer-open .bottom-nav-pro {
-      display: none;
-    }
-    .nav-item i {
-      font-size: 24px;
-      margin-bottom: 2px;
-    }
-    .nav-item::after {
-      content: "";
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      background: rgba(255, 255, 255, 0.3);
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0);
-      border-radius: 50%;
-      transition: transform 0.4s ease-out;
-      pointer-events: none;
-    }
-    .nav-item:active::after {
-      transform: translate(-50%, -50%) scale(1);
-    }
     /* Sales History Cards */
     .list-container {
       padding: 5px;
@@ -2085,7 +2015,7 @@ body.drawer-open {
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 56px;              /* laisse la place à la bottom-nav-pro (hauteur ~56px) */
+  bottom: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2274,16 +2204,6 @@ body.drawer-open {
 #screen-start-day.active {           /* devient visible quand on ajoute .active */
   display: block;
 }
-/* Cache la bottom-nav quand l'écran #screen-start-day est actif */
-#screen-start-day.active ~ .bottom-nav-pro {
-  display: none;
-}
-
-/* Cache la bottom-nav quand l'ecran panier est actif */
-#screen-panier.active ~ .bottom-nav-pro {
-  display: none;
-}
-
 .start-day-container {
   display: flex;
   justify-content: center;
@@ -3154,7 +3074,7 @@ body.drawer-open {
     }
 
     #screen-historique ion-content {
-        --padding-bottom: 70px; /* Space for the FAB (if any) and bottom-nav-pro */
+        --padding-bottom: 70px; /* Space for the FAB if it exists */
         padding-bottom: calc(var(--ion-safe-area-bottom) + 60px + 20px) !important;
     }
 
@@ -5466,9 +5386,6 @@ function generateInvoicePDF(sale) {
     color: #6c757d;
 }
 /* Cache la barre de navigation quand l'écran de détail d'un article est actif */
-#screen-article-detail.active ~ .bottom-nav-pro {
-    display: none;
-}
 </style>
 <script>
   /**
@@ -5803,27 +5720,13 @@ function generateInvoicePDF(sale) {
     min-height: 40px;
 }
 #screen-approvisionnement-historique ion-content {
-    /* The `fullscreen` property of Ionic already handles a lot, but sometimes an adjustment is needed */
-    /* Ensure that the bottom padding is sufficient for the FAB and the bottom-nav-pro */
-    --padding-bottom: 70px; /* Space for the FAB (~56px) + a small additional offset */
-    /* You could also add space for the bottom-nav-pro if it's not already globally managed */
-    padding-bottom: calc(var(--ion-safe-area-bottom) + 60px + 20px) !important; /* Example: safe-area + nav-bar + margin */
-    /* I add 60px for the bottom-nav-pro and 20px margin above for the FAB,
-       the safe-area is an Ionic variable for notches on mobile */
+    /* Provide extra space for the floating action button */
+    --padding-bottom: 70px;
+    padding-bottom: calc(var(--ion-safe-area-bottom) + 60px + 20px) !important;
 }
 
-/* Ensure the floating button does not overlap the content */
-/* The FAB is already `slot="fixed"` and `vertical="bottom"`, `horizontal="end"`
-   so it should position correctly relative to `ion-content`.
-   Make sure there's no negative `margin-bottom` or other oddities. */
 #screen-approvisionnement-historique ion-fab {
-    margin-bottom: calc(var(--ion-safe-area-bottom) + 60px) !important; /* Pousse le bouton de 80px + safe area */
-}
-/* S'assurer que la liste scrollable a un padding-bottom suffisant */
-#approvisionnementHistoryList {
-    /* Si ion-content gère déjà le padding-bottom, ce n'est pas toujours nécessaire,
-       mais peut servir de sécurité pour le contenu interne de la liste */
-    padding-bottom: 80px; /* Un peu plus que le FAB + marge si nécessaire */
+    margin-bottom: calc(var(--ion-safe-area-bottom) + 60px) !important; /* Keep FAB above safe area */
 }
 
 /* Conteneur des items (liste) */
@@ -6669,9 +6572,6 @@ document.addEventListener('DOMContentLoaded', () => {
     #screen-fournisseur-credit-detail .totals-section .total-row.final-total {
         font-weight: 700;
         font-size: 1rem;
-    }
-    #screen-fournisseur-credit-detail.active ~ .bottom-nav-pro {
-        display: none;
     }
     #screen-fournisseur-credit-detail .tab-content {
         display: none;
@@ -11386,7 +11286,6 @@ async function recordCreditPayment(approId, outstandingAmount) {
     /* Add this or adjust your existing ion-content style for this screen */
     #screen-depots-fournisseurs ion-content {
       /* Ensure this specific screen's content has enough bottom padding */
-      /* The bottom-nav-pro is ~60px tall, add a bit more for safe measure */
       --padding-bottom: 80px; /* Adjust as needed */
       /* Also ensure fullscreen is handled, Ionic usually does this well */
       padding-bottom: calc(var(--ion-safe-area-bottom) + 80px) !important; /* Combines with safe area */
@@ -14469,36 +14368,6 @@ async function annulerCommandeFournisseur(approId, event) {
     </button>
 
     <!-- Bottom Navigation Modernisée (Navigation par hash) -->
-    <nav class="bottom-nav-pro">
-      <div class="nav-item" id="nav-accueil" onclick="window.location.hash='accueil'">
-        <i data-lucide="layout-dashboard"></i>
-        <span>Accueil</span>
-      </div>
-      <div class="nav-item" id="nav-tresorerie" onclick="window.location.hash='tresorerie'">
-  <i data-lucide="dollar-sign"></i> <span>Trésorerie</span>
-</div>
-      <div class="nav-item" id="nav-historique" onclick="window.location.hash='historique'">
-        <i data-lucide="clock"></i>
-        <span>Historique</span>
-      </div>
-      <div class="nav-item" id="nav-appro-hist" onclick="window.location.hash='approvisionnement-historique'">
-        <i data-lucide="archive"></i> <span>Achats</span>
-    </div>
-      <div class="nav-item" id="nav-aide-commande" onclick="window.location.hash='aide-commande'">
-        <i data-lucide="life-buoy"></i>
-        <span>Aide commande</span>
-      </div>
-      <div class="nav-item" id="nav-dettes-fournisseurs" onclick="window.location.hash='dettes-fournisseurs'">
-        <i data-lucide="receipt-text"></i>
-        <span>Dettes</span>
-      </div>
-      <div class="nav-item" id="nav-menu" onclick="window.location.hash='menu'">
-        <i data-lucide="menu"></i>
-        <span>Menu</span>
-  </div>
-    </nav>
-  </div>
-
   <!-- Modal: Choix du type de vente -->
   <div id="modalSaleType" class="modal">
     <div class="modal-content">
@@ -17630,13 +17499,6 @@ function voirHistoriqueStock(stockId, e) {
   }
 
   lastDrawerTarget = effectiveHash;
-
-  // Mettre à jour l'état actif de la navigation
-  document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-  const activeNav = document.getElementById(`nav-${effectiveHash}`);
-  if (activeNav) {
-    activeNav.classList.add('active');
-  }
 
   if (document.body.classList.contains('drawer-open')) {
     closeDrawerMenu({ restoreFocus: false });
