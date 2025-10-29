@@ -8172,6 +8172,39 @@ async function generateSupplierCreditPDF() {
       color: #777;
       font-size: 13px;
     }
+    .compte-detail-movement-proofs {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .compte-detail-movement-proof-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .compte-detail-movement-proof-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+    }
+    .compte-detail-movement-proof-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .compte-detail-movement-proof-thumb {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .compte-detail-movement-proof-thumb:hover {
+      transform: scale(1.03);
+    }
     .compte-detail-movement-description {
       color: #555;
       font-size: 14px;
@@ -19578,26 +19611,52 @@ function continuerDepuisPanier() {
         }
 
         // Étape 3 : Enregistrer le mouvement de trésorerie pour la vente
+        const collectPhotos = (collection, single) => {
+            const photos = [];
+            if (Array.isArray(collection)) {
+                collection.forEach(photo => {
+                    if (photo) {
+                        photos.push(photo);
+                    }
+                });
+            }
+            if (single) {
+                photos.push(single);
+            }
+            return photos;
+        };
+
         for (const paiement of paiementDetails) {
+            const encaissementPhotos = collectPhotos(paiement.encaissePhotos, paiement.encaissePhoto);
+            const monnaiePhotos = collectPhotos(paiement.monnaiePhotos, paiement.monnaiePhoto);
+
             if (paiement.montantEncaisse > 0) {
-                await enregistrerMouvementTresorerie({
+                const mouvementPayload = {
                     compteId: paiement.compteId,
                     type: 'vente',
                     sens: 'in',
                     montant: paiement.montantEncaisse,
                     description: `Vente ${clientNom} - encaissement`,
                     refId: newSaleId
-                });
+                };
+                if (encaissementPhotos.length) {
+                    mouvementPayload.encaissementPhotos = encaissementPhotos;
+                }
+                await enregistrerMouvementTresorerie(mouvementPayload);
             }
             if (paiement.monnaieRendue > 0) {
-                await enregistrerMouvementTresorerie({
+                const mouvementChangePayload = {
                     compteId: paiement.compteId,
                     type: 'vente_change',
                     sens: 'out',
                     montant: paiement.monnaieRendue,
                     description: `Monnaie rendue vente ${clientNom}`,
                     refId: newSaleId
-                });
+                };
+                if (monnaiePhotos.length) {
+                    mouvementChangePayload.monnaiePhotos = monnaiePhotos;
+                }
+                await enregistrerMouvementTresorerie(mouvementChangePayload);
             }
         }
 
@@ -20832,6 +20891,33 @@ function updateCompteDetailSummary() {
           latestBalance = balanceValue;
         }
 
+        const encaissementPhotosSet = new Set();
+        const monnaiePhotosSet = new Set();
+        const registerPhotos = (collection, targetSet) => {
+          if (Array.isArray(collection)) {
+            collection.forEach(photo => {
+              if (typeof photo === 'string' && photo.trim()) {
+                targetSet.add(photo.trim());
+              }
+            });
+          }
+        };
+        const registerSinglePhoto = (value, targetSet) => {
+          if (typeof value === 'string' && value.trim()) {
+            targetSet.add(value.trim());
+          }
+        };
+
+        registerPhotos(data.encaissementPhotos, encaissementPhotosSet);
+        registerPhotos(data.encaissePhotos, encaissementPhotosSet);
+        registerSinglePhoto(data.encaissementPhoto, encaissementPhotosSet);
+        registerSinglePhoto(data.encaissePhoto, encaissementPhotosSet);
+
+        registerPhotos(data.monnaiePhotos, monnaiePhotosSet);
+        registerPhotos(data.changePhotos, monnaiePhotosSet);
+        registerSinglePhoto(data.monnaiePhoto, monnaiePhotosSet);
+        registerSinglePhoto(data.changePhoto, monnaiePhotosSet);
+
         mouvements.push({
           id: doc.id,
           type: data.type || '',
@@ -20839,7 +20925,9 @@ function updateCompteDetailSummary() {
           montant: amount,
           description: data.description || '',
           timestamp: ts,
-          newBalance: Number.isNaN(balanceValue) ? null : balanceValue
+          newBalance: Number.isNaN(balanceValue) ? null : balanceValue,
+          encaissePhotos: Array.from(encaissementPhotosSet),
+          monnaiePhotos: Array.from(monnaiePhotosSet)
         });
       });
 
@@ -20905,6 +20993,56 @@ function updateCompteDetailSummary() {
                   <span>${balanceLabel ? 'Solde: ' + balanceLabel : ''}</span>
                 </div>
               `;
+
+              const appendProofGroup = (label, photos) => {
+                if (!Array.isArray(photos) || !photos.length) {
+                  return null;
+                }
+                const groupEl = document.createElement('div');
+                groupEl.className = 'compte-detail-movement-proof-group';
+
+                const labelEl = document.createElement('span');
+                labelEl.className = 'compte-detail-movement-proof-label';
+                labelEl.textContent = label;
+                groupEl.appendChild(labelEl);
+
+                const imagesEl = document.createElement('div');
+                imagesEl.className = 'compte-detail-movement-proof-images';
+
+                photos.forEach((photoUrl, idx) => {
+                  if (!photoUrl) {
+                    return;
+                  }
+                  const thumb = document.createElement('img');
+                  thumb.className = 'compte-detail-movement-proof-thumb';
+                  thumb.src = photoUrl;
+                  thumb.alt = `${label} ${idx + 1}`;
+                  thumb.addEventListener('click', () => ouvrirPreuvePaiement(photoUrl));
+                  imagesEl.appendChild(thumb);
+                });
+
+                if (imagesEl.children.length) {
+                  groupEl.appendChild(imagesEl);
+                  return groupEl;
+                }
+                return null;
+              };
+
+              const proofsContainer = document.createElement('div');
+              proofsContainer.className = 'compte-detail-movement-proofs';
+
+              const encaisseGroup = appendProofGroup('Preuve encaissement', mv.encaissePhotos);
+              if (encaisseGroup) {
+                proofsContainer.appendChild(encaisseGroup);
+              }
+              const monnaieGroup = appendProofGroup('Preuve monnaie', mv.monnaiePhotos);
+              if (monnaieGroup) {
+                proofsContainer.appendChild(monnaieGroup);
+              }
+
+              if (proofsContainer.childElementCount > 0) {
+                movementEl.appendChild(proofsContainer);
+              }
 
               movementsContainer.appendChild(movementEl);
             });
@@ -21859,8 +21997,29 @@ document.getElementById('exportStockBtn')
   sens,          // 'in' (entrée) ou 'out' (sortie)
   montant,       // nombre positif
   description = '',
-  refId = null
+  refId = null,
+  encaissementPhotos = null,
+  monnaiePhotos = null
 }) {
+
+  const normalizeProofPhotos = (value) => {
+    if (!value) {
+      return [];
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map(photo => (typeof photo === 'string' ? photo.trim() : ''))
+        .filter(photo => photo.length > 0);
+    }
+    if (typeof value === 'string') {
+      return value.trim() ? [value.trim()] : [];
+    }
+    return [];
+  };
+
+  const normalizedEncaissementPhotos = normalizeProofPhotos(encaissementPhotos);
+  const normalizedMonnaiePhotos = normalizeProofPhotos(monnaiePhotos);
+
   await dbFirestore.runTransaction(async tx => {
 
     /* 1) Préparation des références ---------------------------------------- */
@@ -21886,9 +22045,8 @@ document.getElementById('exportStockBtn')
     tx.set(compteDoc, { solde: newSoldeCompte }, { merge: true });
 
     /* 4b) Enregistrement du mouvement dans la sous-collection */
-    tx.set(
-      compteDoc.collection('mouvements').doc(),
-      {
+    const mouvementRef = compteDoc.collection('mouvements').doc();
+    const mouvementPayload = {
         timestamp  : Date.now(),
         dateString : yyyy_mm_dd,
         type,
@@ -21897,8 +22055,16 @@ document.getElementById('exportStockBtn')
         description,
         refId,
         newBalance : newSoldeCompte
-      }
-    );
+      };
+
+    if (normalizedEncaissementPhotos.length) {
+      mouvementPayload.encaissementPhotos = normalizedEncaissementPhotos;
+    }
+    if (normalizedMonnaiePhotos.length) {
+      mouvementPayload.monnaiePhotos = normalizedMonnaiePhotos;
+    }
+
+    tx.set(mouvementRef, mouvementPayload);
 
     /* 4c) Mise à jour du solde global (document "tresorerie/balance") */
     tx.set(
@@ -21910,7 +22076,6 @@ document.getElementById('exportStockBtn')
 
   return true;   // succès
 }
-
 
 function fmt(x){
   return Number(x).toLocaleString("fr-FR").replace(/\u202F/g," ");
@@ -23765,26 +23930,52 @@ async function appliquerEncaissementsLivraison(newPayments) {
 
   await updateSaleFirestore(currentLivraisonId, payload);
 
+  const collectPhotos = (collection, single) => {
+    const photos = [];
+    if (Array.isArray(collection)) {
+      collection.forEach(photo => {
+        if (photo) {
+          photos.push(photo);
+        }
+      });
+    }
+    if (single) {
+      photos.push(single);
+    }
+    return photos;
+  };
+
   for (const payment of newPayments) {
+    const encaissementPhotos = collectPhotos(payment.encaissePhotos, payment.encaissePhoto);
+    const monnaiePhotos = collectPhotos(payment.monnaiePhotos, payment.monnaiePhoto);
+
     if (payment.montantEncaisse > 0) {
-      await enregistrerMouvementTresorerie({
+      const mouvementPayload = {
         compteId: payment.compteId,
         type: 'livraison_encaissement',
         sens: 'in',
         montant: payment.montantEncaisse,
         description: `Encaissement livraison ${currentLivraisonData.clientNom || ''}`,
         refId: currentLivraisonId
-      });
+      };
+      if (encaissementPhotos.length) {
+        mouvementPayload.encaissementPhotos = encaissementPhotos;
+      }
+      await enregistrerMouvementTresorerie(mouvementPayload);
     }
     if (payment.monnaieRendue > 0) {
-      await enregistrerMouvementTresorerie({
+      const mouvementChangePayload = {
         compteId: payment.compteId,
         type: 'livraison_change',
         sens: 'out',
         montant: payment.monnaieRendue,
         description: `Monnaie rendue livraison ${currentLivraisonData.clientNom || ''}`,
         refId: currentLivraisonId
-      });
+      };
+      if (monnaiePhotos.length) {
+        mouvementChangePayload.monnaiePhotos = monnaiePhotos;
+      }
+      await enregistrerMouvementTresorerie(mouvementChangePayload);
     }
   }
 
