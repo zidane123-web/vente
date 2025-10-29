@@ -1122,7 +1122,7 @@ body.role-employe #screen-accueil .ako-quick-grid {
     }
     /* App container and screens */
     #app {
-      padding-bottom: 60px;
+      padding-bottom: 16px;
     }
     .screen {
       display: none;
@@ -3074,8 +3074,8 @@ body.drawer-open {
     }
 
     #screen-historique ion-content {
-        --padding-bottom: 70px; /* Space for the FAB if it exists */
-        padding-bottom: calc(var(--ion-safe-area-bottom) + 60px + 20px) !important;
+        --padding-bottom: 24px; /* Space for the FAB if it exists */
+        padding-bottom: calc(var(--ion-safe-area-bottom) + 32px) !important;
     }
 
     /* Conteneur des items (liste) */
@@ -5721,12 +5721,12 @@ function generateInvoicePDF(sale) {
 }
 #screen-approvisionnement-historique ion-content {
     /* Provide extra space for the floating action button */
-    --padding-bottom: 70px;
-    padding-bottom: calc(var(--ion-safe-area-bottom) + 60px + 20px) !important;
+    --padding-bottom: 24px;
+    padding-bottom: calc(var(--ion-safe-area-bottom) + 32px) !important;
 }
 
 #screen-approvisionnement-historique ion-fab {
-    margin-bottom: calc(var(--ion-safe-area-bottom) + 60px) !important; /* Keep FAB above safe area */
+    margin-bottom: calc(var(--ion-safe-area-bottom) + 20px) !important; /* Keep FAB above safe area */
 }
 
 /* Conteneur des items (liste) */
@@ -10865,7 +10865,7 @@ async function recordCreditPayment(approId, outstandingAmount) {
       display: flex;
       flex-direction: column;
       gap: 16px;
-      padding-bottom: 60px;
+      padding-bottom: 24px;
   }
   .balance-summary-grid {
       display: grid;
@@ -11286,9 +11286,9 @@ async function recordCreditPayment(approId, outstandingAmount) {
     /* Add this or adjust your existing ion-content style for this screen */
     #screen-depots-fournisseurs ion-content {
       /* Ensure this specific screen's content has enough bottom padding */
-      --padding-bottom: 80px; /* Adjust as needed */
+      --padding-bottom: 32px; /* Adjust as needed */
       /* Also ensure fullscreen is handled, Ionic usually does this well */
-      padding-bottom: calc(var(--ion-safe-area-bottom) + 80px) !important; /* Combines with safe area */
+      padding-bottom: calc(var(--ion-safe-area-bottom) + 32px) !important; /* Combines with safe area */
     }
 
     /* Other styles specific to screen-depots-fournisseurs can remain here */
