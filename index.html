@@ -17414,6 +17414,7 @@ function openDrawerMenu() {
   const drawer = document.getElementById('menuDrawerPanel');
   if (!container || !drawer) return;
   container.setAttribute('aria-hidden', 'false');
+  container.classList.add('active');
   drawer.setAttribute('aria-hidden', 'false');
   document.body.classList.add('drawer-open');
   drawerLastFocusedElement = document.activeElement;
@@ -17438,6 +17439,7 @@ function closeDrawerMenu(options = {}) {
   const drawer = document.getElementById('menuDrawerPanel');
   if (container) {
     container.setAttribute('aria-hidden', 'true');
+    container.classList.remove('active');
   }
   if (drawer) {
     drawer.setAttribute('aria-hidden', 'true');
@@ -17458,7 +17460,7 @@ function closeDrawerMenu(options = {}) {
 }
 
 function handleDrawerKeydown(event) {
-  if (window.location.hash !== '#menu') {
+  if (!document.body.classList.contains('drawer-open')) {
     return;
   }
   if (event.key === 'Escape') {
