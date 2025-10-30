@@ -13383,12 +13383,38 @@ function renderSupplierBalanceScreen() {
     data.orders.forEach(order => {
         const card = document.createElement('div');
         card.className = 'supplier-order-card';
-        const statusLabel = order.status === 'reçu'
-            ? 'Réception terminée'
-            : (order.status === 'reception_partielle' ? 'Réception partielle' : 'Commande en attente');
-        const chipClass = order.status === 'reçu'
-            ? 'supplier-order-chip completed'
-            : (order.status === 'reception_partielle' ? 'supplier-order-chip partial' : 'supplier-order-chip');
+        const rawStatus = (order.status || '').toString();
+        const baseStatus = typeof rawStatus.normalize === 'function' ? rawStatus.normalize('NFD') : rawStatus;
+        const normalizedStatus = baseStatus
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9_]+/g, ' ')
+            .trim()
+            .toLowerCase();
+        const typeKey = (order.typeAchat || 'normal').toLowerCase();
+        let statusLabel;
+        let chipClass;
+        if (normalizedStatus === 'recu') {
+            statusLabel = 'Réception terminée';
+            chipClass = 'supplier-order-chip completed';
+        } else if (normalizedStatus === 'valide') {
+            statusLabel = typeKey === 'depot' ? 'Dépôt enregistré' : 'Achat validé';
+            chipClass = 'supplier-order-chip completed';
+        } else if (normalizedStatus === 'reception_partielle' || normalizedStatus === 'reception partielle') {
+            statusLabel = 'Réception partielle';
+            chipClass = 'supplier-order-chip partial';
+        } else if (normalizedStatus === 'commande') {
+            statusLabel = 'Commande en attente';
+            chipClass = 'supplier-order-chip';
+        } else if (order.goodsRemaining > 0) {
+            statusLabel = 'Commande en attente';
+            chipClass = 'supplier-order-chip';
+        } else {
+            statusLabel = 'Réception terminée';
+            chipClass = 'supplier-order-chip completed';
+        }
+        const typeLabel = typeKey === 'commande'
+            ? 'Commande fournisseur'
+            : (typeKey === 'depot' ? 'Dépôt fournisseur' : 'Achat direct');
         const expectedDisplay = order.expectedDate ? new Date(order.expectedDate).toLocaleDateString('fr-FR') : 'Non défini';
         const receptionStats = order.receptionStats || {};
         const totalOrdered = receptionStats.totalOrdered || 0;
@@ -13403,6 +13429,7 @@ function renderSupplierBalanceScreen() {
             <div class="order-meta">
                 <span>Articles : ${totalOrdered} &bull; Réceptionnés : ${totalReceivedUnits}</span>
                 <span>Livraison prévue : ${expectedDisplay}</span>
+                <span>Type d'achat : ${typeLabel}</span>
             </div>
             <div class="order-amounts">
                 <span>Valeur commandée : <strong>${order.orderValue.toLocaleString('fr-FR')} FCFA</strong></span>
