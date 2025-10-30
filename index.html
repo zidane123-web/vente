@@ -8037,11 +8037,8 @@ async function generateSupplierCreditPDF() {
         </button>
 
   <script>
-    window.addEventListener('load', () => {
-      if (typeof updateBalanceDisplay === 'function') {
-        updateBalanceDisplay();
-      }
-    });
+    // Appel initial pour mettre à jour l'affichage des totaux et du solde
+    updateBalanceDisplay();
   </script>
 </section>
 
@@ -17309,14 +17306,14 @@ function renderSalaryScreen() {
     function handleHashChange() {
     let hash = window.location.hash.substring(1);
     if (!hash) {
-      hash = 'accueil';
+      hash = 'vendre';
     }
 
     if (window.userRole === 'employe') {
       const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'aide-commande', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs', 'canaux-performance']);
       if (blockedForEmployees.has(hash)) {
-        if (hash !== 'accueil') {
-          window.location.hash = 'accueil';
+        if (hash !== 'vendre') {
+          window.location.hash = 'vendre';
         }
         return;
       }
@@ -20119,7 +20116,6 @@ document.getElementById('exportInventoryBtn')
     // Auto-suggestion pour la Vente
     const produitInput = document.getElementById("produit");
     const suggestionList = document.getElementById("suggestionList");
-    if (produitInput && suggestionList) {
     produitInput.addEventListener("input", debounce(function () {
       const query = this.value.trim().toLowerCase();
       suggestionList.innerHTML = "";
@@ -20155,7 +20151,6 @@ document.getElementById('exportInventoryBtn')
       }
       suggestionList.style.display = "block";
     }, 300));
-    }
 
 
     // Auto-suggestion pour l'Entrée de Stock
