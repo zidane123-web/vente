@@ -10883,21 +10883,38 @@ async function recordCreditPayment(approId, outstandingAmount) {
     </div>
 
     <div class="balance-details-card">
-      <h2>Enregistrer un paiement</h2>
-      <form id="supplierPaymentForm" onsubmit="event.preventDefault(); enregistrerPaiementFournisseur();">
-        <label for="supplierPaymentAmount">Montant</label>
-        <input type="number" id="supplierPaymentAmount" min="0" step="100" placeholder="0" />
-
-        <label for="supplierPaymentAccount">Compte de trésorerie</label>
-        <select id="supplierPaymentAccount">
-          <option value="">-- Sélectionner un compte --</option>
-        </select>
-
-        <button type="submit" class="btn-modern">
-          <i data-lucide="wallet"></i> Enregistrer le paiement
+      <div class="supplier-payment-header">
+        <h2>Paiements fournisseur</h2>
+        <button type="button" class="btn-modern secondary" onclick="ouvrirCartePaiementFournisseur()">
+          <i data-lucide="plus-circle"></i> Nouveau paiement
         </button>
-      </form>
-      <p id="supplierPaymentWarning" class="payment-warning"></p>
+      </div>
+      <p class="supplier-payment-hint">Ajoutez un ou plusieurs paiements pour solder la dette du fournisseur.</p>
+      <div id="supplierPaymentCard" class="supplier-payment-card" style="display:none;">
+        <div class="vente-payments-block supplier-payments-block">
+          <div class="vente-payments-header">
+            <h3>Moyens de paiement</h3>
+            <button type="button" class="btn-modern secondary" onclick="ajouterLignePaiementFournisseur()">
+              <i data-lucide="plus"></i> Ajouter un moyen
+            </button>
+          </div>
+          <div id="supplierPaymentsContainer" class="vente-payments-container"></div>
+          <div class="vente-payments-summary">
+            <p>Total dû : <strong id="supplier-summary-total-due">0 FCFA</strong></p>
+            <p>Total saisi : <strong id="supplier-summary-total-paid">0 FCFA</strong></p>
+            <p>Reste après paiement : <strong id="supplier-summary-difference">0 FCFA</strong></p>
+          </div>
+          <p id="supplier-payment-warning" class="vente-payment-warning"></p>
+          <div class="supplier-payment-actions">
+            <button type="button" class="btn-modern" onclick="enregistrerPaiementFournisseur()">
+              <i data-lucide="wallet"></i> Enregistrer le paiement
+            </button>
+            <button type="button" class="btn-modern secondary" onclick="fermerCartePaiementFournisseur()">
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="balance-details-card">
@@ -10972,38 +10989,53 @@ async function recordCreditPayment(approId, outstandingAmount) {
       font-size: 18px;
       color: #1f2933;
   }
-  .balance-details-card form {
+  .supplier-payment-header {
       display: flex;
-      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+  }
+  .supplier-payment-header h2 {
+      margin: 0;
+  }
+  .supplier-payment-hint {
+      margin: 8px 0 16px;
+      color: #6b7280;
+      font-size: 13px;
+  }
+  .supplier-payment-card {
+      margin-top: 12px;
+  }
+  .supplier-payments-block {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+  }
+  .supplier-payments-block .vente-payments-header {
+      padding: 0 0 12px;
+  }
+  .supplier-payments-block .vente-payments-summary {
+      margin-top: 16px;
+  }
+  .supplier-payment-actions {
+      display: flex;
+      justify-content: flex-end;
       gap: 10px;
-      margin-top: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
   }
-  .balance-details-card form label {
-      font-size: 13px;
-      font-weight: 600;
-      color: #475569;
-  }
-  .balance-details-card form input,
-  .balance-details-card form select {
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #e5e7eb;
-      font-size: 15px;
-      background: #f8fafc;
-  }
-  .balance-details-card form input:focus,
-  .balance-details-card form select:focus {
-      outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 0 2px rgba(56, 128, 255, 0.2);
-  }
-  .balance-details-card .btn-modern {
-      align-self: flex-start;
-  }
-  .payment-warning {
+  .supplier-proof-required {
       color: #b91c1c;
-      font-size: 13px;
+      font-size: 12px;
       margin-top: 6px;
+  }
+  .supplier-payments-empty {
+      color: #6b7280;
+      font-size: 14px;
+      margin: 0;
+      padding: 12px 0;
+      text-align: center;
   }
   .orders-list {
       display: flex;
@@ -11367,6 +11399,363 @@ let currentSupplierBalanceData = null;
 let currentSupplierDebts = [];
 let supplierDebtSearchInitialized = false;
 let pendingSupplierPaymentFocus = null;
+
+let supplierPaymentsDrafts = [];
+let supplierPaymentAutoId = 0;
+let supplierPaymentCardOpen = false;
+let pendingSupplierPaymentDialog = false;
+
+function supplierAccountRequiresProof(compteId) {
+    if (!compteId) {
+        return false;
+    }
+    const value = compteId.toString().toLowerCase();
+    if (value.includes('momo') || value.includes('mobile')) {
+        return true;
+    }
+    if (Array.isArray(comptesCache)) {
+        const compte = comptesCache.find(c => c.id === compteId);
+        if (compte) {
+            const type = (compte.type || '').toString().toLowerCase();
+            const nom = (compte.nom || compte.id || '').toString().toLowerCase();
+            if (type.includes('momo') || type.includes('mobile') || nom.includes('momo') || nom.includes('mobile')) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function resetSupplierPaymentDrafts(clearCard = true) {
+    supplierPaymentsDrafts = [];
+    supplierPaymentAutoId = 0;
+    if (clearCard) {
+        fermerCartePaiementFournisseur();
+    } else {
+        renderSupplierPaymentDrafts();
+        rafraichirResumePaiementFournisseur();
+    }
+}
+
+function ensureSupplierPaymentsInitialized() {
+    if (!supplierPaymentsDrafts.length) {
+        ajouterLignePaiementFournisseur();
+    } else {
+        renderSupplierPaymentDrafts();
+        rafraichirResumePaiementFournisseur();
+    }
+}
+
+function ouvrirCartePaiementFournisseur() {
+    if (!currentSupplierBalanceData) {
+        alert("Sélectionnez d'abord un fournisseur.");
+        return;
+    }
+    supplierPaymentCardOpen = true;
+    const card = document.getElementById('supplierPaymentCard');
+    if (card) {
+        card.style.display = 'block';
+    }
+    ensureSupplierPaymentsInitialized();
+    focusFirstSupplierPaymentInput();
+}
+
+function fermerCartePaiementFournisseur() {
+    supplierPaymentCardOpen = false;
+    const card = document.getElementById('supplierPaymentCard');
+    if (card) {
+        card.style.display = 'none';
+    }
+}
+
+function focusFirstSupplierPaymentInput() {
+    setTimeout(() => {
+        const container = document.getElementById('supplierPaymentsContainer');
+        if (!container) return;
+        const firstInput = container.querySelector('input[type=\"number\"]');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }, 120);
+}
+
+function ajouterLignePaiementFournisseur(initialData = {}) {
+    supplierPaymentsDrafts.push({
+        id: ++supplierPaymentAutoId,
+        accountId: initialData.accountId || '',
+        amount: initialData.amount || '',
+        proofPhoto: initialData.proofPhoto || null
+    });
+    renderSupplierPaymentDrafts();
+    rafraichirResumePaiementFournisseur();
+}
+
+function supprimerLignePaiementFournisseur(paymentId) {
+    if (supplierPaymentsDrafts.length <= 1) {
+        supplierPaymentsDrafts = supplierPaymentsDrafts.map(payment =>
+            payment.id === paymentId ? { ...payment, accountId: '', amount: '', proofPhoto: null } : payment
+        );
+    } else {
+        supplierPaymentsDrafts = supplierPaymentsDrafts.filter(payment => payment.id !== paymentId);
+    }
+    renderSupplierPaymentDrafts();
+    rafraichirResumePaiementFournisseur();
+}
+
+function onSupplierPaymentFieldChange(paymentId, field, value) {
+    const payment = supplierPaymentsDrafts.find(p => p.id === paymentId);
+    if (!payment) {
+        return;
+    }
+    payment[field] = value;
+    if (field === 'accountId') {
+        renderSupplierPaymentDrafts();
+    }
+    rafraichirResumePaiementFournisseur();
+}
+
+function onSupplierPaymentProofSelected(paymentId, fileList) {
+    if (!fileList || !fileList.length) {
+        return;
+    }
+    const file = fileList[0];
+    if (!file) {
+        return;
+    }
+    try {
+        compressImage(file, 1280, 1280, 0.7, dataUrl => {
+            setSupplierPaymentProof(paymentId, dataUrl);
+        });
+    } catch (error) {
+        console.error('Erreur lors du traitement de la preuve de paiement fournisseur :', error);
+        alert("Impossible de traiter l'image sélectionnée. Réessayez.");
+    }
+}
+
+function setSupplierPaymentProof(paymentId, dataUrl) {
+    const payment = supplierPaymentsDrafts.find(p => p.id === paymentId);
+    if (!payment) {
+        return;
+    }
+    payment.proofPhoto = dataUrl;
+    renderSupplierPaymentDrafts();
+    rafraichirResumePaiementFournisseur();
+}
+
+function supprimerSupplierPaymentProof(paymentId) {
+    const payment = supplierPaymentsDrafts.find(p => p.id === paymentId);
+    if (!payment) {
+        return;
+    }
+    payment.proofPhoto = null;
+    renderSupplierPaymentDrafts();
+    rafraichirResumePaiementFournisseur();
+}
+
+function renderSupplierPaymentDrafts() {
+    const container = document.getElementById('supplierPaymentsContainer');
+    if (!container) {
+        return;
+    }
+    container.innerHTML = '';
+
+    if (!supplierPaymentsDrafts.length) {
+        const empty = document.createElement('p');
+        empty.className = 'supplier-payments-empty';
+        empty.textContent = "Ajoutez un moyen de paiement.";
+        container.appendChild(empty);
+        return;
+    }
+
+    supplierPaymentsDrafts.forEach(payment => {
+        const row = document.createElement('div');
+        row.className = 'vente-payment-row vente-payment-row-vente';
+        row.dataset.paymentId = payment.id;
+
+        const card = document.createElement('div');
+        card.className = 'vente-payment-card';
+        row.appendChild(card);
+
+        const header = document.createElement('div');
+        header.className = 'vente-payment-card-header';
+        card.appendChild(header);
+
+        const compteSelect = document.createElement('select');
+        compteSelect.id = `compteSelectSupplierPayment-${payment.id}`;
+        compteSelect.className = 'vente-payment-account';
+        compteSelect.addEventListener('change', event => {
+            onSupplierPaymentFieldChange(payment.id, 'accountId', event.target.value);
+        });
+        header.appendChild(compteSelect);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'vente-payment-remove btn-modern secondary';
+        removeBtn.innerHTML = '<i data-lucide=\"trash-2\"></i>';
+        removeBtn.addEventListener('click', () => supprimerLignePaiementFournisseur(payment.id));
+        header.appendChild(removeBtn);
+
+        const amountsWrapper = document.createElement('div');
+        amountsWrapper.className = 'vente-payment-amounts';
+        card.appendChild(amountsWrapper);
+
+        const amountInput = document.createElement('input');
+        amountInput.type = 'number';
+        amountInput.min = '0';
+        amountInput.step = '100';
+        amountInput.placeholder = 'Montant payé';
+        amountInput.value = payment.amount || '';
+        amountInput.addEventListener('input', event => {
+            onSupplierPaymentFieldChange(payment.id, 'amount', event.target.value);
+        });
+        amountsWrapper.appendChild(amountInput);
+
+        const proofsWrapper = document.createElement('div');
+        proofsWrapper.className = 'vente-payment-proof-wrapper';
+        card.appendChild(proofsWrapper);
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+        fileInput.addEventListener('change', event => {
+            onSupplierPaymentProofSelected(payment.id, event.target.files);
+            event.target.value = '';
+        });
+        proofsWrapper.appendChild(fileInput);
+
+        const proofActions = document.createElement('div');
+        proofActions.className = 'vente-payment-proof-actions';
+        proofsWrapper.appendChild(proofActions);
+
+        const proofBtn = document.createElement('button');
+        proofBtn.type = 'button';
+        proofBtn.className = 'btn-modern secondary';
+        proofBtn.style.whiteSpace = 'nowrap';
+        proofBtn.innerHTML = '<i data-lucide=\"camera\"></i> Ajouter une preuve';
+        proofBtn.addEventListener('click', () => fileInput.click());
+        proofActions.appendChild(proofBtn);
+
+        if (payment.proofPhoto) {
+            const thumb = document.createElement('img');
+            thumb.src = payment.proofPhoto;
+            thumb.alt = 'Preuve de paiement';
+            thumb.className = 'vente-payment-proof-thumb';
+            thumb.addEventListener('click', () => ouvrirPreuvePaiement(thumb.src));
+            proofsWrapper.appendChild(thumb);
+
+            const removeProof = document.createElement('button');
+            removeProof.type = 'button';
+            removeProof.className = 'vente-payment-proof-remove';
+            removeProof.textContent = 'Retirer';
+            removeProof.addEventListener('click', () => supprimerSupplierPaymentProof(payment.id));
+            proofsWrapper.appendChild(removeProof);
+        }
+
+        if (supplierAccountRequiresProof(payment.accountId) && !payment.proofPhoto) {
+            const notice = document.createElement('p');
+            notice.className = 'supplier-proof-required';
+            notice.textContent = 'Preuve de dépôt obligatoire pour Mobile Money.';
+            proofsWrapper.appendChild(notice);
+        }
+
+        container.appendChild(row);
+    });
+
+    remplirTousSelectComptes();
+    supplierPaymentsDrafts.forEach(payment => {
+        const selectEl = document.getElementById(`compteSelectSupplierPayment-${payment.id}`);
+        if (selectEl) {
+            selectEl.value = payment.accountId || '';
+        }
+    });
+
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+        refreshLucideIcons();
+    }
+}
+
+function analyserPaiementsFournisseur() {
+    const sanitized = [];
+    let totalAmount = 0;
+
+    for (const payment of supplierPaymentsDrafts) {
+        const amount = parseFloat(payment.amount);
+        const hasAccount = !!payment.accountId;
+        const hasAmount = Number.isFinite(amount) && amount > 0;
+        const hasAnyValue = hasAccount || (!!payment.amount && payment.amount !== '') || !!payment.proofPhoto;
+
+        if (!hasAnyValue) {
+            continue;
+        }
+
+        if (!hasAmount) {
+            return { valid: false, message: 'Indiquez un montant positif pour chaque paiement.' };
+        }
+
+        if (!hasAccount) {
+            return { valid: false, message: 'Sélectionnez un compte de trésorerie pour chaque paiement.' };
+        }
+
+        const requiresProof = supplierAccountRequiresProof(payment.accountId);
+        if (requiresProof && !payment.proofPhoto) {
+            return { valid: false, message: 'Ajoutez une preuve de dépôt pour les paiements Mobile Money.' };
+        }
+
+        sanitized.push({
+            id: payment.id,
+            amount,
+            accountId: payment.accountId,
+            accountName: getCompteNomById(payment.accountId),
+            proofPhoto: payment.proofPhoto || null,
+            requiresProof
+        });
+        totalAmount += amount;
+    }
+
+    if (!sanitized.length) {
+        return { valid: false, message: 'Ajoutez au moins un paiement.' };
+    }
+
+    return { valid: true, message: '', payments: sanitized, totalAmount };
+}
+
+function rafraichirResumePaiementFournisseur() {
+    const dueEl = document.getElementById('supplier-summary-total-due');
+    const paidEl = document.getElementById('supplier-summary-total-paid');
+    const diffEl = document.getElementById('supplier-summary-difference');
+
+    const totalDue = currentSupplierBalanceData ? Math.round(parseFloat(currentSupplierBalanceData.totalDue || 0)) : 0;
+    let totalEntered = 0;
+
+    supplierPaymentsDrafts.forEach(payment => {
+        const amount = parseFloat(payment.amount);
+        if (Number.isFinite(amount) && amount > 0) {
+            totalEntered += amount;
+        }
+    });
+
+    const balanceAfterPayment = totalDue - totalEntered;
+
+    if (dueEl) {
+        dueEl.textContent = `${fmt(totalDue)} FCFA`;
+    }
+    if (paidEl) {
+        paidEl.textContent = `${fmt(totalEntered)} FCFA`;
+    }
+    if (diffEl) {
+        diffEl.textContent = `${fmt(balanceAfterPayment)} FCFA`;
+        if (balanceAfterPayment > 0) {
+            diffEl.style.color = '#f04141';
+        } else if (balanceAfterPayment < 0) {
+            diffEl.style.color = '#2e7d32';
+        } else {
+            diffEl.style.color = '#3880ff';
+        }
+    }
+
+    return { totalDue, totalEntered, balanceAfterPayment };
+}
 
 /**
  * Gère l'affichage principal du Hub Dépôts.
@@ -13321,6 +13710,8 @@ async function ouvrirFournisseurBalance(supplierName, event) {
             totalDue,
             orders
         };
+        supplierPaymentCardOpen = false;
+        resetSupplierPaymentDrafts(false);
         renderSupplierBalanceScreen();
         window.location.hash = 'fournisseur-balance';
     } catch (error) {
@@ -13333,70 +13724,64 @@ async function ouvrirFournisseurBalance(supplierName, event) {
 
 function renderSupplierBalanceScreen() {
     const titleEl = document.getElementById('supplierBalanceTitle');
-    const totalPaidEl = document.getElementById('supplierBalanceTotalPaid');
-    const totalReceivedEl = document.getElementById('supplierBalanceReceived');
     const toReceiveEl = document.getElementById('supplierBalanceToReceive');
     const advanceEl = document.getElementById('supplierBalanceAdvance');
     const dueEl = document.getElementById('supplierBalanceDue');
     const ordersContainer = document.getElementById('supplierBalanceOrders');
-    const paymentAccountSelect = document.getElementById('supplierPaymentAccount');
-    const paymentAmountInput = document.getElementById('supplierPaymentAmount');
-    const paymentWarningEl = document.getElementById('supplierPaymentWarning');
+    const paymentCardEl = document.getElementById('supplierPaymentCard');
+    const paymentWarningEl = document.getElementById('supplier-payment-warning');
 
     if (!titleEl || !toReceiveEl || !advanceEl || !dueEl || !ordersContainer) {
         return;
     }
+
     const formatValue = (value) => (Math.round(value || 0)).toLocaleString('fr-FR');
 
     if (!currentSupplierBalanceData) {
         titleEl.textContent = 'Fournisseur';
-        if (paymentAccountSelect) {
-            paymentAccountSelect.innerHTML = '<option value=>-- Sélectionner un compte --</option>';
-        }
-        if (paymentAmountInput) {
-            paymentAmountInput.value = '';
-        }
-        if (paymentWarningEl) {
-            paymentWarningEl.textContent = '';
-        }
-        if (totalPaidEl) {
-            totalPaidEl.textContent = `${formatValue(0)} FCFA`;
-        }
-        if (totalReceivedEl) {
-            totalReceivedEl.textContent = `${formatValue(0)} FCFA`;
-        }
         toReceiveEl.textContent = `${formatValue(0)} FCFA`;
         advanceEl.textContent = `${formatValue(0)} FCFA`;
         dueEl.textContent = `${formatValue(0)} FCFA`;
         ordersContainer.innerHTML = '<p class="placeholder">Aucun historique.</p>';
+        if (paymentWarningEl) {
+            paymentWarningEl.textContent = '';
+        }
+        resetSupplierPaymentDrafts(false);
+        supplierPaymentCardOpen = false;
+        if (paymentCardEl) {
+            paymentCardEl.style.display = 'none';
+        }
         return;
     }
 
     const data = currentSupplierBalanceData;
     titleEl.textContent = data.name;
-    if (paymentAccountSelect) {
-        remplirTousSelectComptes(paymentAccountSelect);
-        paymentAccountSelect.value = '';
-    }
-    if (paymentAmountInput) {
-        paymentAmountInput.value = '';
-    }
-    if (paymentWarningEl) {
-        paymentWarningEl.textContent = '';
-    }
-    if (pendingSupplierPaymentFocus && pendingSupplierPaymentFocus === data.name && paymentAmountInput) {
-        setTimeout(() => paymentAmountInput.focus(), 0);
-        pendingSupplierPaymentFocus = null;
-    }
-    if (totalPaidEl) {
-        totalPaidEl.textContent = `${formatValue(data.totalPaid)} FCFA`;
-    }
-    if (totalReceivedEl) {
-        totalReceivedEl.textContent = `${formatValue(data.totalReceived)} FCFA`;
-    }
     toReceiveEl.textContent = `${formatValue(data.goodsRemainingValue)} FCFA`;
     advanceEl.textContent = `${formatValue(data.advanceBalance)} FCFA`;
     dueEl.textContent = `${formatValue(data.totalDue)} FCFA`;
+    if (paymentWarningEl) {
+        paymentWarningEl.textContent = '';
+    }
+
+    if (pendingSupplierPaymentDialog) {
+        pendingSupplierPaymentDialog = false;
+        ouvrirCartePaiementFournisseur();
+    } else if (pendingSupplierPaymentFocus && pendingSupplierPaymentFocus === data.name) {
+        pendingSupplierPaymentFocus = null;
+        ouvrirCartePaiementFournisseur();
+    } else if (supplierPaymentCardOpen) {
+        ensureSupplierPaymentsInitialized();
+    } else {
+        renderSupplierPaymentDrafts();
+        rafraichirResumePaiementFournisseur();
+    }
+
+    if (paymentCardEl) {
+        paymentCardEl.style.display = supplierPaymentCardOpen ? 'block' : 'none';
+    }
+    if (supplierPaymentCardOpen) {
+        rafraichirResumePaiementFournisseur();
+    }
 
     if (data.orders.length === 0) {
         ordersContainer.innerHTML = '<p class="placeholder">Aucune commande enregistrée pour ce fournisseur.</p>';
@@ -13644,10 +14029,7 @@ function renderSupplierDebtList(searchTerm = '') {
     }
 }
 async function enregistrerPaiementFournisseur() {
-    const amountInput = document.getElementById('supplierPaymentAmount');
-    const accountSelect = document.getElementById('supplierPaymentAccount');
-    const warningEl = document.getElementById('supplierPaymentWarning');
-
+    const warningEl = document.getElementById('supplier-payment-warning');
     if (warningEl) {
         warningEl.textContent = '';
     }
@@ -13657,24 +14039,18 @@ async function enregistrerPaiementFournisseur() {
         return;
     }
 
-    const amount = amountInput ? parseFloat(amountInput.value) : NaN;
-    if (!amountInput || Number.isNaN(amount) || amount <= 0) {
+    const analysis = analyserPaiementsFournisseur();
+    if (!analysis.valid) {
         if (warningEl) {
-            warningEl.textContent = 'Saisissez un montant valide.';
-        }
-        if (amountInput) {
-            amountInput.focus();
+            warningEl.textContent = analysis.message;
         }
         return;
     }
 
-    const accountId = accountSelect ? accountSelect.value : '';
-    if (!accountId) {
+    const payments = analysis.payments;
+    if (!payments.length) {
         if (warningEl) {
-            warningEl.textContent = 'Sélectionnez un compte de trésorerie.';
-        }
-        if (accountSelect) {
-            accountSelect.focus();
+            warningEl.textContent = 'Ajoutez au moins un paiement.';
         }
         return;
     }
@@ -13701,55 +14077,70 @@ async function enregistrerPaiementFournisseur() {
     showSaleLoader();
 
     try {
-        let remaining = amount;
-        let totalApplied = 0;
         const batch = dbFirestore.batch();
         const paymentTimestamp = firebase.firestore.Timestamp.now();
+        let totalApplied = 0;
+        let leftover = 0;
 
-        for (const order of orders) {
-            if (remaining <= 0) break;
-            const due = Math.max(0, order.__outstandingDue || 0);
-            if (due <= 0) continue;
+        for (const payment of payments) {
+            let remainingAmount = payment.amount;
+            for (const order of orders) {
+                if (remainingAmount <= 0) {
+                    break;
+                }
+                const due = Math.max(0, order.__outstandingDue || 0);
+                if (due <= 0) {
+                    continue;
+                }
+                const applied = Math.min(remainingAmount, due);
+                if (applied <= 0) {
+                    continue;
+                }
+                const orderRef = dbFirestore.collection('approvisionnement').doc(order.id);
+                const newPaid = (parseFloat(order.paidValue || 0) + applied);
+                const newReceived = parseFloat(order.receivedValue || 0);
+                const newRemaining = Math.max(0, due - applied);
+                const newIsPaid = newRemaining <= 0.0001;
+                const newAdvance = Math.max(0, newPaid - newReceived);
 
-            const applied = Math.min(remaining, due);
-            const orderRef = dbFirestore.collection('approvisionnement').doc(order.id);
-            const newPaid = (parseFloat(order.paidValue || 0) + applied);
-            const newReceived = parseFloat(order.receivedValue || 0);
-            const newRemaining = Math.max(0, due - applied);
-            const newIsPaid = newRemaining <= 0.0001;
-            const newAdvance = Math.max(0, newPaid - newReceived);
+                batch.update(orderRef, {
+                    paymentsTotalPaid: newPaid,
+                    remainingAmount: newRemaining,
+                    isPaid: newIsPaid,
+                    paymentMethod: newIsPaid ? 'paid' : 'credit',
+                    netSupplierBalance: newPaid - newReceived
+                });
 
-            batch.update(orderRef, {
-                paymentsTotalPaid: newPaid,
-                remainingAmount: newRemaining,
-                isPaid: newIsPaid,
-                paymentMethod: newIsPaid ? 'paid' : 'credit',
-                netSupplierBalance: newPaid - newReceived
-            });
+                const paymentRecordRef = orderRef.collection('payments').doc();
+                batch.set(paymentRecordRef, {
+                    amount: applied,
+                    date: paymentTimestamp,
+                    account: payment.accountName || payment.accountId,
+                    accountId: payment.accountId,
+                    refApproId: order.id,
+                    proofPhoto: payment.proofPhoto || null
+                });
 
-            const paymentRecordRef = orderRef.collection('payments').doc();
-            batch.set(paymentRecordRef, {
-                amount: applied,
-                date: paymentTimestamp,
-                account: accountId,
-                refApproId: order.id
-            });
+                order.paidValue = newPaid;
+                order.remainingAmount = newRemaining;
+                order.paymentDue = Math.max(0, newReceived - newPaid);
+                order.advanceValue = newAdvance;
+                order.__outstandingDue = newRemaining;
+                order.status = newIsPaid ? 'reçu' : order.status;
 
-            order.paidValue = newPaid;
-            order.remainingAmount = newRemaining;
-            order.paymentDue = Math.max(0, newReceived - newPaid);
-            order.advanceValue = newAdvance;
-            order.__outstandingDue = newRemaining;
-            order.status = newIsPaid ? 'reçu' : order.status;
-
-            remaining -= applied;
-            totalApplied += applied;
+                remainingAmount -= applied;
+                totalApplied += applied;
+            }
+            payment.appliedAmount = payment.amount - remainingAmount;
+            if (remainingAmount > 0) {
+                leftover += remainingAmount;
+            }
         }
 
         if (totalApplied <= 0) {
             hideSaleLoader();
             if (warningEl) {
-                warningEl.textContent = "Aucune dette n'a été trouvée pour ce paiement.";
+                warningEl.textContent = "Aucune dette n'a été trouvée pour ces paiements.";
             }
             return;
         }
@@ -13759,15 +14150,6 @@ async function enregistrerPaiementFournisseur() {
         currentSupplierBalanceData.orders = currentSupplierBalanceData.orders.map(original => {
             const updated = orders.find(o => o.id === original.id);
             return updated ? { ...original, ...updated } : original;
-        });
-
-        await enregistrerMouvementTresorerie({
-            compteId: accountId,
-            type: 'paiement_fournisseur',
-            sens: 'out',
-            montant: totalApplied,
-            description: `Paiement fournisseur ${currentSupplierBalanceData.name}`,
-            refId: currentSupplierBalanceData.name
         });
 
         const totals = currentSupplierBalanceData.orders.reduce((acc, order) => {
@@ -13785,17 +14167,33 @@ async function enregistrerPaiementFournisseur() {
         currentSupplierBalanceData.totalDue = totals.totalDue;
         currentSupplierBalanceData.advanceBalance = totals.totalAdvance;
 
-        if (amountInput) {
-            amountInput.value = '';
+        for (const payment of payments) {
+            if (payment.appliedAmount > 0) {
+                const mouvementPayload = {
+                    compteId: payment.accountId,
+                    type: 'paiement_fournisseur',
+                    sens: 'out',
+                    montant: payment.appliedAmount,
+                    description: `Paiement fournisseur ${currentSupplierBalanceData.name}`,
+                    refId: currentSupplierBalanceData.name
+                };
+                if (payment.proofPhoto) {
+                    mouvementPayload.encaissementPhotos = [payment.proofPhoto];
+                }
+                await enregistrerMouvementTresorerie(mouvementPayload);
+            }
         }
+
         if (warningEl) {
             const formatCurrency = value => Math.round(value || 0).toLocaleString('fr-FR');
-            const leftover = Math.max(0, Math.round(remaining || 0));
             warningEl.textContent = leftover > 0
                 ? `Paiement enregistré (${formatCurrency(totalApplied)} FCFA). ${formatCurrency(leftover)} FCFA n'ont pas été appliqués (dettes soldées).`
                 : '';
         }
 
+        resetSupplierPaymentDrafts(false);
+        ensureSupplierPaymentsInitialized();
+        rafraichirResumePaiementFournisseur();
         renderSupplierBalanceScreen();
         chargerDettesFournisseurs();
         updateBalanceDisplay();
@@ -13811,7 +14209,6 @@ async function enregistrerPaiementFournisseur() {
     }
 }
 
-
 function ouvrirPaiementFournisseur(supplierName, event) {
     if (event) {
         event.stopPropagation();
@@ -13821,6 +14218,7 @@ function ouvrirPaiementFournisseur(supplierName, event) {
         return;
     }
     pendingSupplierPaymentFocus = supplierName;
+    pendingSupplierPaymentDialog = true;
     ouvrirFournisseurBalance(supplierName);
 }
 async function annulerCommandeFournisseur(approId, event) {
