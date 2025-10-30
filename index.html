@@ -22002,6 +22002,9 @@ async function majCartesTresorerie() {
       const navDettes = document.getElementById("nav-dettes-fournisseurs");
       const tresorerieMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='tresorerie']");
       const dettesMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='dettes-fournisseurs']");
+      const navStock = document.getElementById("nav-stock");
+      const navHistorique = document.getElementById("nav-historique");
+      const navAccueil = document.getElementById("nav-accueil");
       const exportStockBtn = document.getElementById("exportStockBtn");
       const exportInventoryBtn = document.getElementById("exportInventoryBtn");
       const stockSummary = document.querySelector('#screen-stock .summary');
@@ -22046,10 +22049,10 @@ async function majCartesTresorerie() {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'dettes-fournisseurs', 'fournisseur-balance', 'aide-commande', 'cloture-vendeur'];
+        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'dettes-fournisseurs', 'fournisseur-balance', 'aide-commande', 'cloture-vendeur', 'vendre', 'livraisons'];
         const currentHash = window.location.hash.replace('#', '');
         if (disallowedForEmployee.includes(currentHash)) {
-          window.location.hash = 'vendre';
+          window.location.hash = 'accueil';
         }
 
         if (navTresorerie) {
@@ -22067,6 +22070,15 @@ async function majCartesTresorerie() {
         if (navDettes) {
           navDettes.classList.add('hidden-by-role');
           navDettes.style.setProperty('display', 'none', 'important');
+        }
+        if (navStock) {
+          navStock.style.display = 'flex';
+        }
+        if (navHistorique) {
+          navHistorique.style.display = 'flex';
+        }
+        if (navAccueil) {
+          navAccueil.style.display = 'flex';
         }
         if (tresorerieMenuItem) {
           tresorerieMenuItem.style.setProperty('display', 'none', 'important');
