@@ -2429,6 +2429,14 @@ body.drawer-open {
       </section>
 
       <section class="ako-card ako-card-quick" aria-label="Actions rapides">
+        <div class="ako-quick-grid" id="accueilQuickActions">
+          <button type="button" class="ako-quick-item" id="quick-enregistrer-achat" onclick="ouvrirApprovisionnementDepuisAccueil()" style="display:none;">
+            <span class="ako-quick-avatar">
+              <i data-lucide="shopping-bag"></i>
+            </span>
+            <span>Enregistrer achat</span>
+          </button>
+        </div>
       </section>
 
       <section class="ako-card receivables" aria-labelledby="receivablesTitle">
@@ -7710,9 +7718,9 @@ async function generateSupplierCreditPDF() {
             <span class="drawer-icon"><i data-lucide="package"></i></span>
             <span>Stock</span>
           </button>
-          <button class="drawer-item menu-list-item" type="button" data-hash="approvisionnement" onclick="window.location.hash='approvisionnement'">
+          <button class="drawer-item menu-list-item" type="button" data-hash="approvisionnement-historique" onclick="window.location.hash='approvisionnement-historique'">
             <span class="drawer-icon"><i data-lucide="archive"></i></span>
-            <span>Approvisionnements</span>
+            <span>Historique des approvisionnements</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="livraisons" onclick="window.location.hash='livraisons'">
             <span class="drawer-icon"><i data-lucide="truck"></i></span>
@@ -16333,6 +16341,15 @@ function ouvrirLivraisonsDepuisBadge() {
   ouvrirLivraisonsDepuisAccueil();
 }
 
+function ouvrirApprovisionnementDepuisAccueil() {
+  window.location.hash = 'approvisionnement';
+  setTimeout(() => {
+    if (typeof chargerApprovisionnements === 'function') {
+      chargerApprovisionnements();
+    }
+  }, 80);
+}
+
 function peutGererLivraison(sale) {
   if (!sale) return false;
   const auth = typeof firebase !== 'undefined' && typeof firebase.auth === 'function' ? firebase.auth() : null;
@@ -22004,6 +22021,7 @@ async function majCartesTresorerie() {
       const exportStockBtn = document.getElementById("exportStockBtn");
       const exportInventoryBtn = document.getElementById("exportInventoryBtn");
       const stockSummary = document.querySelector('#screen-stock .summary');
+      const quickPurchaseButton = document.getElementById("quick-enregistrer-achat");
 
       if (navMenu) {
         navMenu.classList.remove('hidden-by-role');
@@ -22042,6 +22060,9 @@ async function majCartesTresorerie() {
           item.classList.remove('hidden-by-role');
           item.style.removeProperty('display');
         });
+      }
+      if (quickPurchaseButton) {
+        quickPurchaseButton.style.display = 'none';
       }
 
       // Pour le menu de navigation
@@ -22141,6 +22162,9 @@ async function majCartesTresorerie() {
         if (navTresorerie) {
           navTresorerie.classList.remove('hidden-by-role');
           navTresorerie.style.display = "flex";
+        }
+        if (quickPurchaseButton) {
+          quickPurchaseButton.style.removeProperty('display');
         }
         // Masquer Vente et Livraisons
         const navVendre = document.getElementById("nav-vendre");
