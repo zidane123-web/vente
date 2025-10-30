@@ -7895,42 +7895,39 @@ async function generateSupplierCreditPDF() {
       margin-bottom: 15px;
       text-align: center;
     }
-    .balance-card-dual {
+    .balance-highlights {
       display: flex;
-      justify-content: space-between;
-      align-items: stretch;
-      gap: 18px;
+      gap: 10px;
       flex-wrap: wrap;
-      text-align: left;
+      margin-bottom: 15px;
     }
-    .balance-card-dual .balance-item {
-      flex: 1 1 200px;
-      display: flex;
+    .balance-pill {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      border-radius: 999px;
+      padding: 10px 16px;
+      display: inline-flex;
       flex-direction: column;
-      gap: 6px;
-      padding: 0 6px;
-      border-left: 1px solid rgba(99, 102, 241, 0.18);
-    }
-    .balance-card-dual .balance-item:first-child {
-      border-left: none;
-    }
-    .balance-card-dual .balance-item h1 {
-      font-size: 32px;
-      margin: 0;
-    }
-    .balance-card-dual .balance-item p {
-      margin: 0;
-      font-weight: 600;
-      font-size: 14px;
-      color: #6b7280;
-      letter-spacing: 0.02em;
+      min-width: 180px;
+      flex: 0 0 auto;
       text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
-    .balance-card-dual .balance-item.debt h1 {
-      color: #dc3545;
+    .balance-pill span {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4b5563;
     }
-    .balance-card-dual .balance-item.real h1 {
+    .balance-pill strong {
+      font-size: 16px;
+      font-weight: 700;
+      color: #1f2937;
+    }
+    .balance-pill.real strong {
       color: #2563eb;
+    }
+    .balance-pill.debt strong {
+      color: #dc3545;
     }
     .balance-card h1 {
       margin: 0;
@@ -8044,18 +8041,20 @@ async function generateSupplierCreditPDF() {
         <label for="treso-date-filter" style="font-weight: bold; margin-right: 8px;">Afficher le rapport du :</label>
         <input type="date" id="treso-date-filter" onchange="updateBalanceDisplay()" style="width: calc(100% - 170px); padding: 8px; border: 1px solid #EEE; border-radius: 8px;">
     </div>
-    <div class="balance-card balance-card-dual">
-      <div class="balance-item">
-        <p>Solde global</p>
-        <h1 id="balance-sold">XOF 0</h1>
-      </div>
-      <div class="balance-item real">
-        <p>Solde r&eacute;el</p>
-        <h1 id="balance-real">XOF 0</h1>
-      </div>
-      <div class="balance-item debt">
-        <p>Dettes fournisseurs</p>
-        <h1 id="balance-supplier-debt">XOF 0</h1>
+    <div class="balance-card">
+      <div class="balance-highlights">
+        <div class="balance-pill">
+          <span>Solde global</span>
+          <strong id="balance-sold">XOF 0</strong>
+        </div>
+        <div class="balance-pill real">
+          <span>Solde réel</span>
+          <strong id="balance-real">XOF 0</strong>
+        </div>
+        <div class="balance-pill debt">
+          <span>Dettes fournisseurs</span>
+          <strong id="balance-supplier-debt">XOF 0</strong>
+        </div>
       </div>
     </div>
 
