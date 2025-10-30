@@ -22163,9 +22163,6 @@ async function majCartesTresorerie() {
           navTresorerie.classList.remove('hidden-by-role');
           navTresorerie.style.display = "flex";
         }
-        if (quickPurchaseButton) {
-          quickPurchaseButton.style.removeProperty('display');
-        }
         // Masquer Vente et Livraisons
         const navVendre = document.getElementById("nav-vendre");
         const navLivraisons = document.getElementById("nav-livraisons");
@@ -22194,6 +22191,9 @@ async function majCartesTresorerie() {
         }
         if (stockSummary) {
           stockSummary.style.removeProperty('display');
+        }
+        if (quickPurchaseButton) {
+          quickPurchaseButton.style.removeProperty('display');
         }
         const sections = document.querySelectorAll("#screen-menu .section");
         sections.forEach(section => {
