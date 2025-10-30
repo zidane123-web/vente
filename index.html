@@ -17826,7 +17826,27 @@ function renderSalaryScreen() {
     }
 
     if (window.userRole === 'employe') {
-      const blockedForEmployees = new Set(['tresorerie', 'tresorerie-compte', 'menu', 'approvisionnement', 'approvisionnement-historique', 'aide-commande', 'article-detail', 'commande-reception', 'fournisseur-balance', 'dettes-fournisseurs', 'canaux-performance']);
+      const blockedForEmployees = new Set([
+        'menu',
+        'clients',
+        'approvisionnement',
+        'approvisionnement-historique',
+        'aide-commande',
+        'article-detail',
+        'commande-reception',
+        'fournisseur-balance',
+        'dettes-fournisseurs',
+        'canaux-performance',
+        'tresorerie',
+        'tresorerie-compte',
+        'depenses',
+        'rapports',
+        'profit',
+        'parametres',
+        'livraisons',
+        'vendre',
+        'cloture-vendeur'
+      ]);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'accueil') {
           window.location.hash = 'accueil';
@@ -21978,6 +21998,7 @@ async function majCartesTresorerie() {
       const navDettes = document.getElementById("nav-dettes-fournisseurs");
       const tresorerieMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='tresorerie']");
       const dettesMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='dettes-fournisseurs']");
+      const drawerMenuItems = Array.from(document.querySelectorAll("#screen-menu .menu-list-item"));
       const navStock = document.getElementById("nav-stock");
       const navHistorique = document.getElementById("nav-historique");
       const navAccueil = document.getElementById("nav-accueil");
@@ -22017,6 +22038,12 @@ async function majCartesTresorerie() {
       if (exportInventoryBtn) {
         exportInventoryBtn.style.removeProperty('display');
       }
+      if (drawerMenuItems.length) {
+        drawerMenuItems.forEach(item => {
+          item.classList.remove('hidden-by-role');
+          item.style.removeProperty('display');
+        });
+      }
 
       // Pour le menu de navigation
       if (role === "employe") {
@@ -22025,9 +22052,30 @@ async function majCartesTresorerie() {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const disallowedForEmployee = ['tresorerie', 'menu', 'approvisionnement', 'approvisionnement-historique', 'article-detail', 'dettes-fournisseurs', 'fournisseur-balance', 'aide-commande', 'cloture-vendeur', 'vendre', 'livraisons'];
+        const allowedEmployeeNavigation = new Set(['accueil', 'stock', 'historique']);
+        const disallowedForEmployee = new Set([
+          'menu',
+          'clients',
+          'approvisionnement',
+          'approvisionnement-historique',
+          'article-detail',
+          'dettes-fournisseurs',
+          'fournisseur-balance',
+          'aide-commande',
+          'cloture-vendeur',
+          'vendre',
+          'livraisons',
+          'tresorerie',
+          'tresorerie-compte',
+          'depenses',
+          'rapports',
+          'canaux-performance',
+          'profit',
+          'parametres',
+          'commande-reception'
+        ]);
         const currentHash = window.location.hash.replace('#', '');
-        if (disallowedForEmployee.includes(currentHash)) {
+        if (disallowedForEmployee.has(currentHash)) {
           window.location.hash = 'accueil';
         }
 
@@ -22055,6 +22103,17 @@ async function majCartesTresorerie() {
         }
         if (navAccueil) {
           navAccueil.style.display = 'flex';
+        }
+        if (drawerMenuItems.length) {
+          drawerMenuItems.forEach(item => {
+            const itemHash = item.dataset.hash;
+            if (!allowedEmployeeNavigation.has(itemHash)) {
+              item.classList.add('hidden-by-role');
+              item.style.setProperty('display', 'none', 'important');
+            } else {
+              item.style.removeProperty('display');
+            }
+          });
         }
         if (tresorerieMenuItem) {
           tresorerieMenuItem.style.setProperty('display', 'none', 'important');
