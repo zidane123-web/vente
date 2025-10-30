@@ -79,6 +79,23 @@ body.role-employe #screen-accueil .ako-quick-grid {
   color: var(--secondary-color);
 }
 
+.ako-card-stats {
+  margin-top: 12px;
+}
+
+#accueilAdminStats .performance-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+#accueilAdminStats .performance-card strong {
+  font-size: 24px;
+}
+
+#accueilAdminStats .performance-card small {
+  font-size: 12px;
+  color: var(--secondary-color);
+}
+
 .performance-loader {
   text-align: center;
   padding: 20px 0;
@@ -2425,6 +2442,41 @@ body.drawer-open {
           <h1 id="akoWelcomeTitle">Bienvenue <span id="accueilUserName">--</span></h1>
           <p>Voici l'aperçu de votre organisation</p>
           <p class="ako-date" id="accueil-date" aria-live="polite">--</p>
+        </div>
+      </section>
+
+      <section id="accueilAdminStats" class="ako-card ako-card-stats" style="display:none;" aria-label="Indicateurs administrateur">
+        <div class="performance-metrics">
+          <article class="performance-card">
+            <h3>Chiffre d'affaires</h3>
+            <strong id="admin-kpi-ca">--</strong>
+            <small>Ventes confirmees du jour</small>
+          </article>
+          <article class="performance-card">
+            <h3>Profit net</h3>
+            <strong id="admin-kpi-profit">--</strong>
+            <small id="admin-kpi-profit-marge">Marge : --</small>
+          </article>
+          <article class="performance-card">
+            <h3>Ventes</h3>
+            <strong id="admin-kpi-ventes">--</strong>
+            <small id="admin-kpi-ventes-panier">Panier moyen : --</small>
+          </article>
+          <article class="performance-card">
+            <h3>Depenses</h3>
+            <strong id="admin-kpi-depenses">--</strong>
+            <small id="admin-kpi-depenses-net">Net : --</small>
+          </article>
+          <article class="performance-card">
+            <h3>Livraisons</h3>
+            <strong id="admin-kpi-livraisons">--</strong>
+            <small>En attente de validation</small>
+          </article>
+          <article class="performance-card">
+            <h3>Stock disponible</h3>
+            <strong id="admin-kpi-stock">--</strong>
+            <small id="admin-kpi-stock-detail">--</small>
+          </article>
         </div>
       </section>
 
@@ -16393,6 +16445,19 @@ function updateAccueilSummary() {
   const livraisonCardCountEl = document.getElementById('accueil-livraisons-count');
   const livraisonCardSubtextEl = document.getElementById('accueil-livraisons-subtext');
   const dateEl = document.getElementById('accueil-date');
+  const adminCaEl = document.getElementById('admin-kpi-ca');
+  const adminProfitEl = document.getElementById('admin-kpi-profit');
+  const adminProfitMarginEl = document.getElementById('admin-kpi-profit-marge');
+  const adminSalesEl = document.getElementById('admin-kpi-ventes');
+  const adminSalesAverageEl = document.getElementById('admin-kpi-ventes-panier');
+  const adminDepensesEl = document.getElementById('admin-kpi-depenses');
+  const adminDepensesNetEl = document.getElementById('admin-kpi-depenses-net');
+  const adminLivraisonsEl = document.getElementById('admin-kpi-livraisons');
+  const adminStockEl = document.getElementById('admin-kpi-stock');
+  const adminStockDetailEl = document.getElementById('admin-kpi-stock-detail');
+  const formatAmount = (value) => Math.round(value || 0).toLocaleString('fr-FR');
+  const formatCount = (value) => Math.max(0, Math.round(value || 0)).toLocaleString('fr-FR');
+  const formatPercent = (value) => `${(value || 0).toFixed(1).replace('.', ',')}%`;
   if (!countEl || !revenueEl || !profitEl || !depenseEl || !stockEl || !livraisonsEl) {
     return;
   }
@@ -16483,6 +16548,42 @@ function updateAccueilSummary() {
             : `${livraisonsFormatted} livraisons \u00E0 suivre`;
         }
         updateLivraisonQuickIndicators(livraisonsEnAttente);
+        if (adminCaEl) {
+          adminCaEl.textContent = `${formatAmount(totalCA)} FCFA`;
+        }
+        if (adminProfitEl) {
+          adminProfitEl.textContent = `${formatAmount(totalProfit)} FCFA`;
+        }
+        if (adminProfitMarginEl) {
+          const marginRate = totalCA > 0 ? (totalProfit / totalCA) * 100 : 0;
+          adminProfitMarginEl.textContent = `Marge : ${formatPercent(marginRate)}`;
+        }
+        if (adminSalesEl) {
+          adminSalesEl.textContent = formatCount(ventesCount);
+        }
+        if (adminSalesAverageEl) {
+          const averageSale = ventesCount > 0 ? totalCA / ventesCount : 0;
+          adminSalesAverageEl.textContent = `Panier moyen : ${formatAmount(averageSale)} FCFA`;
+        }
+        if (adminDepensesEl) {
+          adminDepensesEl.textContent = `${formatAmount(depensesTotal)} FCFA`;
+        }
+        if (adminDepensesNetEl) {
+          const net = totalCA - depensesTotal;
+          const netAmount = formatAmount(Math.abs(net));
+          const sign = net >= 0 ? '' : '-';
+          const label = net >= 0 ? 'Net positif' : 'Net negatif';
+          adminDepensesNetEl.textContent = `${label} : ${sign}${netAmount} FCFA`;
+        }
+        if (adminLivraisonsEl) {
+          adminLivraisonsEl.textContent = formatCount(livraisonsEnAttente);
+        }
+        if (adminStockEl) {
+          adminStockEl.textContent = formatCount(totalStock);
+        }
+        if (adminStockDetailEl) {
+          adminStockDetailEl.textContent = detailsStock || '---';
+        }
       });
     }
 
@@ -22046,6 +22147,7 @@ async function majCartesTresorerie() {
       const exportInventoryBtn = document.getElementById("exportInventoryBtn");
       const stockSummary = document.querySelector('#screen-stock .summary');
       const quickPurchaseButton = document.getElementById("quick-enregistrer-achat");
+      const adminStatsCard = document.getElementById("accueilAdminStats");
 
       if (navMenu) {
         navMenu.classList.remove('hidden-by-role');
@@ -22087,6 +22189,9 @@ async function majCartesTresorerie() {
       }
       if (quickPurchaseButton) {
         quickPurchaseButton.style.display = 'none';
+      }
+      if (adminStatsCard) {
+        adminStatsCard.style.display = 'none';
       }
 
       // Pour le menu de navigation
@@ -22217,6 +22322,9 @@ async function majCartesTresorerie() {
         }
         if (quickPurchaseButton) {
           quickPurchaseButton.style.removeProperty('display');
+        }
+        if (adminStatsCard) {
+          adminStatsCard.style.removeProperty('display');
         }
         const sections = document.querySelectorAll("#screen-menu .section");
         sections.forEach(section => {
