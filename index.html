@@ -5109,6 +5109,9 @@ function generateInvoicePDF(sale) {
     <ion-header class="ion-no-border">
       <ion-toolbar>
         <ion-buttons slot="start">
+          <ion-button onclick="openDrawerMenu()">
+            <ion-icon name="menu-outline"></ion-icon>
+          </ion-button>
           <ion-button onclick="window.location.hash='stock'">
             <ion-icon name="arrow-back-outline"></ion-icon>
           </ion-button>
@@ -5604,6 +5607,11 @@ function generateInvoicePDF(sale) {
     <ion-app>
         <ion-header class="ion-no-border">
             <ion-toolbar>
+                <ion-buttons slot="start">
+                    <ion-button onclick="openDrawerMenu()">
+                        <ion-icon name="menu-outline"></ion-icon>
+                    </ion-button>
+                </ion-buttons>
                 <ion-title>Historique des Achats</ion-title>
                 <ion-buttons slot="end">
                     <ion-button>
@@ -6266,6 +6274,9 @@ document.addEventListener('DOMContentLoaded', () => {
     <ion-header class="ion-no-border" mode="ios">
   <ion-toolbar>
     <ion-buttons slot="start">
+      <ion-button onclick="openDrawerMenu()">
+        <ion-icon slot="icon-only" name="menu-outline"></ion-icon>
+      </ion-button>
       <ion-button onclick="window.location.hash='approvisionnement-historique'">
         <ion-icon slot="icon-only" name="arrow-back-outline"></ion-icon>
       </ion-button>
@@ -6608,6 +6619,16 @@ document.addEventListener('DOMContentLoaded', () => {
         justify-content: space-between;
         align-items: flex-start;
         gap: 12px;
+    }
+    .aide-commande-header-main {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    .aide-commande-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
     }
     .aide-commande-header h1 {
         margin: 0;
@@ -11276,8 +11297,8 @@ async function recordCreditPayment(approId, outstandingAmount) {
       <ion-header class="ion-no-border">
         <ion-toolbar>
           <ion-buttons slot="start">
-            <ion-button onclick="window.location.hash='menu'">
-              <ion-icon name="arrow-back-outline"></ion-icon>
+            <ion-button onclick="openDrawerMenu()">
+              <ion-icon name="menu-outline"></ion-icon>
             </ion-button>
           </ion-buttons>
           <ion-title>Hub Fournisseurs</ion-title>
@@ -11305,6 +11326,9 @@ async function recordCreditPayment(approId, outstandingAmount) {
       <ion-header class="ion-no-border">
         <ion-toolbar>
           <ion-buttons slot="start">
+            <ion-button onclick="openDrawerMenu()">
+              <ion-icon name="menu-outline"></ion-icon>
+            </ion-button>
             <ion-button id="backToHubListBtn">
               <ion-icon name="arrow-back-outline"></ion-icon>
             </ion-button>
@@ -14382,15 +14406,19 @@ async function annulerCommandeFournisseur(approId, event) {
 <section id="screen-aide-commande" class="screen">
   <div class="aide-commande-wrapper">
     <div class="aide-commande-header">
-      <div>
-        <h1>Aide commande</h1>
-        <p id="aideCommandeRange">Analyse de la semaine en cours.</p>
+      <div class="aide-commande-header-main">
+        <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="aide-commande-title">
+          <h1>Aide commande</h1>
+          <p id="aideCommandeRange">Analyse de la semaine en cours.</p>
+        </div>
       </div>
       <p class="aide-commande-helper">
-        Identifie les articles vendus récemment et hiérarchisés du plus demandé au moins demandé.
+        Identifie les articles vendus recemment et hierarchises du plus demande au moins demande.
       </p>
     </div>
-
     <div class="aide-commande-controls">
       <div class="control-group">
         <label for="aideCommandeTimeframe">Période analysée</label>
