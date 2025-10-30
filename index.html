@@ -17844,8 +17844,7 @@ function renderSalaryScreen() {
         'profit',
         'parametres',
         'livraisons',
-        'vendre',
-        'cloture-vendeur'
+        'vendre'
       ]);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'accueil') {
@@ -22052,7 +22051,7 @@ async function majCartesTresorerie() {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const allowedEmployeeNavigation = new Set(['accueil', 'stock', 'historique']);
+        const allowedEmployeeNavigation = new Set(['accueil', 'stock', 'historique', 'cloture-vendeur']);
         const disallowedForEmployee = new Set([
           'menu',
           'clients',
@@ -22062,7 +22061,6 @@ async function majCartesTresorerie() {
           'dettes-fournisseurs',
           'fournisseur-balance',
           'aide-commande',
-          'cloture-vendeur',
           'vendre',
           'livraisons',
           'tresorerie',
