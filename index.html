@@ -7895,6 +7895,24 @@ async function generateSupplierCreditPDF() {
       margin-bottom: 15px;
       text-align: center;
     }
+    .balance-card-dual {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      text-align: center;
+      flex-wrap: wrap;
+    }
+    .balance-card-dual .balance-item {
+      flex: 1 1 200px;
+    }
+    .balance-card-dual .balance-item h1 {
+      font-size: 32px;
+    }
+    .balance-card-dual .balance-item p {
+      margin: 6px 0 0;
+      font-weight: 500;
+      color: #6b7280;
+    }
     .balance-card h1 {
       margin: 0;
       font-size: 32px;
@@ -8007,9 +8025,15 @@ async function generateSupplierCreditPDF() {
         <label for="treso-date-filter" style="font-weight: bold; margin-right: 8px;">Afficher le rapport du :</label>
         <input type="date" id="treso-date-filter" onchange="updateBalanceDisplay()" style="width: calc(100% - 170px); padding: 8px; border: 1px solid #EEE; border-radius: 8px;">
     </div>
-    <div class="balance-card">
-      <h1 id="balance-sold">XOF 0</h1>
-      <p>Solde global</p>
+    <div class="balance-card balance-card-dual">
+      <div class="balance-item">
+        <h1 id="balance-sold">XOF 0</h1>
+        <p>Solde global</p>
+      </div>
+      <div class="balance-item">
+        <h1 id="balance-real">XOF 0</h1>
+        <p>Solde r&eacute;el</p>
+      </div>
     </div>
 
     <div class="accounts-chips" id="accounts-balances" aria-label="Comptes de tresorerie"></div>
@@ -17281,6 +17305,32 @@ function updateBalanceDisplay() {
                     totalRemboursements += parseFloat(doc.data().montant) || 0;
                 });
                 return totalRemboursements;
+            }),
+
+        // 6. Total des dettes fournisseurs
+        dbFirestore.collection("approvisionnement")
+            .get()
+            .then(snapshot => {
+                let totalSupplierDebt = 0;
+                snapshot.forEach(doc => {
+                    const data = doc.data() || {};
+                    const received = parseFloat(
+                        data.receivedTotalCost !== undefined
+                            ? data.receivedTotalCost
+                            : (data.totalCost || 0)
+                    ) || 0;
+                    const paid = parseFloat(data.paymentsTotalPaid || 0) || 0;
+                    const remainingField = data.remainingAmount !== undefined
+                        ? parseFloat(data.remainingAmount) || 0
+                        : null;
+                    const remaining = remainingField !== null
+                        ? Math.max(0, remainingField)
+                        : Math.max(0, received - paid);
+                    if (remaining > 0) {
+                        totalSupplierDebt += remaining;
+                    }
+                });
+                return totalSupplierDebt;
             })
     ])
     .then(([
@@ -17288,7 +17338,8 @@ function updateBalanceDisplay() {
         { totalVentes, totalProfit },
         totalAppro,
         { totalDepensesFonctionnelles, totalDepensesPapa, totalFraisTransport },
-        totalRemboursements
+        totalRemboursements,
+        totalSupplierDebt
     ]) => {
         // Le solde final doit aussi ignorer les frais de transport car ils sont déjà inclus
         // dans le coût ajusté des approvisionnements. Ici on les soustrait car on les affiche séparément.
@@ -17301,16 +17352,23 @@ function updateBalanceDisplay() {
             totalFraisTransport - // On le soustrait car il est affiché à part
             totalAppro;
         
+        const soldeReel = soldeFinalGlobal - totalSupplierDebt;
+
         // Mise à jour de l'interface utilisateur
-        document.getElementById("treso-opening-balance").textContent = "XOF " + openingBalanceGlobal.toLocaleString('fr-FR');
-        document.getElementById("treso-total-ventes").textContent = "+XOF " + totalVentes.toLocaleString('fr-FR');
-        document.getElementById("treso-total-remboursements").textContent = "+XOF " + totalRemboursements.toLocaleString('fr-FR');
-        document.getElementById("treso-total-depenses-fonctionnelles").textContent = "-XOF " + totalDepensesFonctionnelles.toLocaleString('fr-FR');
-        document.getElementById("treso-total-depenses-papa").textContent = "-XOF " + totalDepensesPapa.toLocaleString('fr-FR');
-        document.getElementById("treso-total-frais-transport").textContent = "-XOF " + totalFraisTransport.toLocaleString('fr-FR');
-        document.getElementById("treso-total-appro").textContent = "-XOF " + totalAppro.toLocaleString('fr-FR');
-        document.getElementById("treso-daily-profit").textContent = "XOF " + totalProfit.toLocaleString('fr-FR');
-        document.getElementById("balance-sold").textContent = "XOF " + soldeFinalGlobal.toLocaleString('fr-FR');
+        const formatCurrency = value => "XOF " + Math.round(value || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-opening-balance").textContent = formatCurrency(openingBalanceGlobal);
+        document.getElementById("treso-total-ventes").textContent = "+XOF " + Math.round(totalVentes || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-total-remboursements").textContent = "+XOF " + Math.round(totalRemboursements || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-total-depenses-fonctionnelles").textContent = "-XOF " + Math.round(totalDepensesFonctionnelles || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-total-depenses-papa").textContent = "-XOF " + Math.round(totalDepensesPapa || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-total-frais-transport").textContent = "-XOF " + Math.round(totalFraisTransport || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-total-appro").textContent = "-XOF " + Math.round(totalAppro || 0).toLocaleString('fr-FR');
+        document.getElementById("treso-daily-profit").textContent = formatCurrency(totalProfit);
+        document.getElementById("balance-sold").textContent = formatCurrency(soldeFinalGlobal);
+        const realEl = document.getElementById("balance-real");
+        if (realEl) {
+            realEl.textContent = formatCurrency(soldeReel);
+        }
 
         majCartesTresorerie();
     })
