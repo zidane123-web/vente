@@ -21575,9 +21575,13 @@ function majCartesTresorerie() {
     setInterval(updateTimeMenu, 1000);
 
     // *************** MODIFICATIONS POUR L'ÉCRAN DE RECHERCHE D'ARTICLE ***************
-    produitInput.addEventListener('focus', function() {
-      window.location.hash = 'search-article';
-    });
+    if (produitInput) {
+      produitInput.addEventListener('focus', function() {
+        window.location.hash = 'search-article';
+      });
+    } else {
+      console.warn('Champ produit introuvable pour activer le mode recherche.');
+    }
     window.addEventListener('hashchange', function() {
       if(window.location.hash === '#search-article') {
         document.getElementById("searchProduitInput").value = "";
@@ -23398,9 +23402,7 @@ function setupSupplierHub() {
     });
 }
 
-/**
- * Récupère et agrège les données des fournisseurs ayant des dépôts actifs.
- */
+
 async function chargerHubDepots() {
     const listContainer = document.getElementById("fournisseursHubListContainer");
     listContainer.innerHTML = `<ion-item><ion-label style="text-align:center;"><ion-spinner name="crescent"></ion-spinner></ion-label></ion-item>`;
