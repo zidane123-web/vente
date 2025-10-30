@@ -10869,14 +10869,6 @@ async function recordCreditPayment(approId, outstandingAmount) {
   <div class="supplier-balance-content">
     <div class="balance-summary-grid">
       <div class="balance-card">
-        <span class="label">Total payé</span>
-        <span class="value" id="supplierBalanceTotalPaid">0 FCFA</span>
-      </div>
-      <div class="balance-card">
-        <span class="label">Valeur reçue</span>
-        <span class="value" id="supplierBalanceReceived">0 FCFA</span>
-      </div>
-      <div class="balance-card">
         <span class="label">À recevoir (valeur)</span>
         <span class="value" id="supplierBalanceToReceive">0 FCFA</span>
       </div>
@@ -13351,7 +13343,7 @@ function renderSupplierBalanceScreen() {
     const paymentAmountInput = document.getElementById('supplierPaymentAmount');
     const paymentWarningEl = document.getElementById('supplierPaymentWarning');
 
-    if (!titleEl || !totalPaidEl || !totalReceivedEl || !toReceiveEl || !advanceEl || !dueEl || !ordersContainer) {
+    if (!titleEl || !toReceiveEl || !advanceEl || !dueEl || !ordersContainer) {
         return;
     }
     const formatValue = (value) => (Math.round(value || 0)).toLocaleString('fr-FR');
@@ -13367,8 +13359,12 @@ function renderSupplierBalanceScreen() {
         if (paymentWarningEl) {
             paymentWarningEl.textContent = '';
         }
-        totalPaidEl.textContent = `${formatValue(0)} FCFA`;
-        totalReceivedEl.textContent = `${formatValue(0)} FCFA`;
+        if (totalPaidEl) {
+            totalPaidEl.textContent = `${formatValue(0)} FCFA`;
+        }
+        if (totalReceivedEl) {
+            totalReceivedEl.textContent = `${formatValue(0)} FCFA`;
+        }
         toReceiveEl.textContent = `${formatValue(0)} FCFA`;
         advanceEl.textContent = `${formatValue(0)} FCFA`;
         dueEl.textContent = `${formatValue(0)} FCFA`;
@@ -13392,8 +13388,12 @@ function renderSupplierBalanceScreen() {
         setTimeout(() => paymentAmountInput.focus(), 0);
         pendingSupplierPaymentFocus = null;
     }
-    totalPaidEl.textContent = `${formatValue(data.totalPaid)} FCFA`;
-    totalReceivedEl.textContent = `${formatValue(data.totalReceived)} FCFA`;
+    if (totalPaidEl) {
+        totalPaidEl.textContent = `${formatValue(data.totalPaid)} FCFA`;
+    }
+    if (totalReceivedEl) {
+        totalReceivedEl.textContent = `${formatValue(data.totalReceived)} FCFA`;
+    }
     toReceiveEl.textContent = `${formatValue(data.goodsRemainingValue)} FCFA`;
     advanceEl.textContent = `${formatValue(data.advanceBalance)} FCFA`;
     dueEl.textContent = `${formatValue(data.totalDue)} FCFA`;
