@@ -21159,6 +21159,9 @@ function getOpeningSnapshotValue(snapshotDoc, compteId) {
     return 0;
   }
   const data = snapshotDoc.data() || {};
+  if (data.openingByAccount && Object.prototype.hasOwnProperty.call(data.openingByAccount, compteId)) {
+    return Number(data.openingByAccount[compteId]) || 0;
+  }
   const capitalizedId = compteId.charAt(0).toUpperCase() + compteId.slice(1);
   const directKey = `opening${capitalizedId}`;
   if (Object.prototype.hasOwnProperty.call(data, directKey)) {
@@ -21301,8 +21304,6 @@ function updateCompteDetailSummary() {
 
       let totalIn = 0;
       let totalOut = 0;
-      let latestBalance = null;
-      let latestTimestamp = -Infinity;
       const mouvements = [];
 
       mouvementsSnap.forEach(doc => {
@@ -21321,15 +21322,6 @@ function updateCompteDetailSummary() {
             : doc.updateTime && typeof doc.updateTime.toMillis === 'function'
               ? doc.updateTime.toMillis()
               : 0;
-
-        const balanceValue = typeof data.newBalance === 'number'
-          ? data.newBalance
-          : Number(data.newBalance);
-
-        if (!Number.isNaN(balanceValue) && ts >= latestTimestamp) {
-          latestTimestamp = ts;
-          latestBalance = balanceValue;
-        }
 
         const encaissementPhotosSet = new Set();
         const monnaiePhotosSet = new Set();
@@ -21365,13 +21357,12 @@ function updateCompteDetailSummary() {
           montant: amount,
           description: data.description || '',
           timestamp: ts,
-          newBalance: Number.isNaN(balanceValue) ? null : balanceValue,
           encaissePhotos: Array.from(encaissementPhotosSet),
           monnaiePhotos: Array.from(monnaiePhotosSet)
         });
       });
 
-      const finalBalance = latestBalance !== null ? latestBalance : opening + totalIn - totalOut;
+      const finalBalance = opening + totalIn - totalOut;
 
       const openingEl = document.getElementById('compte-detail-opening');
       const entriesEl = document.getElementById('compte-detail-entries');
@@ -21419,7 +21410,6 @@ function updateCompteDetailSummary() {
               const timeLabel = mv.timestamp
                 ? new Date(mv.timestamp).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
                 : '--:--';
-              const balanceLabel = mv.newBalance !== null ? formatXof(mv.newBalance) : null;
               const description = mv.description || 'Sans description';
 
               movementEl.innerHTML = `
@@ -21430,7 +21420,6 @@ function updateCompteDetailSummary() {
                 <div class="compte-detail-movement-description">${description}</div>
                 <div class="compte-detail-movement-meta">
                   <span>${timeLabel}</span>
-                  <span>${balanceLabel ? 'Solde: ' + balanceLabel : ''}</span>
                 </div>
               `;
 
@@ -21764,7 +21753,7 @@ function remplirTousSelectComptes(specificSelectElement = null) {
     });
 }
 /** Met à jour l'affichage des soldes de chaque compte dans #accounts-balances */
-function majCartesTresorerie() {
+async function majCartesTresorerie() {
   const container = document.getElementById('accounts-balances');
   if (!container) return;
   container.innerHTML = '';
@@ -21777,34 +21766,96 @@ function majCartesTresorerie() {
     return;
   }
 
-  const ordre = ['caisse', 'momo', 'banque'];
+  const loadingChip = document.createElement('div');
+  loadingChip.className = 'account-chip account-chip-empty';
+  loadingChip.textContent = 'Calcul des soldes...';
+  container.appendChild(loadingChip);
 
-  comptesCache
-    .slice()
-    .sort((a, b) => {
-      const nameA = (a.nom || a.id || '').toLowerCase();
-      const nameB = (b.nom || b.id || '').toLowerCase();
-      const indexA = ordre.indexOf(nameA);
-      const indexB = ordre.indexOf(nameB);
-      if (indexA !== -1 || indexB !== -1) {
-        const posA = indexA === -1 ? ordre.length : indexA;
-        const posB = indexB === -1 ? ordre.length : indexB;
-        return posA - posB;
-      }
-      return nameA.localeCompare(nameB);
-    })
-    .forEach(compte => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'account-chip';
-      chip.setAttribute('data-compte-id', compte.id);
-      chip.innerHTML = `
-        <span class="chip-label">${compte.nom || compte.id}</span>
-        <span class="chip-amount">${formatXof(compte.solde)}</span>
-      `;
-      chip.addEventListener('click', () => openCompteDetail(compte.id));
-      container.appendChild(chip);
-    });
+  try {
+    const dateFilter = document.getElementById('treso-date-filter');
+    const selectedDate = (dateFilter && dateFilter.value) || new Date().toISOString().split('T')[0];
+    const snapshotDoc = await dbFirestore.collection('tresorerieSnapshots').doc(selectedDate).get();
+    const comptesCol = dbFirestore.collection('tresorerie').doc('balance').collection('comptesTresorerie');
+
+    const summaries = await Promise.all(
+      comptesCache.map(async compte => {
+        try {
+          const mouvementsSnap = await comptesCol
+            .doc(compte.id)
+            .collection('mouvements')
+            .where('dateString', '==', selectedDate)
+            .get();
+
+          let totalIn = 0;
+          let totalOut = 0;
+
+          mouvementsSnap.forEach(doc => {
+            const data = doc.data() || {};
+            const amount = Number(data.montant) || 0;
+            if (data.sens === 'in') {
+              totalIn += amount;
+            } else if (data.sens === 'out') {
+              totalOut += amount;
+            }
+          });
+
+          const opening = getOpeningSnapshotValue(snapshotDoc, compte.id);
+          const balance = opening + totalIn - totalOut;
+
+          return {
+            compte,
+            balance
+          };
+        } catch (error) {
+          console.error('Erreur lors du calcul du solde pour', compte.id, error);
+          return {
+            compte,
+            balance: 0,
+            error: true
+          };
+        }
+      })
+    );
+
+    container.innerHTML = '';
+
+    const ordre = ['caisse', 'momo', 'banque'];
+
+    summaries
+      .slice()
+      .sort((a, b) => {
+        const nameA = (a.compte.nom || a.compte.id || '').toLowerCase();
+        const nameB = (b.compte.nom || b.compte.id || '').toLowerCase();
+        const indexA = ordre.indexOf(nameA);
+        const indexB = ordre.indexOf(nameB);
+        if (indexA !== -1 || indexB !== -1) {
+          const posA = indexA === -1 ? ordre.length : indexA;
+          const posB = indexB === -1 ? ordre.length : indexB;
+          return posA - posB;
+        }
+        return nameA.localeCompare(nameB);
+      })
+      .forEach(summary => {
+        const { compte, balance } = summary;
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        chip.className = 'account-chip';
+        chip.setAttribute('data-compte-id', compte.id);
+        chip.innerHTML = `
+          <span class="chip-label">${compte.nom || compte.id}</span>
+          <span class="chip-amount">${formatXof(balance)}</span>
+        `;
+        chip.addEventListener('click', () => openCompteDetail(compte.id));
+        container.appendChild(chip);
+      });
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour des comptes de trésorerie :', error);
+    container.innerHTML = '';
+    const errorChip = document.createElement('div');
+    errorChip.className = 'account-chip account-chip-empty';
+    errorChip.textContent = 'Soldes indisponibles';
+    container.appendChild(errorChip);
+  }
 }
 
 
