@@ -17340,6 +17340,7 @@ function updateBalanceDisplay() {
     const endOfDayMillis = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 23, 59, 59, 999).getTime();
     const startOfDayTimestamp = firebase.firestore.Timestamp.fromMillis(startOfDayMillis);
     const endOfDayTimestamp = firebase.firestore.Timestamp.fromMillis(endOfDayMillis);
+    const comptesListForBalance = Array.isArray(comptesCache) ? comptesCache.slice() : null;
 
     Promise.all([
         // 1. Récupération du solde initial
@@ -17447,7 +17448,10 @@ function updateBalanceDisplay() {
                     }
                 });
                 return totalSupplierDebt;
-            })
+            }),
+
+        // 7. Somme des soldes des comptes pour alimenter le solde global
+        computeAccountBalancesForDate(dateString, comptesListForBalance)
     ])
     .then(([
         openingBalanceGlobal,
@@ -17455,19 +17459,11 @@ function updateBalanceDisplay() {
         totalAppro,
         { totalDepensesFonctionnelles, totalDepensesPapa, totalFraisTransport },
         totalRemboursements,
-        totalSupplierDebt
+        totalSupplierDebt,
+        accountsInfo
     ]) => {
-        // Le solde final doit aussi ignorer les frais de transport car ils sont déjà inclus
-        // dans le coût ajusté des approvisionnements. Ici on les soustrait car on les affiche séparément.
-        const soldeFinalGlobal =
-            openingBalanceGlobal +
-            totalVentes +
-            totalRemboursements -
-            totalDepensesFonctionnelles -
-            totalDepensesPapa -
-            totalFraisTransport - // On le soustrait car il est affiché à part
-            totalAppro;
-        
+        const accountBalancesInfo = accountsInfo || {};
+        const soldeFinalGlobal = Number(accountBalancesInfo.totalBalance) || 0;
         const soldeReel = soldeFinalGlobal - totalSupplierDebt;
 
         // Mise à jour de l'interface utilisateur
@@ -17490,7 +17486,12 @@ function updateBalanceDisplay() {
             debtEl.textContent = formatCurrency(totalSupplierDebt);
         }
 
-        majCartesTresorerie();
+        const summaries = Array.isArray(accountBalancesInfo.summaries) ? accountBalancesInfo.summaries : null;
+        if (summaries) {
+            majCartesTresorerie({ summaries, selectedDate: dateString });
+        } else {
+            majCartesTresorerie();
+        }
     })
     .catch(error => {
         console.error("ERREUR MAJEURE DANS updateBalanceDisplay:", error);
@@ -21392,6 +21393,74 @@ function getOpeningSnapshotValue(snapshotDoc, compteId) {
   return 0;
 }
 
+async function computeAccountBalancesForDate(dateString, comptesListOverride = null) {
+  const safeDate = dateString || new Date().toISOString().split('T')[0];
+  const comptesRef = dbFirestore.collection('tresorerie').doc('balance').collection('comptesTresorerie');
+  let comptesList = Array.isArray(comptesListOverride) && comptesListOverride.length
+    ? comptesListOverride
+    : [];
+
+  if (!comptesList.length) {
+    try {
+      const comptesSnap = await comptesRef.get();
+      comptesList = comptesSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Erreur lors du chargement des comptes de tresorerie :', error);
+      return { summaries: [], totalBalance: 0 };
+    }
+  }
+
+  if (!comptesList.length) {
+    return { summaries: [], totalBalance: 0 };
+  }
+
+  try {
+    const snapshotDoc = await dbFirestore.collection('tresorerieSnapshots').doc(safeDate).get();
+
+    const summaries = await Promise.all(
+      comptesList.map(async compte => {
+        try {
+          const mouvementsSnap = await comptesRef
+            .doc(compte.id)
+            .collection('mouvements')
+            .where('dateString', '==', safeDate)
+            .get();
+
+          let totalIn = 0;
+          let totalOut = 0;
+
+          mouvementsSnap.forEach(doc => {
+            const data = doc.data() || {};
+            const amount = Number(data.montant) || 0;
+            if (data.sens === 'in') {
+              totalIn += amount;
+            } else if (data.sens === 'out') {
+              totalOut += amount;
+            }
+          });
+
+          const opening = getOpeningSnapshotValue(snapshotDoc, compte.id);
+          const balance = opening + totalIn - totalOut;
+
+          return { compte, balance };
+        } catch (error) {
+          console.error('Erreur lors du calcul du solde pour', compte.id, error);
+          return { compte, balance: 0, error: true };
+        }
+      })
+    );
+
+    const totalBalance = summaries.reduce((sum, item) => {
+      return sum + (Number(item.balance) || 0);
+    }, 0);
+
+    return { summaries, totalBalance };
+  } catch (error) {
+    console.error('Erreur lors du calcul global des comptes de tresorerie :', error);
+    return { summaries: [], totalBalance: 0 };
+  }
+}
+
 function formatXof(amount) {
   const numeric = Number(amount) || 0;
   return 'XOF ' + numeric.toLocaleString('fr-FR');
@@ -21971,13 +22040,16 @@ function remplirTousSelectComptes(specificSelectElement = null) {
         });
     });
 }
-/** Met à jour l'affichage des soldes de chaque compte dans #accounts-balances */
-async function majCartesTresorerie() {
+/** Met a jour l'affichage des soldes de chaque compte dans #accounts-balances */
+async function majCartesTresorerie(options = {}) {
   const container = document.getElementById('accounts-balances');
   if (!container) return;
   container.innerHTML = '';
 
-  if (!Array.isArray(comptesCache) || !comptesCache.length) {
+  const precomputedSummaries = Array.isArray(options.summaries) ? options.summaries : null;
+  const hasCache = Array.isArray(comptesCache) && comptesCache.length > 0;
+
+  if (!hasCache && !precomputedSummaries) {
     const emptyChip = document.createElement('div');
     emptyChip.className = 'account-chip account-chip-empty';
     emptyChip.textContent = 'Aucun compte configure';
@@ -21985,58 +22057,32 @@ async function majCartesTresorerie() {
     return;
   }
 
-  const loadingChip = document.createElement('div');
-  loadingChip.className = 'account-chip account-chip-empty';
-  loadingChip.textContent = 'Calcul des soldes...';
-  container.appendChild(loadingChip);
+  if (!precomputedSummaries) {
+    const loadingChip = document.createElement('div');
+    loadingChip.className = 'account-chip account-chip-empty';
+    loadingChip.textContent = 'Calcul des soldes...';
+    container.appendChild(loadingChip);
+  }
 
   try {
     const dateFilter = document.getElementById('treso-date-filter');
-    const selectedDate = (dateFilter && dateFilter.value) || new Date().toISOString().split('T')[0];
-    const snapshotDoc = await dbFirestore.collection('tresorerieSnapshots').doc(selectedDate).get();
-    const comptesCol = dbFirestore.collection('tresorerie').doc('balance').collection('comptesTresorerie');
+    const selectedDate = options.selectedDate || ((dateFilter && dateFilter.value) || new Date().toISOString().split('T')[0]);
+    let summaries = precomputedSummaries;
 
-    const summaries = await Promise.all(
-      comptesCache.map(async compte => {
-        try {
-          const mouvementsSnap = await comptesCol
-            .doc(compte.id)
-            .collection('mouvements')
-            .where('dateString', '==', selectedDate)
-            .get();
-
-          let totalIn = 0;
-          let totalOut = 0;
-
-          mouvementsSnap.forEach(doc => {
-            const data = doc.data() || {};
-            const amount = Number(data.montant) || 0;
-            if (data.sens === 'in') {
-              totalIn += amount;
-            } else if (data.sens === 'out') {
-              totalOut += amount;
-            }
-          });
-
-          const opening = getOpeningSnapshotValue(snapshotDoc, compte.id);
-          const balance = opening + totalIn - totalOut;
-
-          return {
-            compte,
-            balance
-          };
-        } catch (error) {
-          console.error('Erreur lors du calcul du solde pour', compte.id, error);
-          return {
-            compte,
-            balance: 0,
-            error: true
-          };
-        }
-      })
-    );
+    if (!summaries) {
+      const resultat = await computeAccountBalancesForDate(selectedDate, hasCache ? comptesCache.slice() : null);
+      summaries = Array.isArray(resultat.summaries) ? resultat.summaries : [];
+    }
 
     container.innerHTML = '';
+
+    if (!summaries.length) {
+      const emptyChip = document.createElement('div');
+      emptyChip.className = 'account-chip account-chip-empty';
+      emptyChip.textContent = 'Aucun compte configure';
+      container.appendChild(emptyChip);
+      return;
+    }
 
     const ordre = ['caisse', 'momo', 'banque'];
 
@@ -22068,7 +22114,7 @@ async function majCartesTresorerie() {
         container.appendChild(chip);
       });
   } catch (error) {
-    console.error('Erreur lors de la mise à jour des comptes de trésorerie :', error);
+    console.error('Erreur lors de la mise a jour des comptes de tresorerie :', error);
     container.innerHTML = '';
     const errorChip = document.createElement('div');
     errorChip.className = 'account-chip account-chip-empty';
@@ -22076,8 +22122,6 @@ async function majCartesTresorerie() {
     container.appendChild(errorChip);
   }
 }
-
-
 
   firebase.auth().onAuthStateChanged(user => {
   if (user) {
