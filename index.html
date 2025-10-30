@@ -2396,7 +2396,7 @@ body.drawer-open {
       <button class="ako-icon-btn" type="button" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
         <i data-lucide="menu"></i>
       </button>
-      <div class="ako-brand">Ako</div>
+      <div class="ako-brand">Africphone</div>
       <div class="ako-actions">
         <button class="ako-icon-circle" type="button" aria-label="Aide">
           <i data-lucide="help-circle"></i>
@@ -2422,7 +2422,7 @@ body.drawer-open {
       <section class="ako-welcome" aria-labelledby="akoWelcomeTitle">
         <div class="ako-welcome-icon" aria-hidden="true">✨</div>
         <div class="ako-welcome-text">
-          <h1 id="akoWelcomeTitle">Bienvenue AKODA ZIDANE</h1>
+          <h1 id="akoWelcomeTitle">Bienvenue <span id="accueilUserName">--</span></h1>
           <p>Voici l'aperçu de votre organisation</p>
           <p class="ako-date" id="accueil-date" aria-live="polite">--</p>
         </div>
@@ -7694,8 +7694,8 @@ async function generateSupplierCreditPDF() {
         <header class="drawer-account">
           <div class="drawer-avatar" aria-hidden="true">A</div>
           <div>
-            <div class="drawer-name" id="menuDrawerTitle">Ako</div>
-            <div class="drawer-mail">zidaneakoda1.2@gmail.com</div>
+            <div class="drawer-name" id="menuDrawerTitle">Africphone</div>
+            <div class="drawer-mail" id="menuDrawerEmail">--</div>
           </div>
           <button class="drawer-caret" type="button" id="drawerAccountToggle" aria-label="Changer de compte" aria-expanded="false" onclick="toggleDrawerAccountMenu()">
             <i data-lucide="chevron-down"></i>
@@ -18041,6 +18041,29 @@ function updateDrawerActiveItem(hash) {
 window.fermerDrawerMenu = fermerDrawerMenu;
 window.toggleDrawerAccountMenu = toggleDrawerAccountMenu;
 
+function mettreAJourInfosUtilisateurAccueil(user) {
+  const nameSpan = document.getElementById('accueilUserName');
+  const welcomeTitle = document.getElementById('akoWelcomeTitle');
+  const drawerEmail = document.getElementById('menuDrawerEmail');
+  const displayName = user && user.displayName ? user.displayName.trim() : '';
+  const fallbackEmail = user && user.email ? user.email.trim() : '';
+  const formattedName = displayName
+    ? displayName.toUpperCase()
+    : (fallbackEmail || 'Utilisateur');
+
+  if (nameSpan) {
+    nameSpan.textContent = formattedName;
+  } else if (welcomeTitle) {
+    welcomeTitle.textContent = displayName || fallbackEmail
+      ? `Bienvenue ${formattedName}`
+      : 'Bienvenue';
+  }
+
+  if (drawerEmail) {
+    drawerEmail.textContent = fallbackEmail || '--';
+  }
+}
+
 // Votre fonction enregistrerSnapshotDaily ici
 function enregistrerSnapshotDaily() {
   const today = new Date();
@@ -21956,10 +21979,11 @@ async function majCartesTresorerie() {
 
 
 
-   firebase.auth().onAuthStateChanged(user => {
+  firebase.auth().onAuthStateChanged(user => {
   if (user) {
     // Firebase is ready and user is authenticated
     loadComptes();
+    mettreAJourInfosUtilisateurAccueil(user);
 
     user.getIdTokenResult().then(idTokenResult => {
       window.userRole = idTokenResult.claims.role || "employe";
@@ -21997,6 +22021,7 @@ async function majCartesTresorerie() {
       window.location.href = 'login.html';
     });
   } else {
+    mettreAJourInfosUtilisateurAccueil(null);
     // No user, redirect to login
     window.location.href = 'login.html';
   }
