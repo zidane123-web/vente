@@ -277,6 +277,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
     .sale-step.active {
       display: block;
     }
+    .step-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
     .step-intro {
       font-size: 15px;
       color: #475569;
@@ -2489,47 +2495,15 @@ body.drawer-open {
         <div class="progress-container">
           <div class="progress-bar" id="progressBar"></div>
         </div>
-        <span id="progressText">Étape 1 / 4</span>
-        <div class="sale-step active" id="step1">
-          <h2>Étape 1 : Ajouter des Articles</h2>
-          <form class="vente-form" onsubmit="event.preventDefault();">
-            <label for="produit">Article</label>
-            <div class="input-container">
-              <input type="text" id="produit" placeholder="Rechercher un article" autocomplete="off" />
-              <div id="suggestionList" class="suggestion-list"></div>
-            </div>
-            <label for="prix">Prix Unitaire</label>
-            <input type="number" id="prix" placeholder="Prix unitaire" oninput="calculerTotalArticle()" />
-            <label for="quantite">Quantité</label>
-            <div class="quantity-container">
-              <button type="button" onclick="decrementQuantity()">–</button>
-              <input type="number" id="quantite" min="1" value="1" oninput="calculerTotalArticle()" />
-              <button type="button" onclick="incrementQuantity()">+</button>
-            </div>
-            <label for="totalArticle">Montant Total</label>
-            <input type="number" id="totalArticle" readonly placeholder="Calcul automatique" />
-            <button type="button" class="btn-modern" onclick="ajouterArticle()">
-              <i data-lucide="shopping-cart"></i> Ajouter Article
-            </button>
-          </form>
-          <button class="btn-modern secondary" onclick="ouvrirPanier()">
-            <i data-lucide="shopping-bag"></i> Voir Panier
-          </button>
-          <div class="step-navigation">
-            <button class="btn-modern secondary" onclick="prevStep()">
-              <i data-lucide="arrow-left"></i> Retour
-            </button>
-            <button id="installBtn" style="display: none;">
-  📲 Installer l'application
-</button>
-            <button class="btn-modern" onclick="nextStep()">
-              Suivant <i data-lucide="arrow-right"></i>
+        <span id="progressText">Étape 1 / 3</span>
+        <!-- Étape 1 : Client & Livraison -->
+        <div class="sale-step active" id="step2">
+          <h2>Étape 1 : Client & Livraison</h2>
+          <div class="step-actions">
+            <button type="button" class="btn-modern secondary" onclick="ouvrirPanier()">
+              <i data-lucide="shopping-bag"></i> Voir Panier
             </button>
           </div>
-        </div>
-        <!-- Étape 2 : Informations Client -->
-        <div class="sale-step" id="step2">
-          <h2>Étape 2 : Client & Livraison</h2>
           <p class="step-intro">Identifiez clairement le client et, si nécessaire, préparez la livraison avant de passer aux paiements.</p>
           <div class="step-two-layout">
             <section class="info-card client-card" id="clientCard">
@@ -2593,17 +2567,15 @@ body.drawer-open {
           <input type="hidden" id="livreurNom">
           <input type="hidden" id="livreurNumero">
           <div class="step-navigation">
-            <button class="btn-modern secondary" onclick="prevStep()">
-              <i data-lucide="arrow-left"></i> Retour
-            </button>
+            <span></span>
             <button class="btn-modern" onclick="nextStep()">
               Suivant <i data-lucide="arrow-right"></i>
             </button>
           </div>
         </div>
-        <!-- Étape 3 : Canal de vente -->
+        <!-- Étape 2 : Canal de vente -->
         <div class="sale-step" id="step3">
-          <h2>Étape 3 : Canal de vente</h2>
+          <h2>Étape 2 : Canal de vente</h2>
           <form class="vente-form" onsubmit="event.preventDefault();">
             <label for="vendeurSelect">Canal de vente</label>
             <select id="vendeurSelect">
@@ -2659,9 +2631,9 @@ body.drawer-open {
             </button>
           </div>
         </div>
-        <!-- Étape 4 : Confirmation -->
+        <!-- Étape 3 : Confirmation -->
         <div class="sale-step" id="step4">
-          <h2>Étape 4 : Confirmation</h2>
+          <h2>Étape 3 : Confirmation</h2>
           <div id="saleRecap">
             <!-- Récapitulatif dynamique de la vente -->
           </div>
@@ -16038,13 +16010,21 @@ function updateAccueilSummary() {
         }
       });
       const progress = ((index + 1) / steps.length) * 100;
-      document.getElementById("progressBar").style.width = progress + "%";
-      document.getElementById("progressText").innerText = `Étape ${index + 1} / ${steps.length}`;
+      const progressBar = document.getElementById("progressBar");
+      if (progressBar) {
+        progressBar.style.width = progress + "%";
+      }
+      const progressTextEl = document.getElementById("progressText");
+      if (progressTextEl) {
+        progressTextEl.innerText = `Étape ${index + 1} / ${steps.length}`;
+      }
       toggleDeliveryFields();
-      if (index === 1) {
+      const currentStepEl = steps[index];
+      const currentStepId = currentStepEl ? currentStepEl.id : null;
+      if (currentStepId === 'step2') {
         initClientSearchStep();
       }
-      if (index === 2) {
+      if (currentStepId === 'step3') {
         ensureVentePaymentsInitialized();
         rafraichirResumePaiementVente();
       }
@@ -16053,7 +16033,9 @@ function updateAccueilSummary() {
       }
     }
     function nextStep() {
-  if (currentStep === 1) {
+  const activeStep = steps[currentStep];
+  const activeStepId = activeStep ? activeStep.id : null;
+  if (activeStepId === 'step2') {
     const nom = document.getElementById('clientNom')?.value.trim() || '';
     const numero = document.getElementById('clientNumero')?.value.trim() || '';
     const typeSelection = document.getElementById('clientType')?.value.trim() || '';
@@ -16066,7 +16048,7 @@ function updateAccueilSummary() {
       return;
     }
   }
-  if (currentStep === 2) {
+  if (activeStepId === 'step3') {
     if (!validateVentePayments(true)) {
       return;
     }
@@ -19371,7 +19353,7 @@ function continuerDepuisPanier() {
   if (currentItems.length === 0) return;
   appliquerTypeVenteAuFormulaire();
   window.location.hash = 'vendre';   // retour au wizard
-  currentStep = 1;                   // Étape 2 : infos client
+  currentStep = 0;                   // Étape 1 : infos client
   showStep(currentStep);
   updateCartFooter();                // ← garde le footer frais
 }
@@ -21840,25 +21822,27 @@ function loadArticleDetail() {
   let deferredPrompt;
   const installBtn = document.getElementById('installBtn');
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    installBtn.style.display = 'block';
+  if (installBtn) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
 
-    installBtn.addEventListener('click', () => {
-      installBtn.style.display = 'none';
-      deferredPrompt.prompt();
+      installBtn.addEventListener('click', () => {
+        installBtn.style.display = 'none';
+        deferredPrompt.prompt();
 
-      deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-          console.log('User accepted the install prompt');
-        } else {
-          console.log('User dismissed the install prompt');
-        }
-        deferredPrompt = null;
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+          } else {
+            console.log('User dismissed the install prompt');
+          }
+          deferredPrompt = null;
+        });
       });
     });
-  });
+  }
 
   /* ==========================================================
    DÉPENSES – Helpers scroll & ré-initialisation
