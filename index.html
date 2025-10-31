@@ -9345,17 +9345,21 @@ function updateProfitScreen() {
 }
 
 /**  Enregistre un document dans la bonne collection  */
-function logDepenseRemboursement({ collection, montant, description, type = "", timestamp = Date.now() }) {
+function logDepenseRemboursement({ collection, montant, description, type = "", timestamp = Date.now(), proofPhoto = null }) {
   const d   = new Date(timestamp);
   const ref = dbFirestore.collection(collection);
-  return ref.add({
+  const payload = {
     montant,
     description,
-    type,                     // "depense fonctionnelle", "papa", …
+    type,                     // "depense fonctionnelle", "papa", etc.
     timestamp,
     date        : d.toISOString(),
     dateString  : d.toLocaleDateString("fr-FR")
-  });
+  };
+  if (proofPhoto) {
+    payload.proofPhoto = proofPhoto;
+  }
+  return ref.add(payload);
 }
 
 </script>
@@ -11487,7 +11491,7 @@ let supplierPaymentAutoId = 0;
 let supplierPaymentCardOpen = false;
 let pendingSupplierPaymentDialog = false;
 
-function supplierAccountRequiresProof(compteId) {
+function accountRequiresProof(compteId) {
     if (!compteId) {
         return false;
     }
@@ -11506,6 +11510,10 @@ function supplierAccountRequiresProof(compteId) {
         }
     }
     return false;
+}
+
+function supplierAccountRequiresProof(compteId) {
+    return accountRequiresProof(compteId);
 }
 
 function resetSupplierPaymentDrafts(clearCard = true) {
@@ -14462,6 +14470,21 @@ async function annulerCommandeFournisseur(approId, event) {
         .back-btn-fb:active::after {
           transform: translate(-50%, -50%) scale(1);
         }
+        .proof-field {
+          margin-bottom: 12px;
+        }
+        .proof-hint,
+        .proof-status {
+          display: block;
+          font-size: 12px;
+          margin-top: 6px;
+        }
+        .proof-hint {
+          color: #666;
+        }
+        .proof-status {
+          color: var(--primary-color);
+        }
       </style>
 
       <header>
@@ -14479,57 +14502,138 @@ async function annulerCommandeFournisseur(approId, event) {
             <input type="number" id="montantDepense" placeholder="Montant" required>
 
             <label for="descriptionDepense">Description</label>
-            <textarea id="descriptionDepense" placeholder="Ex: Achat matériel de bureau" required></textarea>
+            <textarea id="descriptionDepense" placeholder="Ex: Achat materiel de bureau" required></textarea>
 
-            <label for="compteSelectDepenseFonctionnelle">Compte de trésorerie</label>
+            <label for="compteSelectDepenseFonctionnelle">Compte de tresorerie</label>
             <select id="compteSelectDepenseFonctionnelle"></select>
+            <div id="preuveDepenseFonctionnelleField" class="proof-field" style="display:none;">
+              <label for="preuveDepenseFonctionnelle">Capture MoMo (obligatoire)</label>
+              <input type="file" id="preuveDepenseFonctionnelle" accept="image/*" capture="environment">
+              <small class="proof-hint">Ajoutez la capture de l'operation MoMo.</small>
+              <small class="proof-status" id="preuveDepenseFonctionnelleStatus"></small>
+            </div>
             <button type="submit" class="btn-modern primary">
-              <i data-lucide="plus"></i> Enregistrer Dépense
+              <i data-lucide="plus"></i> Enregistrer Depense
             </button>
           </form>
         </div>
       </div>
 
       <script>
-        document.getElementById("formDepenseFonctionnelle")
-          .addEventListener("submit", function (e) {
-            e.preventDefault();
-        
-            const montant     = parseFloat(document.getElementById("montantDepense").value.trim());
-            const description = document.getElementById("descriptionDepense").value.trim();
-            const compteId    = document.getElementById("compteSelectDepenseFonctionnelle").value;
-        
+        const formDepenseFonctionnelle = document.getElementById("formDepenseFonctionnelle");
+        const compteSelectDepenseFonctionnelle = document.getElementById("compteSelectDepenseFonctionnelle");
+        const preuveFieldDepenseFonctionnelle = document.getElementById("preuveDepenseFonctionnelleField");
+        const preuveInputDepenseFonctionnelle = document.getElementById("preuveDepenseFonctionnelle");
+        const preuveStatusDepenseFonctionnelle = document.getElementById("preuveDepenseFonctionnelleStatus");
+        let preuveDepenseFonctionnelleData = null;
+
+        function resetPreuveDepenseFonctionnelle() {
+          preuveDepenseFonctionnelleData = null;
+          if (preuveInputDepenseFonctionnelle) {
+            preuveInputDepenseFonctionnelle.value = "";
+          }
+          if (preuveStatusDepenseFonctionnelle) {
+            preuveStatusDepenseFonctionnelle.textContent = "";
+          }
+        }
+
+        function updatePreuveDepenseFonctionnelleRequirement() {
+          if (!compteSelectDepenseFonctionnelle || !preuveFieldDepenseFonctionnelle) {
+            return;
+          }
+          const requiresProof = accountRequiresProof(compteSelectDepenseFonctionnelle.value);
+          preuveFieldDepenseFonctionnelle.style.display = requiresProof ? "block" : "none";
+          if (!requiresProof) {
+            resetPreuveDepenseFonctionnelle();
+          }
+        }
+
+        if (compteSelectDepenseFonctionnelle) {
+          compteSelectDepenseFonctionnelle.addEventListener("change", updatePreuveDepenseFonctionnelleRequirement);
+          updatePreuveDepenseFonctionnelleRequirement();
+        }
+
+        if (preuveInputDepenseFonctionnelle) {
+          preuveInputDepenseFonctionnelle.addEventListener("change", function (event) {
+            const fileList = event.target.files;
+            const file = fileList && fileList[0] ? fileList[0] : null;
+            if (!file) {
+              resetPreuveDepenseFonctionnelle();
+              return;
+            }
+            try {
+              compressImage(file, 1280, 1280, 0.7, function (dataUrl) {
+                preuveDepenseFonctionnelleData = dataUrl;
+                if (preuveStatusDepenseFonctionnelle) {
+                  preuveStatusDepenseFonctionnelle.textContent = "Capture enregistree.";
+                }
+              });
+            } catch (error) {
+              console.error("Erreur capture depense fonctionnelle :", error);
+              alert("Impossible de traiter la capture MoMo. Reessayez.");
+              resetPreuveDepenseFonctionnelle();
+            }
+          });
+        }
+
+        if (formDepenseFonctionnelle) {
+          formDepenseFonctionnelle.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const montantInput = document.getElementById("montantDepense");
+            const descriptionInput = document.getElementById("descriptionDepense");
+            const montant = montantInput ? parseFloat(montantInput.value.trim()) : 0;
+            const description = descriptionInput ? descriptionInput.value.trim() : "";
+            const compteId = compteSelectDepenseFonctionnelle ? compteSelectDepenseFonctionnelle.value : "";
+            const requiresProof = accountRequiresProof(compteId);
+
             if (!montant || montant <= 0 || !description) {
               alert("Montant ou description invalide.");
               return;
             }
-        
+            if (!compteId) {
+              alert("Veuillez choisir un compte de tresorerie.");
+              return;
+            }
+            if (requiresProof && !preuveDepenseFonctionnelleData) {
+              alert("Une capture MoMo est obligatoire pour cette depense.");
+              return;
+            }
+
+            const proofPhoto = preuveDepenseFonctionnelleData || null;
+
             enregistrerMouvementTresorerie({
               compteId,
-              type   : "depense",
-              sens   : "out",
-              montant,
-              description
-            })
-            /* ➜ on consigne la dépense pour l'historique */
-            .then(() => logDepenseRemboursement({
-              collection  : "depenses",
+              type: "depense",
+              sens: "out",
               montant,
               description,
-              type        : "depense fonctionnelle"
+              encaissementPhotos: proofPhoto ? [proofPhoto] : null
+            })
+            .then(() => logDepenseRemboursement({
+              collection: "depenses",
+              montant,
+              description,
+              type: "depense fonctionnelle",
+              proofPhoto
             }))
             .then(() => {
-              alert("Dépense Fonctionnelle enregistrée !");
-              document.getElementById("montantDepense").value     = "";
-              document.getElementById("descriptionDepense").value = "";
+              alert("Depense fonctionnelle enregistree !");
+              if (montantInput) montantInput.value = "";
+              if (descriptionInput) descriptionInput.value = "";
+              resetPreuveDepenseFonctionnelle();
               updateBalanceDisplay();
             })
             .catch(err => alert("Erreur : " + err.message));
-        });
-        </script>
+          });
+        }
+      </script>
+
         
-    </section>
-    <!-- Screen: Dépense Papa -->
+          </section>
+
+
+    <!-- Screen: Depense Papa -->
     <section id="screen-depense-papa" class="screen">
       <style>
         .form-container {
@@ -14546,7 +14650,7 @@ async function annulerCommandeFournisseur(approId, event) {
           text-align: center;
           color: var(--primary-color);
         }
-        /* Même style pour les inputs que pour l'écran Dépense Fonctionnelle */
+        /* Meme style pour les inputs que pour l'ecran Depense Fonctionnelle */
         #formDepensePapa input,
         #formDepensePapa textarea {
           width: 100%;
@@ -14611,68 +14715,146 @@ async function annulerCommandeFournisseur(approId, event) {
         <button class="back-btn-fb" onclick="window.location.hash='depenses'">
           <i data-lucide="arrow-left"></i>
         </button>
-        <h1>Nouvelle Dépense Papa</h1>
+        <h1>Nouvelle Depense Papa</h1>
       </header>
 
       <div class="form-container">
         <div class="form-section">
-          <h2>Ajouter une Dépense Papa</h2>
+          <h2>Ajouter une Depense Papa</h2>
           <form id="formDepensePapa">
             <label for="montantDepensePapa">Montant (FCFA)</label>
             <input type="number" id="montantDepensePapa" placeholder="Montant" required>
             <label for="descriptionDepensePapa">Description</label>
-            <textarea id="descriptionDepensePapa" placeholder="Ex: Description de la dépense" required></textarea>
+            <textarea id="descriptionDepensePapa" placeholder="Ex: Description de la depense" required></textarea>
 
-            <label for="compteSelectDepensePapa">Compte de trésorerie</label>
+            <label for="compteSelectDepensePapa">Compte de tresorerie</label>
             <select id="compteSelectDepensePapa"></select>
+            <div id="preuveDepensePapaField" class="proof-field" style="display:none;">
+              <label for="preuveDepensePapa">Capture MoMo (obligatoire)</label>
+              <input type="file" id="preuveDepensePapa" accept="image/*" capture="environment">
+              <small class="proof-hint">Ajoutez la capture de l'operation MoMo.</small>
+              <small class="proof-status" id="preuveDepensePapaStatus"></small>
+            </div>
 
             <button type="submit" class="btn-modern primary">
-              <i data-lucide="plus"></i> Enregistrer Dépense Papa
+              <i data-lucide="plus"></i> Enregistrer Depense Papa
             </button>
           </form>
         </div>
       </div>
 
       <script>
-        document.getElementById("formDepensePapa")
-          .addEventListener("submit", function (e) {
-            e.preventDefault();
-        
-            const montant     = parseFloat(document.getElementById("montantDepensePapa").value.trim());
-            const description = document.getElementById("descriptionDepensePapa").value.trim();
-            const compteId    = document.getElementById("compteSelectDepensePapa").value;
-        
+        const formDepensePapa = document.getElementById("formDepensePapa");
+        const compteSelectDepensePapa = document.getElementById("compteSelectDepensePapa");
+        const preuveFieldDepensePapa = document.getElementById("preuveDepensePapaField");
+        const preuveInputDepensePapa = document.getElementById("preuveDepensePapa");
+        const preuveStatusDepensePapa = document.getElementById("preuveDepensePapaStatus");
+        let preuveDepensePapaData = null;
+
+        function resetPreuveDepensePapa() {
+          preuveDepensePapaData = null;
+          if (preuveInputDepensePapa) {
+            preuveInputDepensePapa.value = "";
+          }
+          if (preuveStatusDepensePapa) {
+            preuveStatusDepensePapa.textContent = "";
+          }
+        }
+
+        function updatePreuveDepensePapaRequirement() {
+          if (!compteSelectDepensePapa || !preuveFieldDepensePapa) {
+            return;
+          }
+          const requiresProof = accountRequiresProof(compteSelectDepensePapa.value);
+          preuveFieldDepensePapa.style.display = requiresProof ? "block" : "none";
+          if (!requiresProof) {
+            resetPreuveDepensePapa();
+          }
+        }
+
+        if (compteSelectDepensePapa) {
+          compteSelectDepensePapa.addEventListener("change", updatePreuveDepensePapaRequirement);
+          updatePreuveDepensePapaRequirement();
+        }
+
+        if (preuveInputDepensePapa) {
+          preuveInputDepensePapa.addEventListener("change", function (event) {
+            const fileList = event.target.files;
+            const file = fileList && fileList[0] ? fileList[0] : null;
+            if (!file) {
+              resetPreuveDepensePapa();
+              return;
+            }
+            try {
+              compressImage(file, 1280, 1280, 0.7, function (dataUrl) {
+                preuveDepensePapaData = dataUrl;
+                if (preuveStatusDepensePapa) {
+                  preuveStatusDepensePapa.textContent = "Capture enregistree.";
+                }
+              });
+            } catch (error) {
+              console.error("Erreur capture depense papa :", error);
+              alert("Impossible de traiter la capture MoMo. Reessayez.");
+              resetPreuveDepensePapa();
+            }
+          });
+        }
+
+        if (formDepensePapa) {
+          formDepensePapa.addEventListener("submit", function (event) {
+            event.preventDefault();
+
+            const montantInput = document.getElementById("montantDepensePapa");
+            const descriptionInput = document.getElementById("descriptionDepensePapa");
+            const montant = montantInput ? parseFloat(montantInput.value.trim()) : 0;
+            const description = descriptionInput ? descriptionInput.value.trim() : "";
+            const compteId = compteSelectDepensePapa ? compteSelectDepensePapa.value : "";
+            const requiresProof = accountRequiresProof(compteId);
+
             if (!montant || montant <= 0 || !description) {
               alert("Montant ou description invalide.");
               return;
             }
-        
+            if (!compteId) {
+              alert("Veuillez choisir un compte de tresorerie.");
+              return;
+            }
+            if (requiresProof && !preuveDepensePapaData) {
+              alert("Une capture MoMo est obligatoire pour cette depense.");
+              return;
+            }
+
+            const proofPhoto = preuveDepensePapaData || null;
+
             enregistrerMouvementTresorerie({
               compteId,
-              type   : "papa",
-              sens   : "out",
-              montant,
-              description
-            })
-            /* ➜ on consigne la dépense pour l'historique */
-            .then(() => logDepenseRemboursement({
-              collection  : "depenses",
+              type: "papa",
+              sens: "out",
               montant,
               description,
-              type        : "papa"
+              encaissementPhotos: proofPhoto ? [proofPhoto] : null
+            })
+            .then(() => logDepenseRemboursement({
+              collection: "depenses",
+              montant,
+              description,
+              type: "papa",
+              proofPhoto
             }))
             .then(() => {
-              alert("Dépense Papa enregistrée !");
-              document.getElementById("montantDepensePapa").value     = "";
-              document.getElementById("descriptionDepensePapa").value = "";
+              alert("Depense Papa enregistree !");
+              if (montantInput) montantInput.value = "";
+              if (descriptionInput) descriptionInput.value = "";
+              resetPreuveDepensePapa();
               updateDepensePapaBalance();
               updateBalanceDisplay();
             })
             .catch(err => alert("Erreur : " + err.message));
-        });
-        </script>
-        
-          </section>
+          });
+        }
+      </script>
+      
+    </section>
 
 
 <!-- Screen X : Panier -->
@@ -24849,4 +25031,6 @@ async function finaliserLivraisonReussie() {
 </script>
 </body>
 </html>
+
+
 
