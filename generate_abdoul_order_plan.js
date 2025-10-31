@@ -256,7 +256,8 @@ function summarizePurchases(purchases) {
         saleCost: 0,
         saleProfit: 0,
         unmatchedSaleQty: 0,
-        unmatchedSaleValue: 0
+        unmatchedSaleValue: 0,
+        unmatchedSaleCost: 0
       };
       record.name = name;
       record.purchaseQty += qty;
@@ -301,7 +302,8 @@ function summarizeSales(sales, aggregated) {
           saleCost: 0,
           saleProfit: 0,
           unmatchedSaleQty: 0,
-          unmatchedSaleValue: 0
+          unmatchedSaleValue: 0,
+          unmatchedSaleCost: 0
         });
       }
 
@@ -333,90 +335,160 @@ function summarizeSales(sales, aggregated) {
         record.remainingPurchaseQty = Math.max(0, availableQty - allocatedQty);
       }
 
-      if (unmatchedQty > 0) {
-        record.unmatchedSaleQty += unmatchedQty;
-        record.unmatchedSaleValue += saleTotal * unmatchedRatio;
-      }
+    if (unmatchedQty > 0) {
+      record.unmatchedSaleQty += unmatchedQty;
+      record.unmatchedSaleValue += saleTotal * unmatchedRatio;
+      record.unmatchedSaleCost += saleCost * unmatchedRatio;
     }
   }
 }
+}
 
 function buildRecommendations(aggregated) {
-  const candidates = [];
+  const items = [];
 
   for (const record of aggregated.values()) {
     const purchaseQty = record.purchaseQty || 0;
     const saleQty = record.saleQty || 0;
     const unmatchedQty = record.unmatchedSaleQty || 0;
-    if (purchaseQty <= 0 || saleQty < MIN_SALES_THRESHOLD) continue;
+    const totalSold = saleQty + unmatchedQty;
+    if (totalSold < MIN_SALES_THRESHOLD) continue;
 
-    const sellThrough = purchaseQty > 0 ? saleQty / purchaseQty : 0;
+    const sellThrough = purchaseQty > 0 ? Math.min(1, saleQty / purchaseQty) : 1;
 
     const unitCostCandidate = purchaseQty > 0 ? record.purchaseValue / purchaseQty : 0;
-    const fallbackUnitCost = saleQty > 0 ? record.saleCost / saleQty : 0;
+    const totalSalesCost = (record.saleCost || 0) + (record.unmatchedSaleCost || 0);
+    const fallbackUnitCost = totalSold > 0 ? totalSalesCost / totalSold : 0;
     const unitCost = unitCostCandidate > 0 ? unitCostCandidate : fallbackUnitCost;
     if (!Number.isFinite(unitCost) || unitCost <= MIN_ITEM_COST) continue;
 
-    let recommendedQty = Math.min(saleQty, Math.max(1, Math.floor(saleQty * ORDER_RATIO)));
-    if (recommendedQty >= saleQty && saleQty >= 2) {
-      recommendedQty = saleQty - 1;
+    let minQty = Math.max(1, Math.floor(totalSold * ORDER_RATIO));
+    if (minQty >= totalSold && totalSold >= 2) {
+      minQty = totalSold - 1;
     }
-    recommendedQty = Math.max(1, Math.min(recommendedQty, saleQty));
-    const totalCost = unitCost * recommendedQty;
+    minQty = Math.max(1, Math.min(minQty, totalSold));
+    const maxQty = totalSold;
+    const unitCostRounded = Math.round(unitCost);
 
-    candidates.push({
+    items.push({
       name: record.name,
       purchaseQty,
       saleQty,
       unmatchedQty,
-      totalDemandQty: saleQty + unmatchedQty,
+      totalDemandQty: totalSold,
       sellThrough,
       unitCost,
-      recommendedQty,
-      totalCost,
+      unitCostRounded,
+      minQty,
+      maxQty,
       saleRevenue: record.saleRevenue || 0,
       saleProfit: record.saleProfit || 0
     });
   }
 
-  candidates.sort((a, b) => {
+  if (items.length === 0) {
+    return { recommendations: [], budgetUsed: 0, candidates: [], exactMatch: false };
+  }
+
+  items.sort((a, b) => {
     if (b.saleQty !== a.saleQty) return b.saleQty - a.saleQty;
-    if (b.totalCost !== a.totalCost) return b.totalCost - a.totalCost;
+    if (b.unitCostRounded !== a.unitCostRounded) return b.unitCostRounded - a.unitCostRounded;
     return a.name.localeCompare(b.name);
   });
 
-  const selected = [];
-  let budgetUsed = 0;
+  const restMinCost = new Array(items.length + 1).fill(0);
+  const restMaxCost = new Array(items.length + 1).fill(0);
+  for (let i = items.length - 1; i >= 0; i--) {
+    restMinCost[i] = restMinCost[i + 1] + items[i].unitCostRounded * items[i].minQty;
+    restMaxCost[i] = restMaxCost[i + 1] + items[i].unitCostRounded * items[i].maxQty;
+  }
 
-  for (const candidate of candidates) {
-    if (budgetUsed >= TARGET_BUDGET) break;
-    const remaining = TARGET_BUDGET - budgetUsed;
-    if (candidate.totalCost <= remaining) {
-      selected.push({ ...candidate });
-      budgetUsed += candidate.totalCost;
-    } else {
-      const partialQty = Math.floor(remaining / candidate.unitCost);
-      if (partialQty >= 1) {
-        const partialCost = candidate.unitCost * partialQty;
-        selected.push({
-          ...candidate,
-          recommendedQty: partialQty,
-          totalCost: partialCost,
-          partial: true
-        });
-        budgetUsed += partialCost;
-        break;
+  const minCost = restMinCost[0];
+  const maxCost = restMaxCost[0];
+
+  const selection = new Array(items.length).fill(0);
+  let found = false;
+
+  function search(index, currentCost) {
+    if (index === items.length) {
+      if (currentCost === TARGET_BUDGET) {
+        found = true;
+        return true;
+      }
+      return false;
+    }
+    const item = items[index];
+    for (let qty = item.maxQty; qty >= item.minQty; qty--) {
+      const cost = item.unitCostRounded * qty;
+      const newCost = currentCost + cost;
+      if (newCost > TARGET_BUDGET) continue;
+      const minPossible = newCost + restMinCost[index + 1];
+      const maxPossible = newCost + restMaxCost[index + 1];
+      if (minPossible > TARGET_BUDGET || maxPossible < TARGET_BUDGET) continue;
+      selection[index] = qty;
+      if (search(index + 1, newCost)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  let recommendations = [];
+  let budgetUsed = 0;
+  let exactMatch = false;
+
+  if (TARGET_BUDGET >= minCost && TARGET_BUDGET <= maxCost && search(0, 0)) {
+    exactMatch = true;
+    recommendations = items.map((item, index) => {
+      const qty = selection[index];
+      const totalCost = item.unitCostRounded * qty;
+      budgetUsed += totalCost;
+      return {
+        ...item,
+        recommendedQty: qty,
+        totalCost
+      };
+    });
+  } else {
+    budgetUsed = minCost;
+    recommendations = items.map(item => {
+      const qty = item.minQty;
+      const totalCost = item.unitCostRounded * qty;
+      return {
+        ...item,
+        recommendedQty: qty,
+        totalCost
+      };
+    });
+
+    let residual = TARGET_BUDGET - budgetUsed;
+    if (residual > 0) {
+      const order = items
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => a.item.unitCostRounded - b.item.unitCostRounded);
+      for (const entry of order) {
+        if (residual <= 0) break;
+        const item = entry.item;
+        const rec = recommendations[entry.index];
+        const available = item.maxQty - rec.recommendedQty;
+        if (available <= 0) continue;
+        const affordable = Math.min(available, Math.floor(residual / item.unitCostRounded));
+        if (affordable <= 0) continue;
+        rec.recommendedQty += affordable;
+        const addedCost = affordable * item.unitCostRounded;
+        rec.totalCost += addedCost;
+        residual -= addedCost;
+        budgetUsed += addedCost;
       }
     }
   }
 
-  const finalBudget = selected.reduce((sum, item) => sum + item.totalCost, 0);
-  selected.sort((a, b) => b.totalCost - a.totalCost);
+  recommendations.sort((a, b) => b.totalCost - a.totalCost);
 
-  return { recommendations: selected, budgetUsed: finalBudget, candidates };
+  return { recommendations, budgetUsed, candidates: items, exactMatch };
 }
 
-function writePdf(recommendations, budgetUsed, dateRange, outputPath) {
+function writePdf(recommendations, budgetUsed, dateRange, outputPath, exactMatch) {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, info: { Title: `Commande Abdoul ${LOOKBACK_DAYS} jours` } });
     const stream = fs.createWriteStream(outputPath);
@@ -425,32 +497,40 @@ function writePdf(recommendations, budgetUsed, dateRange, outputPath) {
     const generatedAt = new Date();
     const remainingBudget = Math.max(0, TARGET_BUDGET - budgetUsed);
 
-    doc.font('Helvetica-Bold').fontSize(20).text(`Commande recommandée – ${SUPPLIER_NAME}`, { align: 'center' });
+    doc.font('Helvetica-Bold').fontSize(20).text(`Commande recommandee - ${SUPPLIER_NAME}`, { align: 'center' });
     doc.moveDown(0.3);
     doc.font('Helvetica').fontSize(12).text(`Analyse des ventes du ${dateRange.start.toLocaleDateString('fr-FR')} au ${dateRange.end.toLocaleDateString('fr-FR')}`, { align: 'center' });
     doc.moveDown(0.2);
-    doc.font('Helvetica').fontSize(10).text(`Généré le ${generatedAt.toLocaleDateString('fr-FR')} à ${generatedAt.toLocaleTimeString('fr-FR')}`, { align: 'center' });
+    doc.font('Helvetica').fontSize(10).text(`Genere le ${generatedAt.toLocaleDateString('fr-FR')} a ${generatedAt.toLocaleTimeString('fr-FR')}`, { align: 'center' });
     doc.moveDown(0.8);
 
-    doc.font('Helvetica-Bold').fontSize(14).text('Résumé');
+    doc.font('Helvetica-Bold').fontSize(14).text('Resume');
     doc.moveDown(0.3);
     doc.font('Helvetica').fontSize(11);
     doc.text(`Budget cible: ${formatCurrency(TARGET_BUDGET)}`);
-    doc.text(`Montant proposé: ${formatCurrency(budgetUsed)} (reste ${formatCurrency(remainingBudget)})`);
+    doc.text(`Montant propose: ${formatCurrency(budgetUsed)} (reste ${formatCurrency(remainingBudget)})${exactMatch ? ' - pile 5 000 000 FCFA' : ''}`);
     doc.text(`Articles retenus: ${recommendations.length}`);
-    doc.text(`Quantité visée ≈ ${Math.round(ORDER_RATIO * 100)} % des ventes réalisées (arrondi à l'inférieur)`);
+    doc.text(`Quantite visee ~ ${Math.round(ORDER_RATIO * 100)} % des ventes realisees (arrondi a l'inferieur)`);
     doc.moveDown(0.5);
     doc.font('Helvetica').fontSize(9).fillColor('#444444').text(
-      "Les quantités recommandées s'appuient sur les ventes prouvées sur les 14 derniers jours pour Abdoul. Elles sont légèrement inférieures au volume vendu afin de sécuriser l'écoulement complet dans les deux semaines.",
+      "Les quantites recommandees s'appuient sur les ventes prouvees sur les 14 derniers jours pour Abdoul. Elles sont legerement inferieures au volume vendu afin de securiser l'ecoulement complet dans les deux semaines.",
       { width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
     );
     doc.fillColor('#000000');
+    if (!exactMatch) {
+      doc.font('Helvetica').fontSize(9).fillColor('#aa0000').text(
+        "Note : impossible d'atteindre 5 000 000 FCFA avec les volumes vendus disponibles.",
+        { width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
+      );
+      doc.fillColor('#000000');
+      doc.moveDown(0.5);
+    }
     doc.moveDown(0.8);
 
     if (recommendations.length === 0) {
-      doc.font('Helvetica-Bold').fontSize(14).text('Aucun modèle éligible.');
+      doc.font('Helvetica-Bold').fontSize(14).text('Aucun modele eligible.');
       doc.moveDown(0.4);
-      doc.font('Helvetica').fontSize(11).text("Aucun téléphone n'a dépassé 10 ventes sur les deux dernières semaines.");
+      doc.font('Helvetica').fontSize(11).text("Aucun telephone n'a depasse 10 ventes sur les deux dernieres semaines.");
       doc.end();
       stream.on('finish', () => resolve(outputPath));
       stream.on('error', reject);
@@ -459,9 +539,9 @@ function writePdf(recommendations, budgetUsed, dateRange, outputPath) {
 
     const headers = [
       'Produit',
-      'Qté recommandée',
-      'Coût unitaire',
-      'Coût total',
+      'Qte recommendee',
+      'Cout unitaire',
+      'Cout total',
       'Ventes 14 j',
       'Sell-through',
       'Remarque'
@@ -479,19 +559,16 @@ function writePdf(recommendations, budgetUsed, dateRange, outputPath) {
 
     recommendations.forEach((item, index) => {
       const commentParts = [];
-      commentParts.push(`${formatQuantity(item.saleQty)} vendus / ${formatQuantity(item.purchaseQty)} reçus`);
+      commentParts.push(`${formatQuantity(item.saleQty)} vendus / ${formatQuantity(item.purchaseQty)} recus`);
       if (item.unmatchedQty > 0) {
         commentParts.push(`${formatQuantity(item.unmatchedQty)} ventes manquantes`);
       }
-      if (item.partial) {
-        commentParts.push('Quantité ajustée pour budget');
-      }
-      const comment = commentParts.join(' · ');
+      const comment = commentParts.join(' | ');
 
       const cells = [
         item.name,
         formatQuantity(item.recommendedQty),
-        formatCurrency(item.unitCost),
+        formatCurrency(item.unitCostRounded),
         formatCurrency(item.totalCost),
         formatQuantity(item.totalDemandQty),
         formatPercent(item.sellThrough),
@@ -580,23 +657,23 @@ async function main() {
     const aggregated = summarizePurchases(purchases);
     summarizeSales(sales, aggregated);
 
-    const { recommendations, budgetUsed, candidates } = buildRecommendations(aggregated);
-    console.log('Modèles éligibles:', candidates.length);
-    console.log('Modèles retenus:', recommendations.length);
+    const { recommendations, budgetUsed, candidates, exactMatch } = buildRecommendations(aggregated);
+    console.log('Modeles eligibles:', candidates.length);
+    console.log('Modeles retenus:', recommendations.length);
     for (const rec of recommendations) {
       console.log(
-        `- ${rec.name}: recommander ${rec.recommendedQty} (ventes ${formatQuantity(rec.saleQty)}) · ${formatCurrency(rec.totalCost)} · sell-through ${(rec.sellThrough * 100).toFixed(1)} %`
+        `- ${rec.name}: recommander ${rec.recommendedQty} (ventes ${formatQuantity(rec.saleQty)}) -> ${formatCurrency(rec.totalCost)} -> sell-through ${(rec.sellThrough * 100).toFixed(1)} %`
       );
     }
-    console.log(`Budget proposé: ${formatCurrency(budgetUsed)} / ${formatCurrency(TARGET_BUDGET)}`);
+    console.log(`Budget propose: ${formatCurrency(budgetUsed)} / ${formatCurrency(TARGET_BUDGET)}${exactMatch ? ' (exact)' : ''}`);
 
     const filename = `commande_${slugify(SUPPLIER_NAME)}_${start.toISOString().slice(0, 10).replace(/-/g, '')}_${end.toISOString().slice(0, 10).replace(/-/g, '')}.pdf`;
     const outputPath = path.join(__dirname, filename);
-    await writePdf(recommendations, budgetUsed, { start, end }, outputPath);
+    await writePdf(recommendations, budgetUsed, { start, end }, outputPath, exactMatch);
 
-    console.log(`PDF généré: ${outputPath}`);
+    console.log(`PDF genere: ${outputPath}`);
   } catch (error) {
-    console.error("Erreur lors de la génération de la commande:", error);
+    console.error("Erreur lors de la generation de la commande:", error);
     process.exitCode = 1;
   } finally {
     await admin.app().delete().catch(() => {});
@@ -604,3 +681,10 @@ async function main() {
 }
 
 main();
+
+
+
+
+
+
+
