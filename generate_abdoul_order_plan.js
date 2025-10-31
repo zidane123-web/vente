@@ -666,6 +666,9 @@ async function main() {
       );
     }
     console.log(`Budget propose: ${formatCurrency(budgetUsed)} / ${formatCurrency(TARGET_BUDGET)}${exactMatch ? ' (exact)' : ''}`);
+    if (!exactMatch) {
+      console.warn("Attention: impossible d'atteindre 5 000 000 FCFA en restant sous les ventes observees.");
+    }
 
     const filename = `commande_${slugify(SUPPLIER_NAME)}_${start.toISOString().slice(0, 10).replace(/-/g, '')}_${end.toISOString().slice(0, 10).replace(/-/g, '')}.pdf`;
     const outputPath = path.join(__dirname, filename);
