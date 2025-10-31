@@ -22826,6 +22826,10 @@ document.getElementById('exportStockBtn')
   encaissementPhotos = null,
   monnaiePhotos = null
 }) {
+  const targetCompteId = (compteId ?? '').toString().trim();
+  if (!targetCompteId) {
+    throw new Error("Aucun compte de tresorerie n'est selectionne pour ce mouvement.");
+  }
 
   const normalizeProofPhotos = (value) => {
     if (!value) {
@@ -22854,7 +22858,7 @@ document.getElementById('exportStockBtn')
     const balanceDoc   = dbFirestore.collection('tresorerie').doc('balance');
     const comptesCol   = balanceDoc.collection('comptesTresorerie');
 
-    const compteDoc    = comptesCol.doc(compteId);    // compte concerné
+    const compteDoc    = comptesCol.doc(targetCompteId);    // compte concerné
 
     /* 2) Lectures en parallèle --------------------------------------------- */
     const compteSnap = await tx.get(compteDoc);
@@ -24020,7 +24024,10 @@ function annulerAchatTransaction(approId, approData) {
             if (!transportExpenseQuery.empty) {
                 const expenseDocRef = transportExpenseQuery.docs[0].ref;
                 const expenseData = transportExpenseQuery.docs[0].data();
-                const transportCompteId = expenseData.compteId || 'caisse';
+                const transportCompteId = expenseData.compteId;
+                if (!transportCompteId) {
+                    throw new Error("Aucun compte n'est associe aux frais de transport, annulation impossible.");
+                }
                 
                 transaction.delete(expenseDocRef);
 
@@ -24109,7 +24116,10 @@ for (const item of saleData.items) {
             const paiementDetails = Array.isArray(saleData.paymentsDetails) ? saleData.paymentsDetails : [];
             if (paiementDetails.length > 0) {
                 for (const paiement of paiementDetails) {
-                    const compteAnnulation = paiement.compteId || saleData.principalCompteId || 'caisse';
+                    const compteAnnulation = paiement.compteId || saleData.principalCompteId || saleData.compteId;
+                    if (!compteAnnulation) {
+                        throw new Error("Aucun compte n'est associe a ce paiement, annulation impossible.");
+                    }
                     const montantEncaisse = parseFloat(paiement.montantEncaisse) || 0;
                     const monnaieRendue = parseFloat(paiement.monnaieRendue) || 0;
 
@@ -24137,7 +24147,10 @@ for (const item of saleData.items) {
                 }
             } else {
                 const montantVente = parseFloat(saleData.overallTotal) || 0;
-                const compteId = saleData.compteId || 'caisse';
+                const compteId = saleData.compteId || saleData.principalCompteId;
+                if (!compteId) {
+                    throw new Error("Aucun compte n'est associe a cette vente, annulation impossible.");
+                }
 
                 await enregistrerMouvementTresorerie({
                     compteId: compteId,
