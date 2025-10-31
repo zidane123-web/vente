@@ -8218,14 +8218,63 @@ async function generateSupplierCreditPDF() {
       flex-direction: column;
       gap: 10px;
     }
+    .compte-detail-movements.selection-mode .compte-detail-movement {
+      cursor: pointer;
+    }
     .compte-detail-movement {
+      position: relative;
       background-color: var(--card-bg);
       border-radius: var(--border-radius);
       padding: 14px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.05);
       display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .compte-detail-movement-content {
+      display: flex;
       flex-direction: column;
       gap: 6px;
+      flex: 1;
+      min-width: 0;
+    }
+    .compte-detail-selection-indicator {
+      display: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      border: 2px solid rgba(109,93,253,0.4);
+      background: transparent;
+      align-items: center;
+      justify-content: center;
+      margin-top: 4px;
+      flex-shrink: 0;
+      padding: 0;
+      color: transparent;
+      cursor: pointer;
+      transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+    .compte-detail-selection-indicator:focus-visible {
+      outline: 2px solid var(--primary-color);
+      outline-offset: 2px;
+    }
+    .compte-detail-movements.selection-mode .compte-detail-selection-indicator {
+      display: inline-flex;
+    }
+    .compte-detail-movements.selection-mode .compte-detail-movement:not(.is-selected):hover {
+      background-color: rgba(109,93,253,0.05);
+    }
+    .compte-detail-movement.is-selected .compte-detail-selection-indicator {
+      background: var(--primary-color);
+      border-color: var(--primary-color);
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .compte-detail-movement.is-selected .compte-detail-selection-indicator::after {
+      content: 'V';
+      line-height: 1;
     }
     .compte-detail-movement-header {
       display: flex;
@@ -18754,6 +18803,11 @@ let clotureVendeurState = {
   listenersReady: false
 };
 let clotureVendeurLoading = false;
+const COMPTE_DETAIL_LONG_PRESS_DELAY = 450;
+let compteDetailSelectionMode = false;
+let compteDetailSelectedMovements = new Set();
+let compteDetailLongPressTimer = null;
+let compteDetailLongPressActivated = false;
 
 function getClotureUserContext() {
   const role = typeof window !== 'undefined' ? window.userRole : null;
@@ -21819,12 +21873,153 @@ function openCompteDetail(compteId) {
   window.location.hash = 'tresorerie-compte';
 }
 
+function clearCompteDetailLongPressTimer() {
+  if (compteDetailLongPressTimer) {
+    clearTimeout(compteDetailLongPressTimer);
+    compteDetailLongPressTimer = null;
+  }
+}
+
+function resetCompteDetailSelectionState() {
+  compteDetailSelectionMode = false;
+  compteDetailSelectedMovements.clear();
+  const container = document.getElementById('compte-detail-movements');
+  if (container) {
+    container.classList.remove('selection-mode');
+    container.querySelectorAll('.compte-detail-movement').forEach(el => {
+      el.classList.remove('is-selected');
+      el.removeAttribute('aria-selected');
+      const indicator = el.querySelector('.compte-detail-selection-indicator');
+      if (indicator) {
+        indicator.setAttribute('aria-checked', 'false');
+      }
+    });
+  }
+}
+
+function leaveCompteDetailSelectionMode() {
+  resetCompteDetailSelectionState();
+}
+
+function toggleCompteDetailMovementSelection(movementEl, movementId, forceSelect = false) {
+  if (!movementEl || !movementId) {
+    return;
+  }
+
+  const alreadySelected = compteDetailSelectedMovements.has(movementId);
+  const shouldSelect = forceSelect ? true : !alreadySelected;
+
+  if (shouldSelect) {
+    compteDetailSelectedMovements.add(movementId);
+    movementEl.classList.add('is-selected');
+    movementEl.setAttribute('aria-selected', 'true');
+  } else {
+    compteDetailSelectedMovements.delete(movementId);
+    movementEl.classList.remove('is-selected');
+    movementEl.setAttribute('aria-selected', 'false');
+  }
+
+  const indicator = movementEl.querySelector('.compte-detail-selection-indicator');
+  if (indicator) {
+    indicator.setAttribute('aria-checked', compteDetailSelectedMovements.has(movementId) ? 'true' : 'false');
+  }
+
+  if (!compteDetailSelectionMode && compteDetailSelectedMovements.size > 0) {
+    compteDetailSelectionMode = true;
+    const container = document.getElementById('compte-detail-movements');
+    if (container) {
+      container.classList.add('selection-mode');
+    }
+  }
+
+  if (compteDetailSelectionMode && compteDetailSelectedMovements.size === 0) {
+    leaveCompteDetailSelectionMode();
+  }
+}
+
+function enterCompteDetailSelectionMode(movementEl, movementId) {
+  if (!movementEl || !movementId) {
+    return;
+  }
+  if (!compteDetailSelectionMode) {
+    compteDetailSelectionMode = true;
+    const container = document.getElementById('compte-detail-movements');
+    if (container) {
+      container.classList.add('selection-mode');
+    }
+  }
+  toggleCompteDetailMovementSelection(movementEl, movementId, true);
+}
+
+function handleCompteDetailMovementPointerDown(event) {
+  if (event.pointerType === 'mouse' && event.button !== 0) {
+    return;
+  }
+  const movementEl = event.currentTarget;
+  const movementId = movementEl.dataset.movementId;
+  if (!movementId) {
+    return;
+  }
+  compteDetailLongPressActivated = false;
+  clearCompteDetailLongPressTimer();
+  compteDetailLongPressTimer = setTimeout(() => {
+    compteDetailLongPressActivated = true;
+    enterCompteDetailSelectionMode(movementEl, movementId);
+  }, COMPTE_DETAIL_LONG_PRESS_DELAY);
+}
+
+function handleCompteDetailMovementPointerUp() {
+  clearCompteDetailLongPressTimer();
+}
+
+function handleCompteDetailMovementPointerLeave() {
+  clearCompteDetailLongPressTimer();
+}
+
+function handleCompteDetailMovementClick(event) {
+  const movementEl = event.currentTarget;
+  const movementId = movementEl.dataset.movementId;
+  if (!movementId) {
+    return;
+  }
+  if (compteDetailLongPressActivated) {
+    compteDetailLongPressActivated = false;
+    return;
+  }
+  if (!compteDetailSelectionMode) {
+    return;
+  }
+  toggleCompteDetailMovementSelection(movementEl, movementId);
+}
+
+function handleCompteDetailMovementKeyDown(event) {
+  const movementEl = event.currentTarget;
+  const movementId = movementEl.dataset.movementId;
+  if (!movementId) {
+    return;
+  }
+  if (event.key === 'Escape' && compteDetailSelectionMode) {
+    event.preventDefault();
+    leaveCompteDetailSelectionMode();
+    return;
+  }
+  if (event.key === ' ' || event.key === 'Enter') {
+    event.preventDefault();
+    if (!compteDetailSelectionMode) {
+      enterCompteDetailSelectionMode(movementEl, movementId);
+    } else {
+      toggleCompteDetailMovementSelection(movementEl, movementId);
+    }
+  }
+}
+
 function initCompteDetailScreen() {
   const alertEl = document.getElementById('compte-detail-alert');
   const summaryEl = document.getElementById('compte-detail-summary');
   const loadingEl = document.getElementById('compte-detail-loading');
   const titleEl = document.getElementById('compte-detail-name');
   const dateInput = document.getElementById('compte-detail-date');
+  resetCompteDetailSelectionState();
 
   if (summaryEl) {
     summaryEl.style.display = 'none';
@@ -21870,6 +22065,7 @@ function updateCompteDetailSummary() {
   if (!currentCompteDetailId) {
     return;
   }
+  resetCompteDetailSelectionState();
 
   const summaryEl = document.getElementById('compte-detail-summary');
   const loadingEl = document.getElementById('compte-detail-loading');
@@ -22016,8 +22212,13 @@ function updateCompteDetailSummary() {
           mouvements
             .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
             .forEach(mv => {
+              const movementId = mv.id || '';
               const movementEl = document.createElement('div');
               movementEl.className = 'compte-detail-movement';
+              movementEl.dataset.movementId = movementId;
+              movementEl.setAttribute('aria-selected', 'false');
+              movementEl.setAttribute('role', 'listitem');
+              movementEl.tabIndex = 0;
 
               const isIn = mv.sens === 'in';
               const isOut = mv.sens === 'out';
@@ -22033,7 +22234,16 @@ function updateCompteDetailSummary() {
                 : '--:--';
               const description = mv.description || 'Sans description';
 
-              movementEl.innerHTML = `
+              const selectionIndicator = document.createElement('button');
+              selectionIndicator.type = 'button';
+              selectionIndicator.className = 'compte-detail-selection-indicator';
+              selectionIndicator.setAttribute('role', 'checkbox');
+              selectionIndicator.setAttribute('aria-checked', 'false');
+              selectionIndicator.setAttribute('aria-label', 'Selectionner le mouvement');
+
+              const contentEl = document.createElement('div');
+              contentEl.className = 'compte-detail-movement-content';
+              contentEl.innerHTML = `
                 <div class="compte-detail-movement-header">
                   <span class="compte-detail-movement-type">${typeLabel}</span>
                   <span class="compte-detail-movement-amount ${amountClass}">${amountLabel}</span>
@@ -22091,8 +22301,34 @@ function updateCompteDetailSummary() {
               }
 
               if (proofsContainer.childElementCount > 0) {
-                movementEl.appendChild(proofsContainer);
+                contentEl.appendChild(proofsContainer);
               }
+
+              selectionIndicator.addEventListener('pointerdown', event => event.stopPropagation());
+              selectionIndicator.addEventListener('pointerup', event => event.stopPropagation());
+              selectionIndicator.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!movementId) {
+                  return;
+                }
+                if (!compteDetailSelectionMode) {
+                  enterCompteDetailSelectionMode(movementEl, movementId);
+                } else {
+                  toggleCompteDetailMovementSelection(movementEl, movementId);
+                }
+              });
+
+              movementEl.addEventListener('pointerdown', handleCompteDetailMovementPointerDown);
+              movementEl.addEventListener('pointerup', handleCompteDetailMovementPointerUp);
+              movementEl.addEventListener('pointerleave', handleCompteDetailMovementPointerLeave);
+              movementEl.addEventListener('pointercancel', handleCompteDetailMovementPointerLeave);
+              movementEl.addEventListener('click', handleCompteDetailMovementClick);
+              movementEl.addEventListener('keydown', handleCompteDetailMovementKeyDown);
+              movementEl.addEventListener('contextmenu', event => event.preventDefault());
+
+              movementEl.appendChild(selectionIndicator);
+              movementEl.appendChild(contentEl);
 
               movementsContainer.appendChild(movementEl);
             });
@@ -25196,6 +25432,3 @@ async function finaliserLivraisonReussie() {
 </script>
 </body>
 </html>
-
-
-
