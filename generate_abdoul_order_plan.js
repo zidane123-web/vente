@@ -24,9 +24,10 @@ const db = admin.firestore();
 const DAY_MS = 24 * 60 * 60 * 1000;
 const LOOKBACK_DAYS = 14;
 const SUPPLIER_NAME = 'Abdoul';
-const SELL_THROUGH_THRESHOLD = 0.95;
 const TARGET_BUDGET = 5_000_000;
 const MIN_ITEM_COST = 1_000;
+const MIN_SALES_THRESHOLD = 10;
+const ORDER_RATIO = 0.95;
 
 const SUPPLIER_CANONICALS = new Map([
   ['abdoul', 'Abdoul'],
@@ -347,18 +348,20 @@ function buildRecommendations(aggregated) {
     const purchaseQty = record.purchaseQty || 0;
     const saleQty = record.saleQty || 0;
     const unmatchedQty = record.unmatchedSaleQty || 0;
-    const totalDemandQty = saleQty + unmatchedQty;
-    if (purchaseQty <= 0 || totalDemandQty <= 0) continue;
+    if (purchaseQty <= 0 || saleQty < MIN_SALES_THRESHOLD) continue;
 
     const sellThrough = purchaseQty > 0 ? saleQty / purchaseQty : 0;
-    if (sellThrough < SELL_THROUGH_THRESHOLD) continue;
 
     const unitCostCandidate = purchaseQty > 0 ? record.purchaseValue / purchaseQty : 0;
     const fallbackUnitCost = saleQty > 0 ? record.saleCost / saleQty : 0;
     const unitCost = unitCostCandidate > 0 ? unitCostCandidate : fallbackUnitCost;
     if (!Number.isFinite(unitCost) || unitCost <= MIN_ITEM_COST) continue;
 
-    const recommendedQty = Math.max(1, Math.round(totalDemandQty));
+    let recommendedQty = Math.min(saleQty, Math.max(1, Math.floor(saleQty * ORDER_RATIO)));
+    if (recommendedQty >= saleQty && saleQty >= 2) {
+      recommendedQty = saleQty - 1;
+    }
+    recommendedQty = Math.max(1, Math.min(recommendedQty, saleQty));
     const totalCost = unitCost * recommendedQty;
 
     candidates.push({
@@ -366,7 +369,7 @@ function buildRecommendations(aggregated) {
       purchaseQty,
       saleQty,
       unmatchedQty,
-      totalDemandQty,
+      totalDemandQty: saleQty + unmatchedQty,
       sellThrough,
       unitCost,
       recommendedQty,
@@ -377,8 +380,8 @@ function buildRecommendations(aggregated) {
   }
 
   candidates.sort((a, b) => {
-    if (b.sellThrough !== a.sellThrough) return b.sellThrough - a.sellThrough;
-    if (b.totalDemandQty !== a.totalDemandQty) return b.totalDemandQty - a.totalDemandQty;
+    if (b.saleQty !== a.saleQty) return b.saleQty - a.saleQty;
+    if (b.totalCost !== a.totalCost) return b.totalCost - a.totalCost;
     return a.name.localeCompare(b.name);
   });
 
@@ -403,22 +406,6 @@ function buildRecommendations(aggregated) {
         });
         budgetUsed += partialCost;
         break;
-      }
-    }
-  }
-
-  if (budgetUsed < TARGET_BUDGET * 0.85) {
-    const spareBudget = TARGET_BUDGET - budgetUsed;
-    if (spareBudget > MIN_ITEM_COST) {
-      for (const candidate of selected) {
-        const remaining = TARGET_BUDGET - budgetUsed;
-        if (remaining <= MIN_ITEM_COST) break;
-        const extraQty = Math.floor(remaining / candidate.unitCost);
-        if (extraQty <= 0) continue;
-        candidate.recommendedQty += extraQty;
-        candidate.totalCost = candidate.unitCost * candidate.recommendedQty;
-        candidate.partial = false;
-        budgetUsed += candidate.unitCost * extraQty;
       }
     }
   }
@@ -451,10 +438,10 @@ function writePdf(recommendations, budgetUsed, dateRange, outputPath) {
     doc.text(`Budget cible: ${formatCurrency(TARGET_BUDGET)}`);
     doc.text(`Montant proposé: ${formatCurrency(budgetUsed)} (reste ${formatCurrency(remainingBudget)})`);
     doc.text(`Articles retenus: ${recommendations.length}`);
-    doc.text(`Seuil d'écoulement: ${(SELL_THROUGH_THRESHOLD * 100).toFixed(0)} % minimum sur 14 jours`);
+    doc.text(`Quantité visée ≈ ${Math.round(ORDER_RATIO * 100)} % des ventes réalisées (arrondi à l'inférieur)`);
     doc.moveDown(0.5);
     doc.font('Helvetica').fontSize(9).fillColor('#444444').text(
-      "Les quantités recommandées s'appuient sur les ventes prouvées sur les 14 derniers jours pour Abdoul. Elles n'excèdent jamais les volumes réellement écoulés sur la période, afin de garantir un écoulement complet en deux semaines.",
+      "Les quantités recommandées s'appuient sur les ventes prouvées sur les 14 derniers jours pour Abdoul. Elles sont légèrement inférieures au volume vendu afin de sécuriser l'écoulement complet dans les deux semaines.",
       { width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
     );
     doc.fillColor('#000000');
@@ -598,7 +585,7 @@ async function main() {
     console.log('Modèles retenus:', recommendations.length);
     for (const rec of recommendations) {
       console.log(
-        `- ${rec.name}: ${rec.recommendedQty} unités · ${formatCurrency(rec.totalCost)} · sell-through ${(rec.sellThrough * 100).toFixed(1)} %`
+        `- ${rec.name}: recommander ${rec.recommendedQty} (ventes ${formatQuantity(rec.saleQty)}) · ${formatCurrency(rec.totalCost)} · sell-through ${(rec.sellThrough * 100).toFixed(1)} %`
       );
     }
     console.log(`Budget proposé: ${formatCurrency(budgetUsed)} / ${formatCurrency(TARGET_BUDGET)}`);
