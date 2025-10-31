@@ -450,7 +450,7 @@ function writePdf(recommendations, budgetUsed, dateRange, outputPath) {
     if (recommendations.length === 0) {
       doc.font('Helvetica-Bold').fontSize(14).text('Aucun modèle éligible.');
       doc.moveDown(0.4);
-      doc.font('Helvetica').fontSize(11).text("Aucun téléphone n'a atteint un seuil d'écoulement de 95 % sur les deux dernières semaines.");
+      doc.font('Helvetica').fontSize(11).text("Aucun téléphone n'a dépassé 10 ventes sur les deux dernières semaines.");
       doc.end();
       stream.on('finish', () => resolve(outputPath));
       stream.on('error', reject);
