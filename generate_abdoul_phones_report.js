@@ -256,14 +256,18 @@ function summarizePurchases(purchases) {
         name,
         purchaseQty: 0,
         purchaseValue: 0,
+        remainingPurchaseQty: 0,
         saleQty: 0,
         saleRevenue: 0,
         saleCost: 0,
-        saleProfit: 0
+        saleProfit: 0,
+        unmatchedSaleQty: 0,
+        unmatchedSaleValue: 0
       };
       record.name = name; // preserve latest casing
       record.purchaseQty += qty;
       record.purchaseValue += lineCost;
+      record.remainingPurchaseQty += qty;
       aggregated.set(normalized, record);
 
       totals.purchaseQty += qty;
@@ -303,29 +307,56 @@ function summarizeSales(sales, aggregated, totals, referenceNames) {
       const saleCost = unitCost * qty;
       const saleProfit = getSaleProfit(item, saleTotal, saleCost);
 
-      const record = aggregated.get(normalizedName) || {
-        name: getItemName(item),
-        purchaseQty: 0,
-        purchaseValue: 0,
-        saleQty: 0,
-        saleRevenue: 0,
-        saleCost: 0,
-        saleProfit: 0
-      };
-
       if (!aggregated.has(normalizedName)) {
-        aggregated.set(normalizedName, record);
+        aggregated.set(normalizedName, {
+          name: getItemName(item),
+          purchaseQty: 0,
+          purchaseValue: 0,
+          remainingPurchaseQty: 0,
+          saleQty: 0,
+          saleRevenue: 0,
+          saleCost: 0,
+          saleProfit: 0,
+          unmatchedSaleQty: 0,
+          unmatchedSaleValue: 0
+        });
       }
 
-      record.saleQty += qty;
-      record.saleRevenue += saleTotal;
-      record.saleCost += saleCost;
-      record.saleProfit += saleProfit;
+      const record = aggregated.get(normalizedName);
+      if (!record) continue;
+      record.name = record.name || getItemName(item);
 
-      totals.saleQty = (totals.saleQty || 0) + qty;
-      totals.saleRevenue = (totals.saleRevenue || 0) + saleTotal;
-      totals.saleCost = (totals.saleCost || 0) + saleCost;
-      totals.saleProfit = (totals.saleProfit || 0) + saleProfit;
+      // Cap sales attribution by remaining purchased quantity for Abdoul.
+      const availableQty = Math.max(0, record.remainingPurchaseQty || 0);
+      const allocatedQty = Math.min(availableQty, qty);
+      const unmatchedQty = Math.max(0, qty - allocatedQty);
+      const allocationRatio = qty > 0 ? allocatedQty / qty : 0;
+      const unmatchedRatio = qty > 0 ? unmatchedQty / qty : 0;
+
+      if (allocatedQty > 0) {
+        const allocatedRevenue = saleTotal * allocationRatio;
+        const allocatedCost = saleCost * allocationRatio;
+        const allocatedProfit = saleProfit * allocationRatio;
+
+        record.saleQty += allocatedQty;
+        record.saleRevenue += allocatedRevenue;
+        record.saleCost += allocatedCost;
+        record.saleProfit += allocatedProfit;
+        record.remainingPurchaseQty = Math.max(0, availableQty - allocatedQty);
+
+        totals.saleQty = (totals.saleQty || 0) + allocatedQty;
+        totals.saleRevenue = (totals.saleRevenue || 0) + allocatedRevenue;
+        totals.saleCost = (totals.saleCost || 0) + allocatedCost;
+        totals.saleProfit = (totals.saleProfit || 0) + allocatedProfit;
+      }
+
+      if (unmatchedQty > 0) {
+        record.unmatchedSaleQty += unmatchedQty;
+        record.unmatchedSaleValue += saleTotal * unmatchedRatio;
+
+        totals.unmatchedSaleQty = (totals.unmatchedSaleQty || 0) + unmatchedQty;
+        totals.unmatchedSaleValue = (totals.unmatchedSaleValue || 0) + saleTotal * unmatchedRatio;
+      }
     }
   }
 }
@@ -393,10 +424,40 @@ function renderTable(doc, rows) {
     'Qté vente',
     'Valeur vente',
     'Coût ventes',
-    'Profit ventes'
+    'Profit ventes',
+    'Ventes non rattachées'
   ];
-  const columnWidths = [140, 60, 85, 60, 85, 85, 85];
   const startX = doc.page.margins.left;
+  const availableWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+  const widthRatios = [0.28, 0.08, 0.12, 0.08, 0.12, 0.12, 0.12];
+  const baseWidths = widthRatios.map(ratio => Math.floor(availableWidth * ratio));
+  let assignedWidth = baseWidths.reduce((sum, value) => sum + value, 0);
+  let colUnmatched = availableWidth - assignedWidth;
+  const minColumnWidth = 40;
+  const minUnmatchedWidth = 30;
+
+  if (colUnmatched < minUnmatchedWidth) {
+    colUnmatched = minUnmatchedWidth;
+  }
+
+  let overflow = assignedWidth + colUnmatched - availableWidth;
+  let index = 0;
+  while (overflow > 0 && index < baseWidths.length) {
+    const reducible = Math.max(baseWidths[index] - minColumnWidth, 0);
+    if (reducible > 0) {
+      const take = Math.min(reducible, overflow);
+      baseWidths[index] -= take;
+      overflow -= take;
+    }
+    index += 1;
+  }
+
+  if (overflow > 0) {
+    colUnmatched = Math.max(colUnmatched - overflow, minColumnWidth);
+    overflow = 0;
+  }
+
+  const columnWidths = [...baseWidths, colUnmatched];
   const limitY = doc.page.height - doc.page.margins.bottom;
 
   const headerHeight = drawHeaderRow(doc, headers, startX, doc.y, columnWidths);
@@ -410,7 +471,10 @@ function renderTable(doc, rows) {
       formatQuantity(row.saleQty),
       formatCurrency(row.saleRevenue),
       formatCurrency(row.saleCost),
-      formatCurrency(row.saleProfit)
+      formatCurrency(row.saleProfit),
+      row.unmatchedSaleQty > 0
+        ? `${formatQuantity(row.unmatchedSaleQty)}\n${formatCurrency(row.unmatchedSaleValue)}`
+        : ''
     ];
     const rowHeight = calculateRowHeight(doc, cells, columnWidths, { font: 'Helvetica', fontSize: 10 });
     if (doc.y + rowHeight > limitY) {
@@ -433,7 +497,9 @@ function ensureSummaryTotals(totals) {
     saleQty: totals.saleQty ?? 0,
     saleRevenue: totals.saleRevenue ?? 0,
     saleCost: totals.saleCost ?? 0,
-    saleProfit: totals.saleProfit ?? 0
+    saleProfit: totals.saleProfit ?? 0,
+    unmatchedSaleQty: totals.unmatchedSaleQty ?? 0,
+    unmatchedSaleValue: totals.unmatchedSaleValue ?? 0
   };
 }
 
@@ -454,17 +520,22 @@ function writePdfReport(rows, totals, dateRange, outputPath) {
 
     const safeTotals = ensureSummaryTotals(totals);
 
-    doc.font('Helvetica-Bold').fontSize(14).text('Résumé', { underline: false });
-    doc.moveDown(0.3);
-    doc.font('Helvetica').fontSize(11);
-    doc.text(`Total achats: ${formatQuantity(safeTotals.purchaseQty)} unités pour ${formatCurrency(safeTotals.purchaseValue)}`);
-    doc.text(`Total ventes: ${formatQuantity(safeTotals.saleQty)} unités pour ${formatCurrency(safeTotals.saleRevenue)}`);
-    doc.text(`Coût des ventes: ${formatCurrency(safeTotals.saleCost)} · Profit estimé: ${formatCurrency(safeTotals.saleProfit)}`);
-    doc.moveDown(0.4);
-    doc.font('Helvetica').fontSize(9).fillColor('#444444').text(
-      "Les ventes sont attribuées à Abdoul lorsqu'elles mentionnent explicitement ce fournisseur ou lorsqu'elles correspondent aux modèles achetés auprès d'Abdoul sur la période.",
-      { width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
+  doc.font('Helvetica-Bold').fontSize(14).text('Résumé', { underline: false });
+  doc.moveDown(0.3);
+  doc.font('Helvetica').fontSize(11);
+  doc.text(`Total achats: ${formatQuantity(safeTotals.purchaseQty)} unités pour ${formatCurrency(safeTotals.purchaseValue)}`);
+  doc.text(`Total ventes: ${formatQuantity(safeTotals.saleQty)} unités pour ${formatCurrency(safeTotals.saleRevenue)}`);
+  doc.text(`Coût des ventes: ${formatCurrency(safeTotals.saleCost)} · Profit estimé: ${formatCurrency(safeTotals.saleProfit)}`);
+  if (safeTotals.unmatchedSaleQty > 0) {
+    doc.text(
+      `Ventes non rattachées: ${formatQuantity(safeTotals.unmatchedSaleQty)} unités (~${formatCurrency(safeTotals.unmatchedSaleValue)}) ignorées faute d'achats disponibles.`
     );
+  }
+  doc.moveDown(0.4);
+  doc.font('Helvetica').fontSize(9).fillColor('#444444').text(
+    "Les ventes sont attribuées à Abdoul lorsqu'elles mentionnent explicitement ce fournisseur ou lorsqu'elles correspondent aux modèles achetés auprès d'Abdoul sur la période. Les quantités vendues au-delà des achats disponibles sont listées dans la colonne « Ventes non rattachées » et exclues des totaux.",
+    { width: doc.page.width - doc.page.margins.left - doc.page.margins.right }
+  );
     doc.fillColor('#000000');
     doc.moveDown(0.6);
 
@@ -498,8 +569,13 @@ async function main() {
     summarizeSales(sales, aggregated, totals, itemNames);
 
     const rows = Array.from(aggregated.values())
-      .filter(row => row.purchaseQty > 0 || row.saleQty > 0)
-      .sort((a, b) => b.saleQty - a.saleQty || b.purchaseQty - a.purchaseQty || a.name.localeCompare(b.name));
+      .filter(row => row.purchaseQty > 0 || row.saleQty > 0 || row.unmatchedSaleQty > 0)
+      .sort((a, b) => {
+        if (b.saleQty !== a.saleQty) return b.saleQty - a.saleQty;
+        if (b.purchaseQty !== a.purchaseQty) return b.purchaseQty - a.purchaseQty;
+        if (b.unmatchedSaleQty !== a.unmatchedSaleQty) return b.unmatchedSaleQty - a.unmatchedSaleQty;
+        return a.name.localeCompare(b.name);
+      });
 
     const filename = `rapport_${slugify(SUPPLIER_NAME)}_telephones_${formatDate(start).replace(/\//g, '')}_${formatDate(end).replace(/\//g, '')}.pdf`;
     const outputPath = path.join(__dirname, filename);
