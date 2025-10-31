@@ -7798,6 +7798,10 @@ async function generateSupplierCreditPDF() {
             <span class="drawer-icon"><i data-lucide="bar-chart-3"></i></span>
             <span>Rapports &amp; statistiques</span>
           </button>
+          <button class="drawer-item menu-list-item admin-only" type="button" data-admin-only="true" data-hash="aide-commande" onclick="window.location.hash='aide-commande'" style="display:none;">
+            <span class="drawer-icon"><i data-lucide="life-buoy"></i></span>
+            <span>Aide commande</span>
+          </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="canaux-performance" onclick="window.location.hash='canaux-performance'">
             <span class="drawer-icon"><i data-lucide="line-chart"></i></span>
             <span>Performance canaux</span>
@@ -18771,6 +18775,14 @@ function refreshLucideIcons() {
 }
 
 function initializeAideCommandePage(forceReload = false) {
+  const role = typeof window !== 'undefined' ? window.userRole : null;
+  if (role !== 'admin') {
+    if (typeof showToast === 'function') {
+      showToast("Acces reserve aux administrateurs.", "error");
+    }
+    window.location.hash = 'accueil';
+    return;
+  }
   const topList = document.getElementById('aideCommandeTopList');
   const alertsList = document.getElementById('aideCommandeAlertsList');
   if (!topList || !alertsList) {
@@ -22505,6 +22517,7 @@ async function majCartesTresorerie(options = {}) {
       const tresorerieMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='tresorerie']");
       const dettesMenuItem = document.querySelector("#screen-menu .menu-list-item[onclick*='dettes-fournisseurs']");
       const drawerMenuItems = Array.from(document.querySelectorAll("#screen-menu .menu-list-item"));
+      const adminOnlyDrawerItems = drawerMenuItems.filter(item => item.dataset.adminOnly === 'true');
       const navStock = document.getElementById("nav-stock");
       const navHistorique = document.getElementById("nav-historique");
       const navAccueil = document.getElementById("nav-accueil");
@@ -22527,8 +22540,8 @@ async function majCartesTresorerie(options = {}) {
         navApproHist.style.display = "flex";
       }
       if (navAideCommande) {
-        navAideCommande.classList.remove('hidden-by-role');
-        navAideCommande.style.display = "flex";
+        navAideCommande.classList.add('hidden-by-role');
+        navAideCommande.style.setProperty('display', 'none', 'important');
       }
       if (navDettes) {
         navDettes.classList.remove('hidden-by-role');
@@ -22548,8 +22561,13 @@ async function majCartesTresorerie(options = {}) {
       }
       if (drawerMenuItems.length) {
         drawerMenuItems.forEach(item => {
-          item.classList.remove('hidden-by-role');
-          item.style.removeProperty('display');
+          if (item.dataset.adminOnly === 'true') {
+            item.classList.add('hidden-by-role');
+            item.style.display = 'none';
+          } else {
+            item.classList.remove('hidden-by-role');
+            item.style.removeProperty('display');
+          }
         });
       }
       if (quickPurchaseButton) {
@@ -22679,6 +22697,10 @@ async function majCartesTresorerie(options = {}) {
           navTresorerie.classList.remove('hidden-by-role');
           navTresorerie.style.display = "flex";
         }
+        if (navAideCommande) {
+          navAideCommande.classList.remove('hidden-by-role');
+          navAideCommande.style.display = "flex";
+        }
         if (tresorerieMenuItem) {
           tresorerieMenuItem.style.display = "flex";
         }
@@ -22694,6 +22716,10 @@ async function majCartesTresorerie(options = {}) {
         const sections = document.querySelectorAll("#screen-menu .section");
         sections.forEach(section => {
           section.style.display = "flex";
+        });
+        adminOnlyDrawerItems.forEach(item => {
+          item.classList.remove('hidden-by-role');
+          item.style.display = 'grid';
         });
 
   
