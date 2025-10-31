@@ -8424,6 +8424,12 @@ async function generateSupplierCreditPDF() {
     .history-icon {
       margin-right: 8px;
     }
+    .depense-meta {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+      color: #666;
+    }
     /* Bouton Retour style Facebook */
     .back-btn-fb {
       width: 40px;
@@ -8548,6 +8554,35 @@ function renderDepenses(docs) {
       iconHtml = `<i data-lucide="user-check"></i>`;
       montantDisplay = `<div class="amount in">+XOF ${parseFloat(item.montant).toLocaleString()}</div>`;
     }
+    const recordedBy = item.enregistreParNom || item.enregistreParEmail || item.enregistreParUid || "";
+    const compteLabel = (() => {
+      if (item.compteNom) return item.compteNom;
+      if (item.compteId) {
+        if (typeof getCompteNomById === "function") {
+          const label = getCompteNomById(item.compteId);
+          if (label && label !== item.compteId) {
+            return label;
+          }
+        }
+        if (typeof getCompteDisplayName === "function") {
+          const label = getCompteDisplayName(item.compteId);
+          if (label && label !== "Compte") {
+            return label;
+          }
+        }
+        return item.compteId;
+      }
+      return "";
+    })();
+    const metaParts = [];
+    if (recordedBy) {
+      metaParts.push(`Par ${recordedBy}`);
+    }
+    if (compteLabel) {
+      metaParts.push(`Compte ${compteLabel}`);
+    }
+    const metaHtml = metaParts.length ? `<small class="depense-meta">${metaParts.join(' • ')}</small>` : "";
+
     const div = document.createElement("div");
     div.className = "history-item";
     div.innerHTML = `
@@ -8555,6 +8590,7 @@ function renderDepenses(docs) {
       <div class="depense-info" style="flex-grow:1;">
         ${item.description || "Aucune description"}<br>
         <small style="color:#888;">${new Date(item.timestamp).toLocaleString()}</small>
+        ${metaHtml}
       </div>
       ${montantDisplay}
     `;
@@ -8634,6 +8670,35 @@ function renderDepenses(docs) {
       montantDisplay = `<div class="amount in">+XOF ${parseFloat(item.montant).toLocaleString()}</div>`;
     }
 
+    const recordedBy = item.enregistreParNom || item.enregistreParEmail || item.enregistreParUid || "";
+    const compteLabel = (() => {
+      if (item.compteNom) return item.compteNom;
+      if (item.compteId) {
+        if (typeof getCompteNomById === "function") {
+          const label = getCompteNomById(item.compteId);
+          if (label && label !== item.compteId) {
+            return label;
+          }
+        }
+        if (typeof getCompteDisplayName === "function") {
+          const label = getCompteDisplayName(item.compteId);
+          if (label && label !== "Compte") {
+            return label;
+          }
+        }
+        return item.compteId;
+      }
+      return "";
+    })();
+    const metaParts = [];
+    if (recordedBy) {
+      metaParts.push(`Par ${recordedBy}`);
+    }
+    if (compteLabel) {
+      metaParts.push(`Compte ${compteLabel}`);
+    }
+    const metaHtml = metaParts.length ? `<small class="depense-meta">${metaParts.join(' • ')}</small>` : "";
+
     const div = document.createElement("div");
     div.className = "history-item";
     div.innerHTML = `
@@ -8641,6 +8706,7 @@ function renderDepenses(docs) {
       <div class="depense-info" style="flex-grow:1;">
         ${item.description || "Aucune description"}<br>
         <small style="color:#888;">${new Date(item.timestamp).toLocaleString()}</small>
+        ${metaHtml}
       </div>
       ${montantDisplay}
     `;
@@ -9345,7 +9411,18 @@ function updateProfitScreen() {
 }
 
 /**  Enregistre un document dans la bonne collection  */
-function logDepenseRemboursement({ collection, montant, description, type = "", timestamp = Date.now(), proofPhoto = null }) {
+function logDepenseRemboursement({
+  collection,
+  montant,
+  description,
+  type = "",
+  timestamp = Date.now(),
+  proofPhoto = null,
+  enregistreParUid = null,
+  enregistreParNom = null,
+  compteId = null,
+  compteNom = null
+}) {
   const d   = new Date(timestamp);
   const ref = dbFirestore.collection(collection);
   const payload = {
@@ -9358,6 +9435,18 @@ function logDepenseRemboursement({ collection, montant, description, type = "", 
   };
   if (proofPhoto) {
     payload.proofPhoto = proofPhoto;
+  }
+  if (enregistreParUid) {
+    payload.enregistreParUid = enregistreParUid;
+  }
+  if (enregistreParNom) {
+    payload.enregistreParNom = enregistreParNom;
+  }
+  if (compteId) {
+    payload.compteId = compteId;
+  }
+  if (compteNom) {
+    payload.compteNom = compteNom;
   }
   return ref.add(payload);
 }
@@ -14601,6 +14690,16 @@ async function annulerCommandeFournisseur(approId, event) {
               return;
             }
 
+            const user = firebase.auth().currentUser;
+            const enregistreParUid = user && user.uid ? user.uid : null;
+            const enregistreParNom = user ? (user.displayName || user.email || user.phoneNumber || user.uid) : null;
+            const compteNom = typeof getCompteDisplayName === "function"
+              ? getCompteDisplayName(compteId)
+              : (typeof getCompteNomById === "function"
+                  ? getCompteNomById(compteId)
+                  : (compteSelectDepenseFonctionnelle && compteSelectDepenseFonctionnelle.options && compteSelectDepenseFonctionnelle.selectedIndex >= 0
+                      ? compteSelectDepenseFonctionnelle.options[compteSelectDepenseFonctionnelle.selectedIndex].textContent
+                      : compteId));
             const proofPhoto = preuveDepenseFonctionnelleData || null;
 
             enregistrerMouvementTresorerie({
@@ -14616,7 +14715,11 @@ async function annulerCommandeFournisseur(approId, event) {
               montant,
               description,
               type: "depense fonctionnelle",
-              proofPhoto
+              proofPhoto,
+              enregistreParUid,
+              enregistreParNom,
+              compteId,
+              compteNom
             }))
             .then(() => {
               alert("Depense fonctionnelle enregistree !");
@@ -14826,6 +14929,16 @@ async function annulerCommandeFournisseur(approId, event) {
               return;
             }
 
+            const user = firebase.auth().currentUser;
+            const enregistreParUid = user && user.uid ? user.uid : null;
+            const enregistreParNom = user ? (user.displayName || user.email || user.phoneNumber || user.uid) : null;
+            const compteNom = typeof getCompteDisplayName === "function"
+              ? getCompteDisplayName(compteId)
+              : (typeof getCompteNomById === "function"
+                  ? getCompteNomById(compteId)
+                  : (compteSelectDepensePapa && compteSelectDepensePapa.options && compteSelectDepensePapa.selectedIndex >= 0
+                      ? compteSelectDepensePapa.options[compteSelectDepensePapa.selectedIndex].textContent
+                      : compteId));
             const proofPhoto = preuveDepensePapaData || null;
 
             enregistrerMouvementTresorerie({
@@ -14841,7 +14954,11 @@ async function annulerCommandeFournisseur(approId, event) {
               montant,
               description,
               type: "papa",
-              proofPhoto
+              proofPhoto,
+              enregistreParUid,
+              enregistreParNom,
+              compteId,
+              compteNom
             }))
             .then(() => {
               alert("Depense Papa enregistree !");
@@ -15035,13 +15152,29 @@ async function annulerCommandeFournisseur(approId, event) {
         e.preventDefault();
     
         const montant  = parseFloat(document.getElementById("montantRemboursementPapa").value.trim());
-        const compteId = document.getElementById("compteSelectRemboursementPapa").value;
+        const compteSelect = document.getElementById("compteSelectRemboursementPapa");
+        const compteId = compteSelect ? compteSelect.value : "";
     
         if (!montant || montant <= 0) {
           alert("Montant invalide.");
           return;
         }
+        if (!compteId) {
+          alert("Veuillez choisir un compte de tresorerie.");
+          return;
+        }
     
+        const user = firebase.auth().currentUser;
+        const enregistreParUid = user && user.uid ? user.uid : null;
+        const enregistreParNom = user ? (user.displayName || user.email || user.phoneNumber || user.uid) : null;
+        const compteNom = typeof getCompteDisplayName === "function"
+          ? getCompteDisplayName(compteId)
+          : (typeof getCompteNomById === "function"
+              ? getCompteNomById(compteId)
+              : (compteSelect && compteSelect.options && compteSelect.selectedIndex >= 0
+                  ? compteSelect.options[compteSelect.selectedIndex].textContent
+                  : compteId));
+
         enregistrerMouvementTresorerie({
           compteId,
           type   : "remboursement",
@@ -15053,7 +15186,11 @@ async function annulerCommandeFournisseur(approId, event) {
         .then(() => logDepenseRemboursement({
           collection  : "remboursements",
           montant,
-          description : "Remboursement Papa"
+          description : "Remboursement Papa",
+          enregistreParUid,
+          enregistreParNom,
+          compteId,
+          compteNom
         }))
         .then(() => {
           alert("Remboursement enregistré !");
