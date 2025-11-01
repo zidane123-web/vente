@@ -11574,6 +11574,45 @@ async function recordCreditPayment(approId, outstandingAmount) {
   .supplier-order-recorded strong {
       color: #1f2937;
   }
+  .supplier-payment-timeline-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  }
+  .supplier-payment-timeline-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+  }
+  .supplier-payment-timeline-amount {
+      font-size: 18px;
+      font-weight: 600;
+      color: #2563eb;
+  }
+  .supplier-payment-timeline-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+      font-size: 13px;
+      color: #4b5563;
+  }
+  .supplier-payment-timeline-orders {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #1f2937;
+  }
+  .supplier-payment-timeline-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+  }
   .supplier-order-chip {
       display: inline-flex;
       align-items: center;
@@ -14577,7 +14616,68 @@ function renderSupplierBalanceScreen() {
             return helper.innerHTML;
         };
     const formatCurrencyStr = (value) => `${fmt(Math.round(value || 0))} FCFA`;
+
+    const timelineEntries = [];
     data.orders.forEach(order => {
+        const orderDate = order.timestamp instanceof Date ? order.timestamp : new Date(order.timestamp);
+        timelineEntries.push({
+            type: 'order',
+            date: orderDate,
+            payload: order
+        });
+    });
+    paymentGroups.forEach(group => {
+        const paymentDate = group.date instanceof Date ? group.date : new Date(group.date);
+        timelineEntries.push({
+            type: 'payment',
+            date: paymentDate,
+            payload: group
+        });
+    });
+    timelineEntries.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    if (!timelineEntries.length) {
+        ordersContainer.innerHTML = '<p class="placeholder">Aucun mouvement pour ce fournisseur.</p>';
+        return;
+    }
+
+    timelineEntries.forEach(entry => {
+        if (entry.type === 'payment') {
+            const payment = entry.payload;
+            const card = document.createElement('div');
+            card.className = 'supplier-payment-timeline-card';
+            const amountDisplay = formatCurrencyStr(payment.totalAmount);
+            const dateLabel = entry.date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            const safeAccount = escapeFn(payment.account || payment.accountId || 'Compte');
+            const ordersList = Array.isArray(payment.orderReferences) && payment.orderReferences.length
+                ? `<div class="supplier-payment-timeline-orders"><strong>Commandes :</strong> ${escapeFn(payment.orderReferences.join(', '))}</div>`
+                : '';
+            const proofButtons = Array.isArray(payment.proofPhotos) && payment.proofPhotos.length
+                ? payment.proofPhotos.map((photo, idx) => {
+                    const proofUrl = photo.toString().replace(/'/g, "\\'");
+                    const suffix = payment.proofPhotos.length > 1 ? ` ${idx + 1}` : '';
+                    return `<button type="button" class="btn-modern secondary" onclick="ouvrirPreuvePaiement('${proofUrl}')"><i data-lucide="image"></i> Preuve${suffix}</button>`;
+                }).join('')
+                : '';
+            const actions = proofButtons ? `<div class="supplier-payment-timeline-actions">${proofButtons}</div>` : '';
+            card.innerHTML = `
+                <div class="supplier-payment-timeline-top">
+                    <div>
+                        <div class="supplier-payment-timeline-amount">${amountDisplay}</div>
+                        <div class="supplier-payment-timeline-meta">
+                            <span>${dateLabel}</span>
+                            <span>Compte : ${safeAccount}</span>
+                        </div>
+                        ${ordersList}
+                    </div>
+                </div>
+                ${actions}
+            `;
+            ordersContainer.appendChild(card);
+            return;
+        }
+
+        const order = entry.payload;
         const card = document.createElement('div');
         card.className = 'supplier-order-card';
         const rawStatus = (order.status || '').toString();
@@ -14620,8 +14720,7 @@ function renderSupplierBalanceScreen() {
             totalOrdered = order.items.reduce((sum, item) => sum + (parseFloat(item.quantite || item.qty || 0) || 0), 0);
         }
         const totalReceivedUnits = Number(receptionStats.totalReceived || 0);
-        const orderDate = order.timestamp instanceof Date ? order.timestamp : new Date(order.timestamp);
-        const orderDateLabel = orderDate.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const orderDateLabel = entry.date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         const items = Array.isArray(order.items) ? order.items : [];
         let itemsHtml = items.map(item => {
             const qtyRaw = parseFloat(item.quantite || item.qty || 0);
@@ -14694,6 +14793,9 @@ function renderSupplierBalanceScreen() {
         `;
         ordersContainer.appendChild(card);
     });
+    if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+        refreshLucideIcons();
+    }
 }
 
 
