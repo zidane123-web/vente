@@ -11613,6 +11613,14 @@ async function recordCreditPayment(approId, outstandingAmount) {
       flex-wrap: wrap;
       gap: 8px;
   }
+  .supplier-payment-timeline-balance {
+      margin-top: 6px;
+      font-size: 13px;
+      color: #1f2937;
+  }
+  .supplier-payment-timeline-balance strong {
+      color: #111827;
+  }
   .supplier-order-chip {
       display: inline-flex;
       align-items: center;
@@ -12333,13 +12341,23 @@ function buildSupplierPaymentGroups(payments, orders = []) {
                 totalAmount: 0,
                 payments: [],
                 orderReferences: [],
-                proofPhotos: []
+                proofPhotos: [],
+                totalApplied: 0,
+                balanceAfter: typeof payment.balanceAfter === 'number' ? payment.balanceAfter : null
             });
         }
 
         const group = groupsMap.get(groupKey);
         group.totalAmount += rawAmount;
         group.payments.push(payment);
+        const appliedValue = Number.isFinite(payment.appliedAmount) ? payment.appliedAmount : rawAmount;
+        group.totalApplied += appliedValue;
+
+        if (typeof payment.balanceAfter === 'number') {
+            group.balanceAfter = typeof group.balanceAfter === 'number'
+                ? Math.min(group.balanceAfter, payment.balanceAfter)
+                : payment.balanceAfter;
+        }
 
         if (payment.proofPhoto && !group.proofPhotos.includes(payment.proofPhoto)) {
             group.proofPhotos.push(payment.proofPhoto);
@@ -12361,7 +12379,7 @@ function buildSupplierPaymentGroups(payments, orders = []) {
     return groups;
 }
 
-function renderSupplierPaymentsHistory(groups) {
+function renderSupplierPaymentsHistory(groups, currentDue = null) {
     const container = document.getElementById('supplierPaymentsHistoryContainer');
     if (!container) {
         return 0;
@@ -12377,8 +12395,23 @@ function renderSupplierPaymentsHistory(groups) {
         : (value) => {
             const helper = document.createElement('div');
             helper.textContent = value == null ? '' : value;
-            return helper.innerHTML;
-        };
+        return helper.innerHTML;
+    };
+
+    if (typeof currentDue === 'number' && !isNaN(currentDue)) {
+        let running = Math.max(0, parseFloat(currentDue));
+        groups.forEach(group => {
+            if (typeof group.balanceAfter !== 'number') {
+                group.balanceAfter = running;
+            }
+            const applied = Number.isFinite(group.totalApplied)
+                ? group.totalApplied
+                : (Array.isArray(group.payments)
+                    ? group.payments.reduce((sum, item) => sum + (Number.isFinite(item.appliedAmount) ? item.appliedAmount : (Number.isFinite(parseFloat(item.amount)) ? parseFloat(item.amount) : 0)), 0)
+                    : group.totalAmount);
+            running = Math.max(0, group.balanceAfter + (Number.isFinite(applied) ? applied : 0));
+        });
+    }
 
     const rows = groups.map(group => {
         const roundedAmount = Math.round(group.totalAmount || 0);
@@ -12391,6 +12424,12 @@ function renderSupplierPaymentsHistory(groups) {
         const safeAccount = escapeFn(group.account || 'Compte');
         const orderRefs = Array.isArray(group.orderReferences) && group.orderReferences.length
             ? `Commandes : ${escapeFn(group.orderReferences.join(', '))}`
+            : '';
+        const balanceDisplay = typeof group.balanceAfter === 'number'
+            ? `${fmt(Math.round(group.balanceAfter))} FCFA`
+            : null;
+        const balanceMarkup = balanceDisplay
+            ? `<span class="payment-ref">Solde après paiement : <strong>${balanceDisplay}</strong></span>`
             : '';
 
         const proofButtons = Array.isArray(group.proofPhotos) && group.proofPhotos.length
@@ -12414,8 +12453,9 @@ function renderSupplierPaymentsHistory(groups) {
             <span class="payment-date">${dateLabel}</span>
             <span class="payment-account">Compte : ${safeAccount}</span>
             ${orderRefs ? `<span class="payment-ref">${orderRefs}</span>` : ''}
+            ${balanceMarkup}
           </div>
-          ${actionsMarkup}
+            ${actionsMarkup}
         </div>`;
     }).join('');
 
@@ -14432,7 +14472,9 @@ async function ouvrirFournisseurBalance(supplierName, event) {
                             accountId: paymentData.accountId || '',
                             refApproId: paymentData.refApproId || order.id,
                             proofPhoto: paymentData.proofPhoto || null,
-                            date: dateValue
+                            date: dateValue,
+                            appliedAmount: Number.isFinite(parseFloat(paymentData.appliedAmount)) ? parseFloat(paymentData.appliedAmount) : amount,
+                            balanceAfter: Number.isFinite(parseFloat(paymentData.balanceAfter)) ? parseFloat(paymentData.balanceAfter) : null
                         });
                     });
                     return rows;
@@ -14573,7 +14615,7 @@ function renderSupplierBalanceScreen() {
         data.paymentsHistory = paymentsHistory;
     }
     data.paymentsHistoryTotal = paymentsHistoryTotal;
-    const renderedCount = renderSupplierPaymentsHistory(paymentGroups);
+    const renderedCount = renderSupplierPaymentsHistory(paymentGroups, data.totalDue);
     if (paymentsHistoryCardEl) {
         const shouldShow = supplierPaymentsListOpen && renderedCount > 0;
         paymentsHistoryCardEl.style.display = shouldShow ? 'block' : 'none';
@@ -14641,6 +14683,7 @@ function renderSupplierBalanceScreen() {
         return;
     }
 
+    let runningBalanceAfter = Math.max(0, parseFloat(data.totalDue || 0));
     timelineEntries.forEach(entry => {
         if (entry.type === 'payment') {
             const payment = entry.payload;
@@ -14652,6 +14695,16 @@ function renderSupplierBalanceScreen() {
             const ordersList = Array.isArray(payment.orderReferences) && payment.orderReferences.length
                 ? `<div class="supplier-payment-timeline-orders"><strong>Commandes :</strong> ${escapeFn(payment.orderReferences.join(', '))}</div>`
                 : '';
+            const appliedSum = Number.isFinite(payment.totalApplied)
+                ? payment.totalApplied
+                : (Array.isArray(payment.payments)
+                    ? payment.payments.reduce((sum, item) => sum + (Number.isFinite(item.appliedAmount) ? item.appliedAmount : (Number.isFinite(parseFloat(item.amount)) ? parseFloat(item.amount) : 0)), 0)
+                    : payment.totalAmount);
+            const balanceAfterValue = typeof payment.balanceAfter === 'number'
+                ? payment.balanceAfter
+                : runningBalanceAfter;
+            payment.balanceAfter = balanceAfterValue;
+            const balanceMarkup = `<div class="supplier-payment-timeline-balance">Solde après paiement : <strong>${formatCurrencyStr(balanceAfterValue)}</strong></div>`;
             const proofButtons = Array.isArray(payment.proofPhotos) && payment.proofPhotos.length
                 ? payment.proofPhotos.map((photo, idx) => {
                     const proofUrl = photo.toString().replace(/'/g, "\\'");
@@ -14669,11 +14722,14 @@ function renderSupplierBalanceScreen() {
                             <span>Compte : ${safeAccount}</span>
                         </div>
                         ${ordersList}
+                        ${balanceMarkup}
                     </div>
                 </div>
                 ${actions}
             `;
             ordersContainer.appendChild(card);
+            const appliedDelta = Number.isFinite(appliedSum) ? appliedSum : 0;
+            runningBalanceAfter = Math.max(0, balanceAfterValue + appliedDelta);
             return;
         }
 
@@ -15027,11 +15083,16 @@ async function enregistrerPaiementFournisseur() {
         const paymentDateValue = typeof paymentTimestamp.toDate === 'function'
             ? paymentTimestamp.toDate()
             : new Date();
+        const initialTotalDue = Math.max(0, parseFloat(currentSupplierBalanceData.totalDue || 0));
+        let balanceTracker = initialTotalDue;
         let totalApplied = 0;
         let leftover = 0;
         const newPaymentRecords = [];
+        const pendingPaymentRecords = [];
 
         for (const payment of payments) {
+            const pendingRecordIndices = [];
+            const newRecordIndices = [];
             let remainingAmount = payment.amount;
             for (const order of orders) {
                 if (remainingAmount <= 0) {
@@ -15061,15 +15122,20 @@ async function enregistrerPaiementFournisseur() {
                 });
 
                 const paymentRecordRef = orderRef.collection('payments').doc();
-                batch.set(paymentRecordRef, {
+                const recordPayload = {
                     amount: applied,
                     date: paymentTimestamp,
                     account: payment.accountName || payment.accountId,
                     accountId: payment.accountId,
                     refApproId: order.id,
-                    proofPhoto: payment.proofPhoto || null
-                });
+                    proofPhoto: payment.proofPhoto || null,
+                    appliedAmount: applied,
+                    balanceAfter: null
+                };
+                pendingRecordIndices.push(pendingPaymentRecords.length);
+                pendingPaymentRecords.push({ ref: paymentRecordRef, payload: recordPayload });
 
+                newRecordIndices.push(newPaymentRecords.length);
                 newPaymentRecords.push({
                     id: paymentRecordRef.id,
                     amount: applied,
@@ -15077,7 +15143,9 @@ async function enregistrerPaiementFournisseur() {
                     accountId: payment.accountId,
                     refApproId: order.id,
                     proofPhoto: payment.proofPhoto || null,
-                    date: paymentDateValue
+                    date: paymentDateValue,
+                    balanceAfter: null,
+                    appliedAmount: applied
                 });
 
                 order.paidValue = newPaid;
@@ -15094,6 +15162,16 @@ async function enregistrerPaiementFournisseur() {
             if (remainingAmount > 0) {
                 leftover += remainingAmount;
             }
+            const appliedForBalance = Number.isFinite(payment.appliedAmount) ? payment.appliedAmount : 0;
+            balanceTracker = Math.max(0, balanceTracker - appliedForBalance);
+            payment.balanceAfter = balanceTracker;
+            pendingRecordIndices.forEach(index => {
+                pendingPaymentRecords[index].payload.balanceAfter = payment.balanceAfter;
+            });
+            newRecordIndices.forEach(index => {
+                newPaymentRecords[index].balanceAfter = payment.balanceAfter;
+            });
+            payment.totalAppliedForBalance = appliedForBalance;
         }
 
         if (totalApplied <= 0) {
@@ -15103,6 +15181,10 @@ async function enregistrerPaiementFournisseur() {
             }
             return;
         }
+
+        pendingPaymentRecords.forEach(record => {
+            batch.set(record.ref, record.payload);
+        });
 
         await batch.commit();
 
