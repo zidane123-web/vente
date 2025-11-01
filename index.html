@@ -630,6 +630,63 @@ body.role-employe #screen-accueil .ako-quick-grid {
     .ako-hidden-data {
       display: none !important;
     }
+    .adjustments-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .adjustments-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .adjustments-header h2 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ako-text);
+    }
+    .adjustments-header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--ako-muted);
+    }
+    .adjustments-badge {
+      min-width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: rgba(99, 102, 241, 0.12);
+      color: #4338ca;
+      font-weight: 700;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+    }
+    .adjustments-body {
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .adjustments-metric {
+      flex: 1;
+      min-width: 140px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .adjustments-metric span {
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ako-muted);
+    }
+    .adjustments-metric strong {
+      font-size: 18px;
+      color: var(--ako-text);
+    }
     @media (max-width: 420px) {
       .ako-tabs {
         gap: 16px;
@@ -2516,6 +2573,26 @@ body.drawer-open {
           <span id="accueil-livraisons-count">0</span>
           <span id="accueil-livraisons-subtext">Cliquer pour consulter</span>
           <span id="accueil-ventes-livraison">0 livraisons en attente</span>
+        </div>
+      </section>
+
+      <section class="ako-card adjustments-card" id="accueilAdjustmentsCard" aria-label="Ajustements de stock">
+        <div class="adjustments-header">
+          <div>
+            <h2>Ajustements de stock</h2>
+            <p>Mouvements manuels enregistrés aujourd'hui.</p>
+          </div>
+          <div class="adjustments-badge" id="accueil-adjustments-count">0</div>
+        </div>
+        <div class="adjustments-body">
+          <div class="adjustments-metric">
+            <span>Net</span>
+            <strong id="accueil-adjustments-net">0 u.</strong>
+          </div>
+          <div class="adjustments-metric">
+            <span>Dernier</span>
+            <strong id="accueil-adjustments-last">Aucun ajustement</strong>
+          </div>
         </div>
       </section>
     </main>
@@ -16819,6 +16896,9 @@ function updateAccueilSummary() {
   const livraisonCardCountEl = document.getElementById('accueil-livraisons-count');
   const livraisonCardSubtextEl = document.getElementById('accueil-livraisons-subtext');
   const dateEl = document.getElementById('accueil-date');
+  const adjustmentsCountEl = document.getElementById('accueil-adjustments-count');
+  const adjustmentsNetEl = document.getElementById('accueil-adjustments-net');
+  const adjustmentsLastEl = document.getElementById('accueil-adjustments-last');
   const adminCaEl = document.getElementById('admin-kpi-ca');
   const adminProfitEl = document.getElementById('admin-kpi-profit');
   const adminProfitMarginEl = document.getElementById('admin-kpi-profit-marge');
@@ -16851,6 +16931,17 @@ function updateAccueilSummary() {
       const stockPromise = (Array.isArray(cachedStock) && cachedStock.length)
         ? Promise.resolve(cachedStock)
         : getAllStockFirestore();
+      const adjustmentsPromise = dbFirestore
+        .collectionGroup('history')
+        .where('timestamp', '>=', startTimestamp)
+        .where('timestamp', '<=', endTimestamp)
+        .orderBy('timestamp', 'desc')
+        .limit(120)
+        .get()
+        .catch(err => {
+          console.error('Erreur chargement ajustements accueil:', err);
+          return null;
+        });
 
       Promise.all([
         dbFirestore.collection('ventes')
@@ -16863,8 +16954,9 @@ function updateAccueilSummary() {
           .where('timestamp', '<=', endMillis)
           .get()
           .catch(err => { console.error('Erreur chargement depenses accueil:', err); return null; }),
-        stockPromise.catch(err => { console.error('Erreur chargement stock accueil:', err); return []; })
-      ]).then(([ventesSnap, depensesSnap, stocks]) => {
+        stockPromise.catch(err => { console.error('Erreur chargement stock accueil:', err); return []; }),
+        adjustmentsPromise
+      ]).then(async ([ventesSnap, depensesSnap, stocks, adjustmentsSnap]) => {
         let ventesCount = 0;
         let totalCA = 0;
         let totalProfit = 0;
@@ -16958,8 +17050,70 @@ function updateAccueilSummary() {
         if (adminStockDetailEl) {
           adminStockDetailEl.textContent = detailsStock || '---';
         }
+
+        if (adjustmentsCountEl && adjustmentsNetEl && adjustmentsLastEl) {
+          let adjustmentsCount = 0;
+          let netChange = 0;
+          let latestInfo = 'Aucun ajustement aujourd\'hui';
+
+          if (adjustmentsSnap && typeof adjustmentsSnap.forEach === 'function') {
+            const adjustments = [];
+            adjustmentsSnap.forEach(doc => {
+              const data = doc.data() || {};
+              if ((data.type || '').toLowerCase() !== 'ajustement_stock') {
+                return;
+              }
+              const change = parseFloat(data.change) || 0;
+              const ts = data.timestamp && typeof data.timestamp.toDate === 'function'
+                ? data.timestamp.toDate()
+                : null;
+              adjustments.push({
+                change,
+                timestamp: ts,
+                reason: (data.reason || '').toString(),
+                stockId: doc.ref && doc.ref.parent && doc.ref.parent.parent ? doc.ref.parent.parent.id : null
+              });
+              adjustmentsCount += 1;
+              netChange += change;
+            });
+
+            if (adjustments.length) {
+              adjustments.sort((a, b) => {
+                const aTime = a.timestamp ? a.timestamp.getTime() : 0;
+                const bTime = b.timestamp ? b.timestamp.getTime() : 0;
+                return bTime - aTime;
+              });
+              const latest = adjustments[0];
+              const stocksMap = new Map();
+              if (Array.isArray(stocks)) {
+                stocks.forEach(item => {
+                  stocksMap.set(item.id, item);
+                });
+              }
+              const product = latest.stockId && stocksMap.has(latest.stockId)
+                ? (stocksMap.get(latest.stockId).name || stocksMap.get(latest.stockId).label || stocksMap.get(latest.stockId).produit || latest.stockId)
+                : (latest.stockId || '');
+              const changeLabel = `${latest.change > 0 ? '+' : ''}${latest.change}`;
+              const timeLabel = latest.timestamp
+                ? latest.timestamp.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+                : '--';
+              let reason = latest.reason ? latest.reason.trim() : '';
+              if (reason.length > 60) {
+                reason = `${reason.slice(0, 57)}…`;
+              }
+              const productLabel = product ? ` · ${product}` : '';
+              const reasonLabel = reason ? ` – ${reason}` : '';
+              latestInfo = `${changeLabel}${productLabel} (${timeLabel})${reasonLabel}`;
+            }
+          }
+
+          adjustmentsCountEl.textContent = adjustmentsCount.toLocaleString('fr-FR');
+          const netPrefix = netChange > 0 ? '+' : '';
+          adjustmentsNetEl.textContent = `${netPrefix}${netChange.toLocaleString('fr-FR')} u.`;
+          adjustmentsLastEl.textContent = latestInfo;
+        }
       });
-    }
+}
 
     // Sale Loader Functions
     function showSaleLoader() {
