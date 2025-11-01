@@ -8552,6 +8552,9 @@ async function generateSupplierCreditPDF() {
       justify-content: space-between;
       align-items: center;
     }
+    .history-item .depense-info {
+      flex-grow: 1;
+    }
     .history-item:last-child {
       border-bottom: none;
     }
@@ -8563,6 +8566,30 @@ async function generateSupplierCreditPDF() {
       margin-top: 4px;
       font-size: 12px;
       color: #666;
+    }
+    .depense-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 12px;
+    }
+    .depense-edit-btn {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s ease;
+    }
+    .depense-edit-btn:hover {
+      background: rgba(15, 23, 42, 0.06);
+    }
+    .depense-edit-btn i {
+      width: 18px;
+      height: 18px;
     }
     /* Bouton Retour style Facebook */
     .back-btn-fb {
@@ -8599,6 +8626,98 @@ async function generateSupplierCreditPDF() {
     .back-btn-fb:active::after {
       transform: translate(-50%, -50%) scale(1);
     }
+    .depense-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 4000;
+    }
+    .depense-modal-backdrop.active {
+      display: flex;
+    }
+    .depense-modal {
+      background: #ffffff;
+      border-radius: 16px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 16px 48px rgba(15, 23, 42, 0.25);
+      padding: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .depense-modal header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .depense-modal header h3 {
+      margin: 0;
+      font-size: 18px;
+      color: var(--primary-color);
+    }
+    .depense-modal-close {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .depense-modal-close:hover {
+      background: rgba(15, 23, 42, 0.08);
+    }
+    #editDepenseForm input,
+    #editDepenseForm textarea,
+    #editDepenseForm select {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #d0d7de;
+      background: #f9fafb;
+      font-size: 15px;
+      color: #1f2937;
+      box-sizing: border-box;
+    }
+    #editDepenseForm textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+    .edit-depense-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .edit-depense-proof-preview {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .edit-depense-proof-preview img {
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #d0d7de;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
   </style>
 
   <header class="menu-header">
@@ -8624,6 +8743,52 @@ async function generateSupplierCreditPDF() {
     <div class="section-title">Historique récent</div>
     <div id="recent-depenses" class="history-list">
       <p style="text-align:center;">Chargement en cours...</p>
+    </div>
+
+    <div id="editDepenseModal" class="depense-modal-backdrop">
+      <div class="depense-modal">
+        <header>
+          <h3>Modifier la dépense</h3>
+          <button type="button" class="depense-modal-close" onclick="closeEditDepenseModal()">
+            <i data-lucide="x"></i>
+          </button>
+        </header>
+        <form id="editDepenseForm">
+          <label for="editDepenseMontant">Montant (FCFA)</label>
+          <input type="number" id="editDepenseMontant" min="1" step="100" required>
+
+          <label for="editDepenseDescription">Description</label>
+          <textarea id="editDepenseDescription" required></textarea>
+
+          <label for="editDepenseCompteSelect">Compte de trésorerie</label>
+          <select id="editDepenseCompteSelect" required></select>
+
+          <div id="editDepenseProofField" class="proof-field" style="display:none;">
+            <label for="editDepenseProofInput">Capture MoMo (si requis)</label>
+            <input type="file" id="editDepenseProofInput" accept="image/*">
+            <div class="edit-depense-proof-preview">
+              <img id="editDepenseProofPreview" alt="Preuve de paiement" style="display:none;">
+              <label id="editDepenseRemoveProofContainer" style="display:none;">
+                <input type="checkbox" id="editDepenseRemoveProof">
+                Supprimer la preuve actuelle
+              </label>
+            </div>
+            <small class="proof-status" id="editDepenseProofStatus"></small>
+          </div>
+
+          <div class="edit-depense-meta">
+            <span id="editDepenseTypeLabel"></span>
+            <span id="editDepenseDateLabel"></span>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" class="btn-modern secondary" onclick="closeEditDepenseModal()">Annuler</button>
+            <button type="submit" class="btn-modern primary" id="editDepenseSubmitBtn">
+              <i data-lucide="save"></i> Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <button class="btn-modern secondary" onclick="exporterDepenses()">
@@ -8833,21 +8998,413 @@ function renderDepenses(docs) {
     }
     const metaHtml = metaParts.length ? `<small class="depense-meta">${metaParts.join(' • ')}</small>` : "";
 
+    const canEdit = item && (item.type === "depense" || item.type === "depense fonctionnelle" || item.type === "papa");
+    const actionHtml = canEdit
+      ? `<div class="depense-actions"><button type="button" class="depense-edit-btn" data-depense-id="${doc.id}" aria-label="Modifier la dépense"><i data-lucide="pencil"></i></button></div>`
+      : "";
+
     const div = document.createElement("div");
     div.className = "history-item";
     div.innerHTML = `
       <div class="history-icon">${iconHtml}</div>
-      <div class="depense-info" style="flex-grow:1;">
+      <div class="depense-info">
         ${item.description || "Aucune description"}<br>
         <small style="color:#888;">${new Date(item.timestamp).toLocaleString()}</small>
         ${metaHtml}
       </div>
       ${montantDisplay}
+      ${actionHtml}
     `;
+
+    if (canEdit) {
+      const editBtn = div.querySelector(".depense-edit-btn");
+      if (editBtn) {
+        editBtn.addEventListener("click", () => openEditDepenseModal(doc.id));
+      }
+    }
+
     container.appendChild(div);
   });
 
   refreshLucideIcons();     // une seule fois par lot
+}
+
+let currentDepenseEditId = null;
+let currentDepenseOriginalData = null;
+let editDepenseNewProofData = null;
+
+function openEditDepenseModal(depenseId) {
+  const modal = document.getElementById("editDepenseModal");
+  if (!modal) return;
+  const form = document.getElementById("editDepenseForm");
+  const montantInput = document.getElementById("editDepenseMontant");
+  const descriptionInput = document.getElementById("editDepenseDescription");
+  const compteSelect = document.getElementById("editDepenseCompteSelect");
+  const proofField = document.getElementById("editDepenseProofField");
+  const proofPreview = document.getElementById("editDepenseProofPreview");
+  const proofStatus = document.getElementById("editDepenseProofStatus");
+  const removeProofContainer = document.getElementById("editDepenseRemoveProofContainer");
+  const removeProofCheckbox = document.getElementById("editDepenseRemoveProof");
+  const typeLabel = document.getElementById("editDepenseTypeLabel");
+  const dateLabel = document.getElementById("editDepenseDateLabel");
+  const submitBtn = document.getElementById("editDepenseSubmitBtn");
+
+  if (!form || !montantInput || !descriptionInput || !compteSelect || !proofField || !proofPreview || !proofStatus || !removeProofContainer || !removeProofCheckbox || !typeLabel || !dateLabel || !submitBtn) {
+    return;
+  }
+
+  currentDepenseEditId = depenseId;
+  currentDepenseOriginalData = null;
+  editDepenseNewProofData = null;
+  proofPreview.style.display = "none";
+  proofPreview.src = "";
+  proofStatus.textContent = "";
+  removeProofContainer.style.display = "none";
+  removeProofCheckbox.checked = false;
+  submitBtn.disabled = true;
+
+  remplirTousSelectComptes(compteSelect);
+
+  dbFirestore.collection("depenses").doc(depenseId).get()
+    .then(snapshot => {
+      if (!snapshot.exists) {
+        alert("Cette dépense n'existe plus.");
+        closeEditDepenseModal();
+        return;
+      }
+      const data = snapshot.data() || {};
+      currentDepenseOriginalData = { id: depenseId, ...data };
+
+      montantInput.value = data.montant != null ? parseFloat(data.montant).toString() : "";
+      descriptionInput.value = data.description || "";
+      const compteId = data.compteId || "";
+      compteSelect.value = compteId;
+      updateEditDepenseProofRequirement();
+
+      const proofPhoto = data.proofPhoto || null;
+      if (proofPhoto) {
+        proofPreview.src = proofPhoto;
+        proofPreview.style.display = "block";
+        removeProofContainer.style.display = "block";
+        removeProofCheckbox.checked = false;
+      } else {
+        proofPreview.style.display = "none";
+        removeProofContainer.style.display = "none";
+        removeProofCheckbox.checked = false;
+      }
+      proofStatus.textContent = "";
+      editDepenseNewProofData = null;
+
+      const typeText = data.type ? data.type.toString() : "dépense";
+      typeLabel.textContent = `Type : ${typeText}`;
+      const ts = data.timestamp ? new Date(data.timestamp) : null;
+      dateLabel.textContent = ts && !isNaN(ts.getTime())
+        ? `Enregistrée le ${ts.toLocaleString('fr-FR')}`
+        : "";
+
+      updateEditDepenseProofRequirement();
+      submitBtn.disabled = false;
+      modal.classList.add("active");
+      if (typeof lucide !== "undefined" && typeof lucide.createIcons === "function") {
+        refreshLucideIcons();
+      }
+    })
+    .catch(error => {
+      console.error("Erreur chargement dépense :", error);
+      alert("Impossible de charger cette dépense.");
+      closeEditDepenseModal();
+    });
+}
+
+function closeEditDepenseModal() {
+  const modal = document.getElementById("editDepenseModal");
+  if (!modal) return;
+  modal.classList.remove("active");
+  currentDepenseEditId = null;
+  currentDepenseOriginalData = null;
+  editDepenseNewProofData = null;
+  const submitBtn = document.getElementById("editDepenseSubmitBtn");
+  if (submitBtn) {
+    submitBtn.disabled = false;
+  }
+  const form = document.getElementById("editDepenseForm");
+  if (form) {
+    form.reset();
+  }
+  const proofInput = document.getElementById("editDepenseProofInput");
+  if (proofInput) {
+    proofInput.value = "";
+  }
+  const proofPreview = document.getElementById("editDepenseProofPreview");
+  if (proofPreview) {
+    proofPreview.style.display = "none";
+    proofPreview.src = "";
+  }
+  const proofStatus = document.getElementById("editDepenseProofStatus");
+  if (proofStatus) {
+    proofStatus.textContent = "";
+  }
+  const removeProofCheckbox = document.getElementById("editDepenseRemoveProof");
+  if (removeProofCheckbox) {
+    removeProofCheckbox.checked = false;
+  }
+  const proofField = document.getElementById("editDepenseProofField");
+  if (proofField) {
+    proofField.style.display = "none";
+  }
+}
+
+function updateEditDepenseProofRequirement() {
+  const compteSelect = document.getElementById("editDepenseCompteSelect");
+  const proofField = document.getElementById("editDepenseProofField");
+  if (!compteSelect || !proofField) return;
+  const requiresProof = accountRequiresProof(compteSelect.value);
+  const removeProofCheckbox = document.getElementById("editDepenseRemoveProof");
+  const removeChecked = removeProofCheckbox ? removeProofCheckbox.checked : false;
+  const hasExistingProof = currentDepenseOriginalData && currentDepenseOriginalData.proofPhoto && !removeChecked;
+  const shouldDisplay = requiresProof || hasExistingProof || editDepenseNewProofData;
+  proofField.style.display = shouldDisplay ? "block" : "none";
+  const removeProofContainer = document.getElementById("editDepenseRemoveProofContainer");
+  if (removeProofContainer) {
+    const originalHasProof = currentDepenseOriginalData && currentDepenseOriginalData.proofPhoto;
+    removeProofContainer.style.display = originalHasProof ? "block" : "none";
+  }
+}
+
+function handleEditDepenseProofChange(event) {
+  const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+  const proofStatus = document.getElementById("editDepenseProofStatus");
+  const proofPreview = document.getElementById("editDepenseProofPreview");
+  const removeProofContainer = document.getElementById("editDepenseRemoveProofContainer");
+  const removeProofCheckbox = document.getElementById("editDepenseRemoveProof");
+  if (!file) {
+    editDepenseNewProofData = null;
+    if (proofStatus) proofStatus.textContent = "";
+    if (proofPreview) {
+      if (currentDepenseOriginalData && currentDepenseOriginalData.proofPhoto) {
+        proofPreview.src = currentDepenseOriginalData.proofPhoto;
+        proofPreview.style.display = "block";
+        if (removeProofContainer) removeProofContainer.style.display = "block";
+      } else {
+        proofPreview.style.display = "none";
+        if (removeProofContainer) removeProofContainer.style.display = "none";
+      }
+    }
+    if (removeProofCheckbox) removeProofCheckbox.checked = false;
+    updateEditDepenseProofRequirement();
+    return;
+  }
+
+  try {
+    compressImage(file, 1280, 1280, 0.7, function (dataUrl) {
+      editDepenseNewProofData = dataUrl;
+      if (proofPreview) {
+        proofPreview.src = dataUrl;
+        proofPreview.style.display = "block";
+      }
+      if (proofStatus) {
+        proofStatus.textContent = "Nouvelle capture enregistrée.";
+      }
+      if (removeProofContainer) removeProofContainer.style.display = "block";
+      if (removeProofCheckbox) removeProofCheckbox.checked = false;
+      updateEditDepenseProofRequirement();
+    });
+  } catch (error) {
+    console.error("Erreur traitement preuve depense :", error);
+    alert("Impossible de traiter la capture. Réessayez.");
+    editDepenseNewProofData = null;
+    updateEditDepenseProofRequirement();
+  }
+}
+
+async function submitEditDepense(event) {
+  event.preventDefault();
+  const modal = document.getElementById("editDepenseModal");
+  if (!modal || !currentDepenseEditId || !currentDepenseOriginalData) {
+    return;
+  }
+  const montantInput = document.getElementById("editDepenseMontant");
+  const descriptionInput = document.getElementById("editDepenseDescription");
+  const compteSelect = document.getElementById("editDepenseCompteSelect");
+  const removeProofCheckbox = document.getElementById("editDepenseRemoveProof");
+  const proofStatus = document.getElementById("editDepenseProofStatus");
+  const submitBtn = document.getElementById("editDepenseSubmitBtn");
+
+  if (!montantInput || !descriptionInput || !compteSelect || !submitBtn) {
+    return;
+  }
+
+  const nouveauMontant = parseFloat(montantInput.value);
+  const nouvelleDescription = descriptionInput.value.trim();
+  const nouveauCompteId = compteSelect.value;
+
+  if (!nouveauMontant || nouveauMontant <= 0 || !nouvelleDescription) {
+    alert("Montant ou description invalide.");
+    return;
+  }
+  if (!nouveauCompteId) {
+    alert("Veuillez sélectionner un compte de trésorerie.");
+    return;
+  }
+
+  const requiresProof = accountRequiresProof(nouveauCompteId);
+  let proofPhoto = currentDepenseOriginalData.proofPhoto || null;
+  if (removeProofCheckbox && removeProofCheckbox.checked) {
+    proofPhoto = null;
+  }
+  if (editDepenseNewProofData) {
+    proofPhoto = editDepenseNewProofData;
+  }
+  if (requiresProof && !proofPhoto) {
+    if (proofStatus) {
+      proofStatus.textContent = "Une capture est obligatoire pour ce compte.";
+    }
+    alert("Une capture MoMo est obligatoire pour ce compte.");
+    return;
+  }
+
+  const user = firebase.auth().currentUser;
+  const userUid = user && user.uid ? user.uid : null;
+  const userNom = user ? (user.displayName || user.email || user.phoneNumber || user.uid) : null;
+
+  const ancienneValeur = parseFloat(currentDepenseOriginalData.montant) || 0;
+  const ancienCompteId = currentDepenseOriginalData.compteId || "";
+  const ancienType = currentDepenseOriginalData.type || "";
+
+  submitBtn.disabled = true;
+
+  try {
+    if (nouveauCompteId === ancienCompteId) {
+      const delta = nouveauMontant - ancienneValeur;
+      if (Math.abs(delta) > 0.001) {
+        await enregistrerMouvementTresorerie({
+          compteId: nouveauCompteId,
+          type: 'ajustement_depense',
+          sens: delta > 0 ? 'out' : 'in',
+          montant: Math.abs(delta),
+          description: `Ajustement dépense ${nouvelleDescription}`,
+          refId: currentDepenseEditId
+        });
+      }
+    } else {
+      if (ancienneValeur > 0 && ancienCompteId) {
+        await enregistrerMouvementTresorerie({
+          compteId: ancienCompteId,
+          type: 'ajustement_depense_transfert',
+          sens: 'in',
+          montant: ancienneValeur,
+          description: `Correction compte dépense ${currentDepenseOriginalData.description || ''}`,
+          refId: currentDepenseEditId
+        });
+      }
+      if (nouveauMontant > 0) {
+        await enregistrerMouvementTresorerie({
+          compteId: nouveauCompteId,
+          type: 'depense',
+          sens: 'out',
+          montant: nouveauMontant,
+          description: nouvelleDescription,
+          refId: currentDepenseEditId,
+          encaissementPhotos: proofPhoto ? [proofPhoto] : null
+        });
+      }
+    }
+
+    const nouveauCompteNom = typeof getCompteDisplayName === "function"
+      ? getCompteDisplayName(nouveauCompteId)
+      : (typeof getCompteNomById === "function" ? getCompteNomById(nouveauCompteId) : nouveauCompteId);
+
+    const depenseRef = dbFirestore.collection("depenses").doc(currentDepenseEditId);
+    const historyEntry = {
+      at: firebase.firestore.FieldValue.serverTimestamp(),
+      userUid,
+      userNom,
+      before: {
+        montant: ancienneValeur,
+        description: currentDepenseOriginalData.description || "",
+        compteId: ancienCompteId
+      },
+      after: {
+        montant: nouveauMontant,
+        description: nouvelleDescription,
+        compteId: nouveauCompteId
+      }
+    };
+
+    const updatePayload = {
+      montant: nouveauMontant,
+      description: nouvelleDescription,
+      compteId: nouveauCompteId,
+      compteNom: nouveauCompteNom,
+      updatedAt: Date.now(),
+      updatedByUid: userUid || null,
+      updatedByNom: userNom || null,
+      history: firebase.firestore.FieldValue.arrayUnion(historyEntry)
+    };
+    if (proofPhoto) {
+      updatePayload.proofPhoto = proofPhoto;
+    } else {
+      updatePayload.proofPhoto = null;
+    }
+
+    await depenseRef.update(updatePayload);
+
+    alert("Dépense mise à jour avec succès.");
+    closeEditDepenseModal();
+    if (typeof afficherDepensesAujourdhui === "function") {
+      afficherDepensesAujourdhui();
+    }
+    if (typeof initEcranDepenses === "function") {
+      initEcranDepenses();
+    }
+    if (typeof updateBalanceDisplay === "function") {
+      updateBalanceDisplay();
+    }
+    if (typeof updateDepensePapaBalance === "function" && ancienType && ancienType.toLowerCase().includes('papa')) {
+      updateDepensePapaBalance();
+    }
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour de la dépense :", error);
+    alert("Impossible de mettre à jour la dépense : " + error.message);
+  } finally {
+    const submitBtnReset = document.getElementById("editDepenseSubmitBtn");
+    if (submitBtnReset) {
+      submitBtnReset.disabled = false;
+    }
+  }
+}
+
+const editDepenseCompteSelect = document.getElementById("editDepenseCompteSelect");
+if (editDepenseCompteSelect) {
+  editDepenseCompteSelect.addEventListener("change", updateEditDepenseProofRequirement);
+}
+const editDepenseProofInput = document.getElementById("editDepenseProofInput");
+if (editDepenseProofInput) {
+  editDepenseProofInput.addEventListener("change", handleEditDepenseProofChange);
+}
+const editDepenseForm = document.getElementById("editDepenseForm");
+if (editDepenseForm) {
+  editDepenseForm.addEventListener("submit", submitEditDepense);
+}
+const editDepenseRemoveProof = document.getElementById("editDepenseRemoveProof");
+if (editDepenseRemoveProof) {
+  editDepenseRemoveProof.addEventListener("change", () => {
+    const proofPreview = document.getElementById("editDepenseProofPreview");
+    if (editDepenseRemoveProof.checked) {
+      if (proofPreview) {
+        proofPreview.style.display = "none";
+      }
+    } else if (proofPreview) {
+      if (editDepenseNewProofData) {
+        proofPreview.src = editDepenseNewProofData;
+        proofPreview.style.display = "block";
+      } else if (currentDepenseOriginalData && currentDepenseOriginalData.proofPhoto) {
+        proofPreview.src = currentDepenseOriginalData.proofPhoto;
+        proofPreview.style.display = "block";
+      }
+    }
+    updateEditDepenseProofRequirement();
+  });
 }
 
     /**
