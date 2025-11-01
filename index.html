@@ -12158,27 +12158,89 @@ function rafraichirResumePaiementFournisseur() {
     return { totalDue, totalEntered, balanceAfterPayment };
 }
 
-function renderSupplierPaymentsHistory() {
-    const container = document.getElementById('supplierPaymentsHistoryContainer');
-    if (!container) {
-        return;
+function buildSupplierPaymentGroups(payments, orders = []) {
+    if (!Array.isArray(payments) || !payments.length) {
+        return [];
     }
 
-    const data = currentSupplierBalanceData;
-    const payments = data && Array.isArray(data.paymentsHistory) ? data.paymentsHistory : [];
-
-    if (!payments.length) {
-        container.innerHTML = '<p class="placeholder">Aucun paiement enregistré.</p>';
-        return;
-    }
-
-    const orders = data && Array.isArray(data.orders) ? data.orders : [];
     const ordersById = new Map();
     orders.forEach(order => {
         if (order && order.id) {
             ordersById.set(order.id, order);
         }
     });
+
+    const groupsMap = new Map();
+
+    payments.forEach(payment => {
+        const rawAmount = Number.parseFloat(payment.amount);
+        if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
+            return;
+        }
+
+        let dateObj = null;
+        if (payment.date instanceof Date) {
+            dateObj = payment.date;
+        } else if (payment.date && typeof payment.date.toDate === 'function') {
+            dateObj = payment.date.toDate();
+        } else if (payment.date) {
+            dateObj = new Date(payment.date);
+        }
+        if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+            dateObj = new Date();
+        }
+
+        const timestampKey = dateObj.getTime();
+        const accountKey = (payment.accountId || payment.account || 'autre').toString();
+        const groupKey = `${timestampKey}__${accountKey}`;
+
+        if (!groupsMap.has(groupKey)) {
+            groupsMap.set(groupKey, {
+                timestamp: timestampKey,
+                date: dateObj,
+                account: payment.account || payment.accountId || 'Compte',
+                accountId: payment.accountId || '',
+                totalAmount: 0,
+                payments: [],
+                orderReferences: [],
+                proofPhotos: []
+            });
+        }
+
+        const group = groupsMap.get(groupKey);
+        group.totalAmount += rawAmount;
+        group.payments.push(payment);
+
+        if (payment.proofPhoto && !group.proofPhotos.includes(payment.proofPhoto)) {
+            group.proofPhotos.push(payment.proofPhoto);
+        }
+
+        if (payment.refApproId) {
+            const relatedOrder = ordersById.get(payment.refApproId);
+            const refLabel = relatedOrder && relatedOrder.reference
+                ? relatedOrder.reference
+                : payment.refApproId.toString().slice(0, 6).toUpperCase();
+            if (!group.orderReferences.includes(refLabel)) {
+                group.orderReferences.push(refLabel);
+            }
+        }
+    });
+
+    const groups = Array.from(groupsMap.values());
+    groups.sort((a, b) => b.timestamp - a.timestamp);
+    return groups;
+}
+
+function renderSupplierPaymentsHistory(groups) {
+    const container = document.getElementById('supplierPaymentsHistoryContainer');
+    if (!container) {
+        return 0;
+    }
+
+    if (!Array.isArray(groups) || !groups.length) {
+        container.innerHTML = '<p class="placeholder">Aucun paiement enregistré.</p>';
+        return 0;
+    }
 
     const escapeFn = typeof escapeHtmlStock === 'function'
         ? escapeHtmlStock
@@ -12188,39 +12250,32 @@ function renderSupplierPaymentsHistory() {
             return helper.innerHTML;
         };
 
-    const rows = payments.map(payment => {
-        const amountValue = Number.parseFloat(payment.amount) || 0;
-        const roundedAmount = Math.round(amountValue);
+    const rows = groups.map(group => {
+        const roundedAmount = Math.round(group.totalAmount || 0);
         const displayAmount = `${fmt(roundedAmount)} FCFA`;
 
-        let paymentDate = null;
-        if (payment && payment.date instanceof Date) {
-            paymentDate = payment.date;
-        } else if (payment && payment.date && typeof payment.date.toDate === 'function') {
-            paymentDate = payment.date.toDate();
-        }
-        const dateLabel = paymentDate && !isNaN(paymentDate.getTime())
-            ? paymentDate.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        const dateLabel = group.date instanceof Date && !isNaN(group.date.getTime())
+            ? group.date.toLocaleString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
             : 'Date indisponible';
 
-        const relatedOrder = ordersById.get(payment.refApproId);
-        const rawReference = relatedOrder && relatedOrder.reference
-            ? relatedOrder.reference
-            : (payment.refApproId ? payment.refApproId.toString().slice(0, 6).toUpperCase() : 'N/A');
+        const safeAccount = escapeFn(group.account || 'Compte');
+        const orderRefs = Array.isArray(group.orderReferences) && group.orderReferences.length
+            ? `Commandes : ${escapeFn(group.orderReferences.join(', '))}`
+            : '';
 
-        const accountLabel = payment.account || payment.accountId || 'Compte non renseigné';
-        const safeAccount = escapeFn(accountLabel);
-        const safeReference = escapeFn(rawReference);
+        const proofButtons = Array.isArray(group.proofPhotos) && group.proofPhotos.length
+            ? group.proofPhotos.map((photo, idx) => {
+                const proofUrl = photo.toString().replace(/'/g, "\\'");
+                const labelSuffix = group.proofPhotos.length > 1 ? ` ${idx + 1}` : '';
+                return `<button type="button" class="btn-modern secondary" onclick="ouvrirPreuvePaiement('${proofUrl}')">
+                <i data-lucide="image"></i> Preuve${labelSuffix}
+              </button>`;
+            }).join('')
+            : '';
 
-        let actionsMarkup = '';
-        if (payment.proofPhoto) {
-            const proofUrl = payment.proofPhoto.toString().replace(/'/g, "\\'");
-            actionsMarkup = `<div class="supplier-payment-item-actions">
-              <button type="button" class="btn-modern secondary" onclick="ouvrirPreuvePaiement('${proofUrl}')">
-                <i data-lucide="image"></i> Preuve
-              </button>
-            </div>`;
-        }
+        const actionsMarkup = proofButtons
+            ? `<div class="supplier-payment-item-actions">${proofButtons}</div>`
+            : '';
 
         return `
         <div class="supplier-payment-item">
@@ -12228,7 +12283,7 @@ function renderSupplierPaymentsHistory() {
             <strong>${displayAmount}</strong>
             <span class="payment-date">${dateLabel}</span>
             <span class="payment-account">Compte : ${safeAccount}</span>
-            <span class="payment-ref">Commande : ${safeReference}</span>
+            ${orderRefs ? `<span class="payment-ref">${orderRefs}</span>` : ''}
           </div>
           ${actionsMarkup}
         </div>`;
@@ -12239,6 +12294,8 @@ function renderSupplierPaymentsHistory() {
     if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
         refreshLucideIcons();
     }
+
+    return groups.length;
 }
 
 function toggleSupplierPaymentsList(forceState) {
@@ -14349,9 +14406,6 @@ function renderSupplierBalanceScreen() {
     if (paymentWarningEl) {
         paymentWarningEl.textContent = '';
     }
-    if (paymentsSummaryCardEl) {
-        paymentsSummaryCardEl.removeAttribute('aria-disabled');
-    }
     const paymentsHistory = Array.isArray(data.paymentsHistory) ? data.paymentsHistory : [];
     const paymentsHistoryTotal = typeof data.paymentsHistoryTotal === 'number'
         ? data.paymentsHistoryTotal
@@ -14359,21 +14413,36 @@ function renderSupplierBalanceScreen() {
     if (paymentsTotalEl) {
         paymentsTotalEl.textContent = `${formatValue(paymentsHistoryTotal)} FCFA`;
     }
+
+    const paymentGroups = buildSupplierPaymentGroups(paymentsHistory, Array.isArray(data.orders) ? data.orders : []);
+    const groupsCount = paymentGroups.length;
+
+    if (paymentsSummaryCardEl) {
+        if (groupsCount === 0) {
+            paymentsSummaryCardEl.setAttribute('aria-disabled', 'true');
+        } else {
+            paymentsSummaryCardEl.removeAttribute('aria-disabled');
+        }
+    }
     if (paymentsCountEl) {
-        if (paymentsHistory.length === 0) {
+        if (groupsCount === 0) {
             paymentsCountEl.textContent = 'Aucun paiement enregistré';
         } else {
-            const suffix = paymentsHistory.length > 1 ? 's' : '';
-            paymentsCountEl.textContent = `${paymentsHistory.length} paiement${suffix}`;
+            const suffix = groupsCount > 1 ? 's' : '';
+            paymentsCountEl.textContent = `${groupsCount} paiement${suffix}`;
         }
     }
     if (!Array.isArray(data.paymentsHistory)) {
         data.paymentsHistory = paymentsHistory;
     }
     data.paymentsHistoryTotal = paymentsHistoryTotal;
-    renderSupplierPaymentsHistory();
+    const renderedCount = renderSupplierPaymentsHistory(paymentGroups);
     if (paymentsHistoryCardEl) {
-        paymentsHistoryCardEl.style.display = supplierPaymentsListOpen ? 'block' : 'none';
+        const shouldShow = supplierPaymentsListOpen && renderedCount > 0;
+        paymentsHistoryCardEl.style.display = shouldShow ? 'block' : 'none';
+    }
+    if (supplierPaymentsListOpen && renderedCount === 0) {
+        supplierPaymentsListOpen = false;
     }
 
     if (pendingSupplierPaymentDialog) {
