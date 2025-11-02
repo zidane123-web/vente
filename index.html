@@ -18622,6 +18622,7 @@ function renderVentePayments() {
     const compteSelect = document.createElement('select');
     compteSelect.id = 'compteSelectVente-' + payment.id;
     compteSelect.className = 'vente-payment-account';
+    compteSelect.dataset.paymentId = payment.id;
     compteSelect.addEventListener('change', event => {
       onVentePaymentFieldChange(payment.id, 'compteId', event.target.value);
     });
@@ -18666,6 +18667,8 @@ function renderVentePayments() {
     encaisseBtn.type = 'button';
     encaisseBtn.className = 'btn-modern secondary';
     encaisseBtn.style.whiteSpace = 'nowrap';
+    encaisseBtn.dataset.paymentId = payment.id;
+    encaisseBtn.dataset.proofType = 'encaisse';
     encaisseBtn.innerHTML = '<i data-lucide="camera"></i> Preuve encaissement';
     encaisseBtn.addEventListener('click', () => encaisseInput.click());
     proofsActions.appendChild(encaisseBtn);
@@ -18674,6 +18677,8 @@ function renderVentePayments() {
     monnaieBtn.type = 'button';
     monnaieBtn.className = 'btn-modern secondary';
     monnaieBtn.style.whiteSpace = 'nowrap';
+    monnaieBtn.dataset.paymentId = payment.id;
+    monnaieBtn.dataset.proofType = 'monnaie';
     monnaieBtn.innerHTML = '<i data-lucide="camera"></i> Preuve monnaie';
     monnaieBtn.addEventListener('click', () => monnaieInput.click());
     proofsActions.appendChild(monnaieBtn);
@@ -18745,10 +18750,39 @@ function renderVentePayments() {
     if (selectEl) {
       selectEl.value = payment.compteId || '';
     }
+    updateVentePaymentProofUI(payment.id);
   });
 
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
     refreshLucideIcons();
+  }
+}
+
+function updateVentePaymentProofUI(paymentId) {
+  const payment = ventePayments.find(p => p.id === paymentId);
+  if (!payment) {
+    return;
+  }
+  const row = document.querySelector(`.vente-payment-row[data-payment-id="${paymentId}"]`);
+  if (!row) {
+    return;
+  }
+  const requiresProof = payment.compteId ? accountRequiresProof(payment.compteId) : false;
+  const encaisseBtn = row.querySelector('.vente-payment-proof-actions .btn-modern[data-proof-type="encaisse"]');
+  const monnaieBtn = row.querySelector('.vente-payment-proof-actions .btn-modern[data-proof-type="monnaie"]');
+  if (encaisseBtn) {
+    const encaisseLabel = requiresProof ? 'Preuve encaissement (obligatoire)' : 'Preuve encaissement';
+    encaisseBtn.innerHTML = '<i data-lucide="camera"></i> ' + encaisseLabel;
+  }
+  if (monnaieBtn) {
+    const monnaiePositive = parseFloat(payment.monnaieRendue) > 0;
+    const monnaieLabel = monnaiePositive ? 'Preuve monnaie (obligatoire)' : 'Preuve monnaie (obligatoire si monnaie)';
+    monnaieBtn.innerHTML = '<i data-lucide="camera"></i> ' + monnaieLabel;
+  }
+  if (typeof refreshLucideIcons === 'function') {
+    refreshLucideIcons();
+  } else if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
   }
 }
 
@@ -18760,6 +18794,9 @@ function onVentePaymentFieldChange(paymentId, field, value) {
 
   payment[field] = value;
   rafraichirResumePaiementVente();
+  if (field === 'compteId' || field === 'montantEncaisse' || field === 'monnaieRendue') {
+    updateVentePaymentProofUI(paymentId);
+  }
 }
 
 function supprimerLignePaiementVente(paymentId) {
@@ -18837,6 +18874,7 @@ function analyserPaiementsVente() {
     }
     const encaisse = parseFloat(payment.montantEncaisse) || 0;
     const change = parseFloat(payment.monnaieRendue) || 0;
+    const compteId = payment.compteId || '';
 
     if (encaisse < 0 || change < 0) {
       valid = false;
@@ -18844,9 +18882,31 @@ function analyserPaiementsVente() {
       break;
     }
 
-    if ((encaisse > 0 || change > 0) && !payment.compteId) {
+    if ((encaisse > 0 || change > 0) && !compteId) {
       valid = false;
       message = 'Sélectionnez un compte de trésorerie pour chaque encaissement.';
+      break;
+    }
+
+    const requiresProof = compteId ? accountRequiresProof(compteId) : false;
+    const compteNom = compteId
+      ? (typeof getCompteDisplayName === 'function'
+          ? getCompteDisplayName(compteId)
+          : (typeof getCompteNomById === 'function' ? getCompteNomById(compteId) : compteId))
+      : 'ce paiement';
+    const hasEncaisseProof = Boolean(payment.encaissePhoto) ||
+      (Array.isArray(payment.encaissePhotos) && payment.encaissePhotos.some(photo => !!photo));
+    if (requiresProof && encaisse > 0 && !hasEncaisseProof) {
+      valid = false;
+      message = `Ajoutez la capture MoMo de l'encaissement pour ${compteNom}.`;
+      break;
+    }
+
+    const hasMonnaieProof = Boolean(payment.monnaiePhoto) ||
+      (Array.isArray(payment.monnaiePhotos) && payment.monnaiePhotos.some(photo => !!photo));
+    if (change > 0 && !hasMonnaieProof) {
+      valid = false;
+      message = `Ajoutez la photo de la monnaie rendue pour ${compteNom}.`;
       break;
     }
 
