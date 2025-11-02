@@ -1062,6 +1062,10 @@ body.role-employe #screen-accueil .ako-quick-grid {
       gap: 10px;
       align-items: center;
     }
+    .vente-payment-row-error {
+      box-shadow: 0 0 0 2px #c0392b;
+      border-radius: var(--border-radius);
+    }
     .vente-payment-row select,
     .vente-payment-row input {
       width: 100%;
@@ -18478,7 +18482,8 @@ function updateAccueilSummary() {
     }
   }
   if (activeStepId === 'step3') {
-    if (!validateVentePayments(true)) {
+    const paiementValidation = validateVentePayments(true);
+    if (!paiementValidation.valid) {
       return;
     }
   }
@@ -18725,6 +18730,8 @@ function renderVentePayments() {
     amountInput.step = '100';
     amountInput.placeholder = 'Montant encaissé';
     amountInput.value = payment.montantEncaisse || '';
+    amountInput.dataset.paymentId = payment.id;
+    amountInput.dataset.paymentField = 'encaisse';
     amountInput.addEventListener('input', event => {
       onVentePaymentFieldChange(payment.id, 'montantEncaisse', event.target.value);
     });
@@ -18736,6 +18743,8 @@ function renderVentePayments() {
     changeInput.step = '100';
     changeInput.placeholder = 'Monnaie rendue';
     changeInput.value = payment.monnaieRendue || '';
+    changeInput.dataset.paymentId = payment.id;
+    changeInput.dataset.paymentField = 'monnaie';
     changeInput.addEventListener('input', event => {
       onVentePaymentFieldChange(payment.id, 'monnaieRendue', event.target.value);
     });
@@ -18867,6 +18876,8 @@ function analyserPaiementsVente() {
   let valid = true;
   let hasPositiveEncaisse = false;
   const isDeliverySale = currentSaleMode === 'delivery';
+  let invalidPaymentId = null;
+  let invalidField = null;
 
   for (const payment of ventePayments) {
     if (!valid) {
@@ -18879,12 +18890,16 @@ function analyserPaiementsVente() {
     if (encaisse < 0 || change < 0) {
       valid = false;
       message = 'Les montants encaissés ou rendus ne peuvent pas être négatifs.';
+      invalidPaymentId = payment.id;
+      invalidField = encaisse < 0 ? 'encaisse' : 'monnaie';
       break;
     }
 
     if ((encaisse > 0 || change > 0) && !compteId) {
       valid = false;
       message = 'Sélectionnez un compte de trésorerie pour chaque encaissement.';
+      invalidPaymentId = payment.id;
+      invalidField = 'compte';
       break;
     }
 
@@ -18899,6 +18914,8 @@ function analyserPaiementsVente() {
     if (requiresProof && encaisse > 0 && !hasEncaisseProof) {
       valid = false;
       message = `Ajoutez la capture MoMo de l'encaissement pour ${compteNom}.`;
+      invalidPaymentId = payment.id;
+      invalidField = 'encaisseProof';
       break;
     }
 
@@ -18907,6 +18924,8 @@ function analyserPaiementsVente() {
     if (change > 0 && !hasMonnaieProof) {
       valid = false;
       message = `Ajoutez la photo de la monnaie rendue pour ${compteNom}.`;
+      invalidPaymentId = payment.id;
+      invalidField = 'monnaieProof';
       break;
     }
 
@@ -18935,7 +18954,7 @@ function analyserPaiementsVente() {
     }
   }
 
-  return { valid, message, due, totalEncaisse, totalChange, net };
+  return { valid, message, due, totalEncaisse, totalChange, net, invalidPaymentId, invalidField };
 }
 
 function rafraichirResumePaiementVente() {
@@ -18962,17 +18981,66 @@ function rafraichirResumePaiementVente() {
   }
   if (warningEl) {
     warningEl.textContent = stats.valid ? '' : stats.message;
+    if (stats.invalidPaymentId) {
+      warningEl.dataset.paymentId = stats.invalidPaymentId;
+    } else {
+      warningEl.removeAttribute('data-payment-id');
+    }
   }
 
   return stats;
 }
 
 function validateVentePayments(showAlert = true) {
-  const stats = rafraichirResumePaiementVente();
-  if (!stats.valid && showAlert) {
-    alert(stats.message || 'Veuillez vérifier le détail des encaissements.');
+  const stats = rafraichirResumePaiementVente() || { valid: false, message: 'Erreur lors de la validation des encaissements.' };
+  if (!stats.valid) {
+    const feedbackMessage = stats.message || 'Veuillez vérifier le détail des encaissements.';
+    if (showAlert) {
+      if (typeof showToast === 'function') {
+        showToast(feedbackMessage);
+      } else {
+        alert(feedbackMessage);
+      }
+    }
+    focusVentePaymentIssue(stats);
   }
-  return stats.valid;
+  return stats;
+}
+
+function focusVentePaymentIssue(stats) {
+  if (!stats || stats.valid || !stats.invalidPaymentId) {
+    return;
+  }
+  const row = document.querySelector(`.vente-payment-row[data-payment-id="${stats.invalidPaymentId}"]`);
+  if (!row) {
+    return;
+  }
+  let target = null;
+  switch (stats.invalidField) {
+    case 'compte':
+      target = row.querySelector('.vente-payment-account');
+      break;
+    case 'encaisse':
+      target = row.querySelector('[data-payment-field="encaisse"]');
+      break;
+    case 'monnaie':
+      target = row.querySelector('[data-payment-field="monnaie"]');
+      break;
+    case 'encaisseProof':
+      target = row.querySelector('.vente-payment-proof-actions .btn-modern[data-proof-type="encaisse"]');
+      break;
+    case 'monnaieProof':
+      target = row.querySelector('.vente-payment-proof-actions .btn-modern[data-proof-type="monnaie"]');
+      break;
+    default:
+      target = null;
+  }
+  row.classList.add('vente-payment-row-error');
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (target && typeof target.focus === 'function') {
+    setTimeout(() => target.focus(), 50);
+  }
+  setTimeout(() => row.classList.remove('vente-payment-row-error'), 2000);
 }
 
     // Compression d'image
@@ -22038,16 +22106,23 @@ function continuerDepuisPanier() {
       }
       await finaliserVente(clientNom, clientNumero, clientTypeValue, vendeur, compressedPhotos, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison);
     }
- async function finaliserVente(clientNom, clientNumero, clientType, vendeur, photosData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
-    const user = firebase.auth().currentUser;
-    if (!user) {
-      alert("Erreur: Utilisateur non connecté. Reconnexion nécessaire.");
-      hideSaleLoader();
-      return;
+async function finaliserVente(clientNom, clientNumero, clientType, vendeur, photosData, observationsVendeur, isDelivery, livreurId, livreurNom, livreurNumero, lieuLivraison) {
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    alert("Erreur: Utilisateur non connecté. Reconnexion nécessaire.");
+    hideSaleLoader();
+    return;
+  }
+  const paiementValidation = validateVentePayments(false);
+  if (!paiementValidation.valid) {
+    const feedbackMessage = paiementValidation.message || 'Veuillez vérifier le détail des encaissements.';
+    if (typeof showToast === 'function') {
+      showToast(feedbackMessage);
+    } else {
+      alert(feedbackMessage);
     }
-    if (!validateVentePayments(true)) {
-      return;
-    }
+    return;
+  }
   showSaleLoader();
     const saleClientType = normalizeClientType(clientType, 'ordinaire');
     
@@ -22083,12 +22158,7 @@ function continuerDepuisPanier() {
     // On attend que tous les calculs de profit soient terminés
     await Promise.all(profitCalculations);
 
-    const paiementStats = rafraichirResumePaiementVente();
-    if (!paiementStats || !paiementStats.valid) {
-        hideSaleLoader();
-        alert(paiementStats && paiementStats.message ? paiementStats.message : 'Veuillez vérifier le détail des encaissements.');
-        return;
-    }
+  const paiementStats = paiementValidation;
 
     const paiementDetails = ventePayments
         .map(paiement => {
