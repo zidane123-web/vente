@@ -193,6 +193,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
       -ms-user-select: none;
     }
 
+    button:disabled,
+    button.auto-disabled {
+      opacity: 0.6;
+      cursor: not-allowed !important;
+    }
+
   /* CORRECTIF POUR LE SCROLL APRÈS L'AJOUT D'IONIC
   */
   .screen {
@@ -26828,6 +26834,41 @@ function analyserPaiementsLivraison() {
 
   return { valid, message, totalEncaisse, totalChange, net };
 }
+
+(function initAutoDisableButtons() {
+  // Prevent rapid double submissions by temporarily disabling buttons after interaction.
+  const DISABLE_CLASS = 'auto-disabled';
+  const DEFAULT_TIMEOUT_MS = 5000;
+
+  document.addEventListener('click', event => {
+    const isMouseEvent = typeof event.button === 'number';
+    if (isMouseEvent && event.button !== 0) {
+      return;
+    }
+
+    const target = event.target instanceof Element ? event.target.closest('button') : null;
+    if (!target || target.disabled || target.dataset.noAutoDisable === 'true') {
+      return;
+    }
+
+    target.dataset.autoDisabled = 'true';
+    target.disabled = true;
+    target.classList.add(DISABLE_CLASS);
+
+    const timeoutAttr = target.getAttribute('data-auto-disable-timeout');
+    const parsedTimeout = timeoutAttr ? Number(timeoutAttr) : NaN;
+    const delay = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : DEFAULT_TIMEOUT_MS;
+
+    window.setTimeout(() => {
+      if (target.dataset.autoDisabled !== 'true') {
+        return;
+      }
+      target.disabled = false;
+      target.classList.remove(DISABLE_CLASS);
+      delete target.dataset.autoDisabled;
+    }, delay);
+  }, true);
+})();
 
 function rafraichirResumePaiementLivraison() {
   const totals = livraisonModalContext ? livraisonModalContext.totals : { due: 0, totalEncaisse: 0, totalChange: 0, net: 0, outstanding: 0 };
