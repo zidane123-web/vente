@@ -8949,6 +8949,12 @@ async function generateSupplierCreditPDF() {
   </header>
 
   <div class="depenses-container">
+    <div class="depenses-summary" aria-live="polite">
+      <div class="summary-item">
+        <h2 id="depenses-today">-XOF 0</h2>
+        <p>Dépenses enregistrées aujourd'hui</p>
+      </div>
+    </div>
     <div class="actions">
       <button class="btn-modern secondary" onclick="window.location.hash='depense-fonctionnelle'">
         <i data-lucide="file-minus"></i> Dépense Fonctionnelle
