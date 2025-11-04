@@ -1,14 +1,16 @@
-# Node dependencies
-node_modules/
+# Ignore everything by default so only runtime assets end up on GitHub
+/*
 
-# Firebase admin credentials
-africaphone1-accfb-firebase-adminsdk-fbsvc-37efae2abd.json
+# Keep ignore rules themselves
+!.gitignore
 
-# Local utility scripts
-apply_employee_restrictions.js
-createEmployees.js
+# Allow the files required to render the POS UI
+!index.html
+!login.html
+!livraison.js
+!manifest.json
+!sw.js
 
-# Environment & system files
-.env
-.DS_Store
-Thumbs.db
+# Allow icon assets referenced by the manifest
+!icons/
+!icons/**
