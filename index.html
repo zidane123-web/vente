@@ -193,6 +193,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
       -ms-user-select: none;
     }
 
+    button.auto-disabled,
+    button[data-auto-disable][disabled] {
+      opacity: 0.6;
+      cursor: not-allowed !important;
+    }
+
   /* CORRECTIF POUR LE SCROLL APRÈS L'AJOUT D'IONIC
   */
   .screen {
@@ -1970,7 +1976,6 @@ body.drawer-open {
   color: #64748b;
   font-size: 14px;
 }
-
 #screen-salaires .salary-month-picker {
   display: flex;
   flex-direction: column;
@@ -2001,7 +2006,6 @@ body.drawer-open {
   border-color: #1d4ed8;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
-
 #screen-salaires .salary-performance-badge {
   display: inline-flex;
   align-items: center;
@@ -2944,7 +2948,7 @@ body.drawer-open {
             <button class="btn-modern secondary" onclick="prevStep()">
               <i data-lucide="arrow-left"></i> Retour
             </button>
-            <button class="btn-modern" id="btnValider" onclick="if(confirm(getValidationMessage())) { validerVente(); }">
+            <button class="btn-modern" id="btnValider" data-auto-disable="true" onclick="handleSaleValidationClick(event)">
               Confirmer la Vente
             </button>
           </div>
@@ -8147,7 +8151,7 @@ async function generateSupplierCreditPDF() {
       <div class="salary-panel-heading">
         <div>
           <h3>Ventes par employe</h3>
-          <small id="salaryEmployeeSubtitle">Mois en cours</small>
+          <small id="salaryEmployeeSubtitle">Telephones du mois en cours</small>
         </div>
       </div>
       <div class="table-wrapper">
@@ -9045,7 +9049,7 @@ async function generateSupplierCreditPDF() {
 
           <div class="modal-actions">
             <button type="button" class="btn-modern secondary" onclick="closeEditDepenseModal()">Annuler</button>
-            <button type="submit" class="btn-modern primary" id="editDepenseSubmitBtn">
+            <button type="submit" class="btn-modern primary" id="editDepenseSubmitBtn" data-auto-disable="true">
               <i data-lucide="save"></i> Enregistrer
             </button>
           </div>
@@ -16299,7 +16303,7 @@ async function annulerCommandeFournisseur(approId, event) {
               <small class="proof-hint">Ajoutez la capture de l'operation MoMo.</small>
               <small class="proof-status" id="preuveDepenseFonctionnelleStatus"></small>
             </div>
-            <button type="submit" class="btn-modern primary">
+            <button type="submit" class="btn-modern primary" data-auto-disable="true">
               <i data-lucide="plus"></i> Enregistrer Depense
             </button>
           </form>
@@ -16538,7 +16542,7 @@ async function annulerCommandeFournisseur(approId, event) {
               <small class="proof-status" id="preuveDepensePapaStatus"></small>
             </div>
 
-            <button type="submit" class="btn-modern primary">
+            <button type="submit" class="btn-modern primary" data-auto-disable="true">
               <i data-lucide="plus"></i> Enregistrer Depense Papa
             </button>
           </form>
@@ -16836,7 +16840,7 @@ async function annulerCommandeFournisseur(approId, event) {
          <label for="compteSelectRemboursementPapa">Compte de trésorerie</label>
         <select id="compteSelectRemboursementPapa"></select>
 
-         <button type="submit" class="btn-modern primary">
+         <button type="submit" class="btn-modern primary" data-auto-disable="true">
            <i data-lucide="plus"></i> Enregistrer Remboursement Papa
          </button>
       </form>
@@ -17020,7 +17024,7 @@ async function annulerCommandeFournisseur(approId, event) {
 
       <div class="modal-actions">
         <button class="btn-modern secondary" onclick="fermerModalLivraisonEncaissement()">Annuler</button>
-        <button class="btn-modern" onclick="validerEncaissementLivraison()">
+        <button class="btn-modern" data-auto-disable="true" onclick="validerEncaissementLivraison()">
           <i data-lucide="check-circle"></i> Valider l'encaissement
         </button>
       </div>
@@ -20141,7 +20145,6 @@ function getSalaryUserContext() {
     userUid: currentUser && currentUser.uid ? currentUser.uid : null
   };
 }
-
 function ensureSalaryListeners() {
   const addBtn = document.getElementById('salaryAddBtn');
   if (addBtn && !addBtn.dataset.listenerAttached) {
@@ -20357,7 +20360,6 @@ function renderSalaryPhoneStats() {
 async function loadSalaryPhoneStats(options = {}) {
   const normalizedOptions = typeof options === 'boolean' ? { force: options } : (options || {});
   const force = !!normalizedOptions.force;
-
   if (salaryPhoneStatsState.loading) {
     return;
   }
@@ -22719,6 +22721,24 @@ function continuerDepuisPanier() {
     }
     function getValidationMessage() {
       return currentSaleMode === 'delivery' ? "Valider la livraison ?" : "Valider la vente ?";
+    }
+
+    function handleSaleValidationClick(event) {
+      const button = event?.currentTarget instanceof HTMLElement ? event.currentTarget : null;
+      if (button) {
+        delete button.dataset.autoDisableSkip;
+      }
+      const message = getValidationMessage();
+      if (!window.confirm(message)) {
+        if (button) {
+          button.dataset.autoDisableSkip = 'true';
+        }
+        return;
+      }
+      if (button) {
+        delete button.dataset.autoDisableSkip;
+      }
+      validerVente();
     }
 
     // Validation et finalisation de la vente
@@ -27504,6 +27524,51 @@ function analyserPaiementsLivraison() {
 
   return { valid, message, totalEncaisse, totalChange, net };
 }
+
+(function initAutoDisableButtons() {
+  // Prevent rapid double submissions by temporarily disabling buttons after interaction.
+  const DISABLE_CLASS = 'auto-disabled';
+  const DEFAULT_TIMEOUT_MS = 5000;
+
+  document.addEventListener('click', event => {
+    const isMouseEvent = typeof event.button === 'number';
+    if (isMouseEvent && event.button !== 0) {
+      return;
+    }
+
+    const target = event.target instanceof Element ? event.target.closest('button') : null;
+    if (!target || target.disabled) {
+      return;
+    }
+
+    const shouldAutoDisable = target.hasAttribute('data-auto-disable') && target.dataset.autoDisable !== 'false';
+    if (!shouldAutoDisable || target.dataset.noAutoDisable === 'true') {
+      return;
+    }
+
+    if (target.dataset.autoDisableSkip === 'true') {
+      delete target.dataset.autoDisableSkip;
+      return;
+    }
+
+    target.dataset.autoDisabled = 'true';
+    target.disabled = true;
+    target.classList.add(DISABLE_CLASS);
+
+    const timeoutAttr = target.getAttribute('data-auto-disable-timeout');
+    const parsedTimeout = timeoutAttr ? Number(timeoutAttr) : NaN;
+    const delay = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : DEFAULT_TIMEOUT_MS;
+
+    window.setTimeout(() => {
+      if (target.dataset.autoDisabled !== 'true') {
+        return;
+      }
+      target.disabled = false;
+      target.classList.remove(DISABLE_CLASS);
+      delete target.dataset.autoDisabled;
+    }, delay);
+  });
+})();
 
 function rafraichirResumePaiementLivraison() {
   const totals = livraisonModalContext ? livraisonModalContext.totals : { due: 0, totalEncaisse: 0, totalChange: 0, net: 0, outstanding: 0 };
