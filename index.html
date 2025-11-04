@@ -1971,6 +1971,37 @@ body.drawer-open {
   font-size: 14px;
 }
 
+#screen-salaires .salary-month-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+}
+
+#screen-salaires .salary-month-picker span {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #475569;
+}
+
+#screen-salaires .salary-month-picker input {
+  border: 1px solid #cbd5f5;
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f8fafc;
+  min-width: 160px;
+}
+
+#screen-salaires .salary-month-picker input:focus {
+  outline: none;
+  border-color: #1d4ed8;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
 #screen-salaires .salary-performance-badge {
   display: inline-flex;
   align-items: center;
@@ -8091,6 +8122,10 @@ async function generateSupplierCreditPDF() {
         <h2>Ventes de telephones</h2>
         <p id="salaryPhoneStatsSubtitle">Mois en cours</p>
       </div>
+      <label class="salary-month-picker" for="salaryMonthPicker">
+        <span>Periode</span>
+        <input type="month" id="salaryMonthPicker" name="salaryMonthPicker">
+      </label>
       <span class="salary-performance-badge" id="salaryPhoneStatsLoader">Chargement...</span>
       <span class="salary-performance-error" id="salaryPhoneStatsError" style="display:none;"></span>
     </div>
@@ -8112,7 +8147,7 @@ async function generateSupplierCreditPDF() {
       <div class="salary-panel-heading">
         <div>
           <h3>Ventes par employe</h3>
-          <small>Telephones du mois en cours</small>
+          <small id="salaryEmployeeSubtitle">Mois en cours</small>
         </div>
       </div>
       <div class="table-wrapper">
@@ -20042,7 +20077,8 @@ const salaryState = {
 
 const salaryPhoneStatsState = {
   loading: false,
-  lastMonthKey: null,
+  lastQueryKey: null,
+  selectedMonth: null,
   subtitle: '',
   totals: {
     phonesToday: 0,
@@ -20054,6 +20090,57 @@ const salaryPhoneStatsState = {
   daily: [],
   error: ''
 };
+
+const SALARY_PRIVILEGED_ROLES = new Set(['admin', 'patron', 'manager', 'gerant', 'superviseur']);
+
+function getSelectedSalaryMonth() {
+  if (salaryPhoneStatsState.selectedMonth instanceof Date &&
+    !isNaN(salaryPhoneStatsState.selectedMonth.getTime())) {
+    return new Date(salaryPhoneStatsState.selectedMonth.getTime());
+  }
+  const now = new Date();
+  const normalized = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  salaryPhoneStatsState.selectedMonth = normalized;
+  return new Date(normalized.getTime());
+}
+
+function formatMonthInputValue(date) {
+  if (!(date instanceof Date) || isNaN(date.getTime())) {
+    return '';
+  }
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+function parseMonthInput(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!/^\d{4}-\d{2}$/.test(trimmed)) {
+    return null;
+  }
+  const [yearStr, monthStr] = trimmed.split('-');
+  const year = Number(yearStr);
+  const monthIndex = Number(monthStr) - 1;
+  if (!Number.isInteger(year) || !Number.isInteger(monthIndex) || monthIndex < 0 || monthIndex > 11) {
+    return null;
+  }
+  const normalized = new Date(year, monthIndex, 1, 0, 0, 0, 0);
+  return isNaN(normalized.getTime()) ? null : normalized;
+}
+
+function getSalaryUserContext() {
+  const role = typeof window !== 'undefined' ? window.userRole : null;
+  const canViewAll = !!role && SALARY_PRIVILEGED_ROLES.has(role);
+  const auth = (typeof firebase !== 'undefined' && typeof firebase.auth === 'function') ? firebase.auth() : null;
+  const currentUser = auth && auth.currentUser ? auth.currentUser : null;
+  return {
+    canViewAll,
+    userUid: currentUser && currentUser.uid ? currentUser.uid : null
+  };
+}
 
 function ensureSalaryListeners() {
   const addBtn = document.getElementById('salaryAddBtn');
@@ -20080,6 +20167,32 @@ function ensureSalaryListeners() {
       }
     });
     exportBtn.dataset.listenerAttached = 'true';
+  }
+
+  const monthPicker = document.getElementById('salaryMonthPicker');
+  if (monthPicker) {
+    const now = new Date();
+    monthPicker.max = formatMonthInputValue(now);
+  }
+  if (monthPicker && !monthPicker.dataset.listenerAttached) {
+    const selected = getSelectedSalaryMonth();
+    monthPicker.value = formatMonthInputValue(selected);
+    monthPicker.addEventListener('change', (event) => {
+      const parsed = parseMonthInput(event.target.value);
+      if (!parsed) {
+        event.target.value = formatMonthInputValue(getSelectedSalaryMonth());
+        if (typeof showToast === 'function') {
+          showToast("Mois invalide.", "error");
+        }
+        return;
+      }
+      salaryPhoneStatsState.selectedMonth = parsed;
+      salaryPhoneStatsState.lastQueryKey = null;
+      loadSalaryPhoneStats({ force: true });
+    });
+    monthPicker.dataset.listenerAttached = 'true';
+  } else if (monthPicker) {
+    monthPicker.value = formatMonthInputValue(getSelectedSalaryMonth());
   }
 }
 
@@ -20130,9 +20243,10 @@ function renderSalaryScreen() {
   emptyState.style.display = payments.length ? 'none' : 'block';
   tableBody.style.display = payments.length ? '' : 'none';
 
+  getSelectedSalaryMonth();
   ensureSalaryListeners();
   renderSalaryPhoneStats();
-  loadSalaryPhoneStats(true);
+  loadSalaryPhoneStats({ force: true });
 
   if (typeof lucide !== 'undefined') {
     refreshLucideIcons();
@@ -20152,12 +20266,21 @@ function renderSalaryPhoneStats() {
   const dailyList = document.getElementById('salaryDailyPhoneList');
   const dailyEmpty = document.getElementById('salaryDailyPhoneEmpty');
   const dailySubtitle = document.getElementById('salaryDailySubtitle');
+  const employeeSubtitle = document.getElementById('salaryEmployeeSubtitle');
+  const monthPicker = document.getElementById('salaryMonthPicker');
 
   if (subtitleEl) {
     subtitleEl.textContent = salaryPhoneStatsState.subtitle || 'Mois en cours';
   }
   if (dailySubtitle) {
     dailySubtitle.textContent = salaryPhoneStatsState.subtitle || 'Mois en cours';
+  }
+  if (employeeSubtitle) {
+    employeeSubtitle.textContent = salaryPhoneStatsState.subtitle || 'Mois en cours';
+  }
+  if (monthPicker) {
+    monthPicker.max = formatMonthInputValue(new Date());
+    monthPicker.value = formatMonthInputValue(getSelectedSalaryMonth());
   }
 
   if (loaderEl) {
@@ -20231,7 +20354,10 @@ function renderSalaryPhoneStats() {
   }
 }
 
-async function loadSalaryPhoneStats(force = false) {
+async function loadSalaryPhoneStats(options = {}) {
+  const normalizedOptions = typeof options === 'boolean' ? { force: options } : (options || {});
+  const force = !!normalizedOptions.force;
+
   if (salaryPhoneStatsState.loading) {
     return;
   }
@@ -20242,33 +20368,50 @@ async function loadSalaryPhoneStats(force = false) {
     return;
   }
 
-  const now = new Date();
-  const monthKey = now.getFullYear() + '-' + (now.getMonth() + 1);
+  const targetMonth = getSelectedSalaryMonth();
+  const scope = getSalaryUserContext();
+  const monthKey = targetMonth.getFullYear() + '-' + String(targetMonth.getMonth() + 1).padStart(2, '0');
+  const scopeKey = scope.canViewAll ? 'all' : (scope.userUid || 'none');
+  const cacheKey = monthKey + '::' + scopeKey;
 
-  if (!force && salaryPhoneStatsState.lastMonthKey === monthKey) {
+  if (!force && salaryPhoneStatsState.lastQueryKey === cacheKey) {
     renderSalaryPhoneStats();
     return;
   }
 
   salaryPhoneStatsState.loading = true;
   salaryPhoneStatsState.error = '';
-  salaryPhoneStatsState.subtitle = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  salaryPhoneStatsState.subtitle = targetMonth.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
   renderSalaryPhoneStats();
 
-  try {
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  if (!scope.canViewAll && !scope.userUid) {
+    salaryPhoneStatsState.loading = false;
+    salaryPhoneStatsState.error = "Impossible d'identifier l'utilisateur connecte.";
+    renderSalaryPhoneStats();
+    return;
+  }
 
-    const ventesSnapshot = await dbFirestore
+  try {
+    const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    let query = dbFirestore
       .collection('ventes')
       .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfMonth))
-      .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endOfMonth))
-      .get();
+      .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endOfMonth));
+
+    if (!scope.canViewAll && scope.userUid) {
+      query = query.where('enregistreParUid', '==', scope.userUid);
+    }
+
+    const ventesSnapshot = await query.get();
 
     const employeesMap = new Map();
     const dailyMap = new Map();
     let totalMonthPhones = 0;
     let totalTodayPhones = 0;
+    const now = new Date();
+    const referenceDay = isSameMonth(targetMonth, now) ? now : null;
 
     ventesSnapshot.forEach(doc => {
       const data = doc.data() || {};
@@ -20288,7 +20431,7 @@ async function loadSalaryPhoneStats(force = false) {
       }
 
       totalMonthPhones += phonesCount;
-      if (isSameDay(saleDate, now)) {
+      if (referenceDay && isSameDay(saleDate, referenceDay)) {
         totalTodayPhones += phonesCount;
       }
 
@@ -20306,7 +20449,7 @@ async function loadSalaryPhoneStats(force = false) {
       };
       entry.name = formatEmployeeName(data);
       entry.phonesMonth += phonesCount;
-      if (isSameDay(saleDate, now)) {
+      if (referenceDay && isSameDay(saleDate, referenceDay)) {
         entry.phonesToday += phonesCount;
       }
       employeesMap.set(employeeKey, entry);
@@ -20335,7 +20478,7 @@ async function loadSalaryPhoneStats(force = false) {
       commissionMonth: totalMonthPhones * COMMISSION_PAR_TELEPHONE
     };
 
-    salaryPhoneStatsState.lastMonthKey = monthKey;
+    salaryPhoneStatsState.lastQueryKey = cacheKey;
   } catch (error) {
     console.error('Erreur lors du chargement des ventes de telephones :', error);
     salaryPhoneStatsState.error = "Impossible de charger les ventes de telephones.";
@@ -20422,6 +20565,14 @@ function isSameDay(a, b) {
   return a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
     a.getDate() === b.getDate();
+}
+
+function isSameMonth(a, b) {
+  if (!(a instanceof Date) || !(b instanceof Date)) {
+    return false;
+  }
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth();
 }
 // Hash Router pour la navigation
     function handleHashChange() {
