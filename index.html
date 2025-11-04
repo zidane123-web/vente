@@ -1947,6 +1947,161 @@ body.drawer-open {
   color: #0f172a;
 }
 
+#screen-salaires .salary-performance {
+  background: var(--white);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#screen-salaires .salary-performance-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+#screen-salaires .salary-performance-header h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+#screen-salaires .salary-performance-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+#screen-salaires .salary-performance-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+#screen-salaires .salary-performance-error {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+#screen-salaires .salary-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+#screen-salaires .salary-metric-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+#screen-salaires .salary-metric-card p {
+  margin: 0;
+  color: #475569;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+#screen-salaires .salary-metric-card strong {
+  display: block;
+  font-size: 26px;
+  margin: 4px 0;
+  color: #0f172a;
+}
+
+#screen-salaires .salary-metric-card span {
+  color: #1d4ed8;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+#screen-salaires .salary-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 16px;
+  background: #fff;
+}
+
+#screen-salaires .salary-panel-heading h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+#screen-salaires .salary-panel-heading small {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+#screen-salaires .salary-panel-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+#screen-salaires .salary-employee-table th,
+#screen-salaires .salary-employee-table td {
+  text-align: left;
+}
+
+#screen-salaires .salary-employee-table th:nth-child(n+2),
+#screen-salaires .salary-employee-table td:nth-child(n+2) {
+  text-align: center;
+}
+
+#screen-salaires .table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+#screen-salaires .daily-phone-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#screen-salaires .daily-phone-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+#screen-salaires .daily-phone-item strong {
+  font-size: 16px;
+}
+
+#screen-salaires .daily-phone-item small {
+  color: #94a3b8;
+}
+
+#screen-salaires .daily-phone-metrics {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+  gap: 2px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+#screen-salaires .daily-phone-metrics span:last-child {
+  color: #1d4ed8;
+}
+
 #screen-salaires .salary-actions {
   display: flex;
   flex-wrap: wrap;
@@ -7933,6 +8088,68 @@ async function generateSupplierCreditPDF() {
     <div class="salary-card">
       <h3>Restant a payer</h3>
       <p id="salarySummaryDue">0 FCFA</p>
+    </div>
+  </div>
+
+  <div class="salary-performance">
+    <div class="salary-performance-header">
+      <div>
+        <h2>Ventes de telephones</h2>
+        <p id="salaryPhoneStatsSubtitle">Mois en cours</p>
+      </div>
+      <span class="salary-performance-badge" id="salaryPhoneStatsLoader">Chargement...</span>
+      <span class="salary-performance-error" id="salaryPhoneStatsError" style="display:none;"></span>
+    </div>
+
+    <div class="salary-metrics-grid">
+      <div class="salary-metric-card">
+        <p>Telephones vendus aujourd'hui</p>
+        <strong id="salaryPhonesToday">0</strong>
+        <span id="salaryCommissionToday">Commission: 0 FCFA</span>
+      </div>
+      <div class="salary-metric-card">
+        <p>Total telephones (mois)</p>
+        <strong id="salaryPhonesMonth">0</strong>
+        <span id="salaryCommissionMonth">Commission: 0 FCFA</span>
+      </div>
+    </div>
+
+    <div class="salary-panel">
+      <div class="salary-panel-heading">
+        <div>
+          <h3>Ventes par employe</h3>
+          <small>Telephones du mois en cours</small>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table class="salary-employee-table">
+          <thead>
+            <tr>
+              <th>Employe</th>
+              <th>Telephones (jour)</th>
+              <th>Telephones (mois)</th>
+              <th>Commission (mois)</th>
+            </tr>
+          </thead>
+          <tbody id="salaryEmployeePhoneBody"></tbody>
+        </table>
+        <div class="empty-state" id="salaryEmployeePhoneEmpty">
+          Aucune vente de telephone enregistree ce mois-ci.
+        </div>
+      </div>
+    </div>
+
+    <div class="salary-panel">
+      <div class="salary-panel-heading">
+        <div>
+          <h3>Ventes quotidiennes</h3>
+          <small id="salaryDailySubtitle">Mois en cours</small>
+        </div>
+      </div>
+      <div id="salaryDailyPhoneList" class="daily-phone-list"></div>
+      <div class="empty-state" id="salaryDailyPhoneEmpty">
+        Aucun telephone vendu pour le moment.
+      </div>
     </div>
   </div>
 
@@ -19823,6 +20040,21 @@ const salaryState = {
   payments: []
 };
 
+const salaryPhoneStatsState = {
+  loading: false,
+  lastMonthKey: null,
+  subtitle: '',
+  totals: {
+    phonesToday: 0,
+    phonesMonth: 0,
+    commissionToday: 0,
+    commissionMonth: 0
+  },
+  employees: [],
+  daily: [],
+  error: ''
+};
+
 function ensureSalaryListeners() {
   const addBtn = document.getElementById('salaryAddBtn');
   if (addBtn && !addBtn.dataset.listenerAttached) {
@@ -19899,10 +20131,297 @@ function renderSalaryScreen() {
   tableBody.style.display = payments.length ? '' : 'none';
 
   ensureSalaryListeners();
+  renderSalaryPhoneStats();
+  loadSalaryPhoneStats(true);
 
   if (typeof lucide !== 'undefined') {
     refreshLucideIcons();
   }
+}
+
+function renderSalaryPhoneStats() {
+  const subtitleEl = document.getElementById('salaryPhoneStatsSubtitle');
+  const loaderEl = document.getElementById('salaryPhoneStatsLoader');
+  const errorEl = document.getElementById('salaryPhoneStatsError');
+  const phonesTodayEl = document.getElementById('salaryPhonesToday');
+  const phonesMonthEl = document.getElementById('salaryPhonesMonth');
+  const commissionTodayEl = document.getElementById('salaryCommissionToday');
+  const commissionMonthEl = document.getElementById('salaryCommissionMonth');
+  const employeeBody = document.getElementById('salaryEmployeePhoneBody');
+  const employeeEmpty = document.getElementById('salaryEmployeePhoneEmpty');
+  const dailyList = document.getElementById('salaryDailyPhoneList');
+  const dailyEmpty = document.getElementById('salaryDailyPhoneEmpty');
+  const dailySubtitle = document.getElementById('salaryDailySubtitle');
+
+  if (subtitleEl) {
+    subtitleEl.textContent = salaryPhoneStatsState.subtitle || 'Mois en cours';
+  }
+  if (dailySubtitle) {
+    dailySubtitle.textContent = salaryPhoneStatsState.subtitle || 'Mois en cours';
+  }
+
+  if (loaderEl) {
+    loaderEl.style.display = salaryPhoneStatsState.loading ? 'inline-flex' : 'none';
+  }
+
+  if (errorEl) {
+    if (salaryPhoneStatsState.error) {
+      errorEl.style.display = 'inline-flex';
+      errorEl.textContent = salaryPhoneStatsState.error;
+    } else {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
+  }
+
+  if (phonesTodayEl) {
+    phonesTodayEl.textContent = (salaryPhoneStatsState.totals.phonesToday || 0).toLocaleString('fr-FR');
+  }
+  if (phonesMonthEl) {
+    phonesMonthEl.textContent = (salaryPhoneStatsState.totals.phonesMonth || 0).toLocaleString('fr-FR');
+  }
+  if (commissionTodayEl) {
+    commissionTodayEl.textContent = 'Commission: ' + fmt(salaryPhoneStatsState.totals.commissionToday || 0) + ' FCFA';
+  }
+  if (commissionMonthEl) {
+    commissionMonthEl.textContent = 'Commission: ' + fmt(salaryPhoneStatsState.totals.commissionMonth || 0) + ' FCFA';
+  }
+
+  if (employeeBody && employeeEmpty) {
+    employeeBody.innerHTML = '';
+    if (salaryPhoneStatsState.employees.length) {
+      employeeEmpty.style.display = 'none';
+      salaryPhoneStatsState.employees.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML =
+          '<td>' + entry.name + '</td>' +
+          '<td>' + (entry.phonesToday || 0) + '</td>' +
+          '<td>' + (entry.phonesMonth || 0) + '</td>' +
+          '<td>' + fmt((entry.phonesMonth || 0) * COMMISSION_PAR_TELEPHONE) + ' FCFA</td>';
+        employeeBody.appendChild(row);
+      });
+    } else {
+      employeeEmpty.style.display = 'block';
+    }
+  }
+
+  if (dailyList && dailyEmpty) {
+    dailyList.innerHTML = '';
+    if (salaryPhoneStatsState.daily.length) {
+      dailyEmpty.style.display = 'none';
+      salaryPhoneStatsState.daily.forEach(entry => {
+        const container = document.createElement('div');
+        container.className = 'daily-phone-item';
+        const shortLabel = entry.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: 'short' });
+        const longLabel = entry.date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        container.innerHTML =
+          '<div>' +
+            '<strong>' + shortLabel + '</strong>' +
+            '<small>' + longLabel + '</small>' +
+          '</div>' +
+          '<div class="daily-phone-metrics">' +
+            '<span>' + entry.phones.toLocaleString('fr-FR') + ' telephone(s)</span>' +
+            '<span>' + fmt(entry.commission) + ' FCFA</span>' +
+          '</div>';
+        dailyList.appendChild(container);
+      });
+    } else {
+      dailyEmpty.style.display = 'block';
+    }
+  }
+}
+
+async function loadSalaryPhoneStats(force = false) {
+  if (salaryPhoneStatsState.loading) {
+    return;
+  }
+
+  if (typeof dbFirestore === 'undefined' || !dbFirestore || !dbFirestore.collection || typeof firebase === 'undefined' || !firebase.firestore) {
+    salaryPhoneStatsState.error = "Firestore indisponible pour charger les ventes.";
+    renderSalaryPhoneStats();
+    return;
+  }
+
+  const now = new Date();
+  const monthKey = now.getFullYear() + '-' + (now.getMonth() + 1);
+
+  if (!force && salaryPhoneStatsState.lastMonthKey === monthKey) {
+    renderSalaryPhoneStats();
+    return;
+  }
+
+  salaryPhoneStatsState.loading = true;
+  salaryPhoneStatsState.error = '';
+  salaryPhoneStatsState.subtitle = now.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  renderSalaryPhoneStats();
+
+  try {
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    const ventesSnapshot = await dbFirestore
+      .collection('ventes')
+      .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfMonth))
+      .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endOfMonth))
+      .get();
+
+    const employeesMap = new Map();
+    const dailyMap = new Map();
+    let totalMonthPhones = 0;
+    let totalTodayPhones = 0;
+
+    ventesSnapshot.forEach(doc => {
+      const data = doc.data() || {};
+      const saleDate = extractDateFromTimestamp(
+        data.timestamp ||
+        data.createdAt ||
+        data.createdAtTimestamp ||
+        data.date
+      );
+      if (!saleDate) {
+        return;
+      }
+
+      const phonesCount = countPhonesFromItems(data.items);
+      if (!phonesCount) {
+        return;
+      }
+
+      totalMonthPhones += phonesCount;
+      if (isSameDay(saleDate, now)) {
+        totalTodayPhones += phonesCount;
+      }
+
+      const dayKey = saleDate.toISOString().split('T')[0];
+      const dayEntry = dailyMap.get(dayKey) || { date: saleDate, phones: 0 };
+      dayEntry.phones += phonesCount;
+      dayEntry.date = saleDate;
+      dailyMap.set(dayKey, dayEntry);
+
+      const employeeKey = data.enregistreParUid || data.enregistreParNom || doc.id;
+      const entry = employeesMap.get(employeeKey) || {
+        name: formatEmployeeName(data),
+        phonesToday: 0,
+        phonesMonth: 0
+      };
+      entry.name = formatEmployeeName(data);
+      entry.phonesMonth += phonesCount;
+      if (isSameDay(saleDate, now)) {
+        entry.phonesToday += phonesCount;
+      }
+      employeesMap.set(employeeKey, entry);
+    });
+
+    salaryPhoneStatsState.employees = Array.from(employeesMap.values())
+      .sort((a, b) => {
+        if (b.phonesMonth !== a.phonesMonth) {
+          return b.phonesMonth - a.phonesMonth;
+        }
+        return a.name.localeCompare(b.name, 'fr');
+      });
+
+    salaryPhoneStatsState.daily = Array.from(dailyMap.values())
+      .sort((a, b) => b.date - a.date)
+      .map(entry => ({
+        date: entry.date,
+        phones: entry.phones,
+        commission: entry.phones * COMMISSION_PAR_TELEPHONE
+      }));
+
+    salaryPhoneStatsState.totals = {
+      phonesToday: totalTodayPhones,
+      phonesMonth: totalMonthPhones,
+      commissionToday: totalTodayPhones * COMMISSION_PAR_TELEPHONE,
+      commissionMonth: totalMonthPhones * COMMISSION_PAR_TELEPHONE
+    };
+
+    salaryPhoneStatsState.lastMonthKey = monthKey;
+  } catch (error) {
+    console.error('Erreur lors du chargement des ventes de telephones :', error);
+    salaryPhoneStatsState.error = "Impossible de charger les ventes de telephones.";
+  } finally {
+    salaryPhoneStatsState.loading = false;
+    renderSalaryPhoneStats();
+  }
+}
+
+function formatEmployeeName(data) {
+  const raw =
+    (data && (data.enregistreParNom ||
+      data.createdByName ||
+      data.enregistreParEmail ||
+      data.enregistrePar)) || '';
+  const label = (raw || '').toString().trim();
+  return label || 'Employe';
+}
+
+function extractDateFromTimestamp(timestamp) {
+  if (!timestamp) {
+    return null;
+  }
+  if (typeof timestamp.toDate === 'function') {
+    return timestamp.toDate();
+  }
+  if (typeof timestamp.seconds === 'number') {
+    return new Date(timestamp.seconds * 1000);
+  }
+  const parsed = new Date(timestamp);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function countPhonesFromItems(items) {
+  if (!Array.isArray(items)) {
+    return 0;
+  }
+
+  return items.reduce((total, item) => {
+    const quantity = Number(
+      item &&
+      (item.quantite ??
+        item.quantity ??
+        item.qty ??
+        item.qte ??
+        item.qteVendue ??
+        0)
+    ) || 0;
+
+    if (!quantity) {
+      return total;
+    }
+
+    const category = normalizeCategory(item && (item.category || item.categorie || item.type));
+    const label = normalizeCategory(item && (item.nom || item.name || item.produit || item.productName || item.article));
+
+    if (isPhoneItem(category, label)) {
+      return total + quantity;
+    }
+
+    return total;
+  }, 0);
+}
+
+function normalizeCategory(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.trim().toLowerCase();
+}
+
+function isPhoneItem(category, label) {
+  if (!category && !label) {
+    return false;
+  }
+  const fields = [category, label].filter(Boolean);
+  return fields.some(text => text.startsWith('tel') || text.includes('telephone') || text.includes('phone'));
+}
+
+function isSameDay(a, b) {
+  if (!(a instanceof Date) || !(b instanceof Date)) {
+    return false;
+  }
+  return a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
 }
 // Hash Router pour la navigation
     function handleHashChange() {
