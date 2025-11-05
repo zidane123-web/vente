@@ -11,6 +11,7 @@
 !manifest.json
 !sw.js
 !write_tresorerie_snapshot.js
+!report_depense_papa.js
 
 # Allow icon assets referenced by the manifest
 !icons/
