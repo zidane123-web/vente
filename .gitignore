@@ -10,6 +10,7 @@
 !livraison.js
 !manifest.json
 !sw.js
+!write_tresorerie_snapshot.js
 
 # Allow icon assets referenced by the manifest
 !icons/
