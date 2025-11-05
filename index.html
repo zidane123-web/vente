@@ -27530,27 +27530,31 @@ function analyserPaiementsLivraison() {
   const DISABLE_CLASS = 'auto-disabled';
   const DEFAULT_TIMEOUT_MS = 5000;
 
-  document.addEventListener('click', event => {
-    const isMouseEvent = typeof event.button === 'number';
-    if (isMouseEvent && event.button !== 0) {
-      return;
-    }
+  const shouldHandle = target =>
+    !!target &&
+    !target.disabled &&
+    target.hasAttribute('data-auto-disable') &&
+    target.dataset.autoDisable !== 'false' &&
+    target.dataset.noAutoDisable !== 'true';
 
-    const target = event.target instanceof Element ? event.target.closest('button') : null;
-    if (!target || target.disabled) {
-      return;
-    }
+  const behavesAsSubmit = target => {
+    if (!target) return false;
+    const typeAttr = (target.getAttribute('type') || target.type || '').toLowerCase();
+    const isSubmitType = !typeAttr || typeAttr === 'submit';
+    const formOwner = target.form || target.closest('form');
+    return isSubmitType && !!formOwner;
+  };
 
-    const shouldAutoDisable = target.hasAttribute('data-auto-disable') && target.dataset.autoDisable !== 'false';
-    if (!shouldAutoDisable || target.dataset.noAutoDisable === 'true') {
-      return;
+  const handleSkipIfNeeded = target => {
+    if (!target || target.dataset.autoDisableSkip !== 'true') {
+      return false;
     }
+    delete target.dataset.autoDisableSkip;
+    return true;
+  };
 
-    if (target.dataset.autoDisableSkip === 'true') {
-      delete target.dataset.autoDisableSkip;
-      return;
-    }
-
+  const disableButton = target => {
+    if (!target) return;
     target.dataset.autoDisabled = 'true';
     target.disabled = true;
     target.classList.add(DISABLE_CLASS);
@@ -27567,6 +27571,34 @@ function analyserPaiementsLivraison() {
       target.classList.remove(DISABLE_CLASS);
       delete target.dataset.autoDisabled;
     }, delay);
+  };
+
+  document.addEventListener('submit', event => {
+    const submitter = event.submitter instanceof Element ? event.submitter : null;
+    const target = submitter && submitter.tagName === 'BUTTON' ? submitter : null;
+    if (!shouldHandle(target) || handleSkipIfNeeded(target)) {
+      return;
+    }
+    // Disable after the browser completes the submit cycle so we don't cancel it.
+    window.setTimeout(() => disableButton(target), 0);
+  });
+
+  document.addEventListener('click', event => {
+    const isMouseEvent = typeof event.button === 'number';
+    if (isMouseEvent && event.button !== 0) {
+      return;
+    }
+
+    const target = event.target instanceof Element ? event.target.closest('button') : null;
+    if (!shouldHandle(target) || handleSkipIfNeeded(target)) {
+      return;
+    }
+
+    if (behavesAsSubmit(target)) {
+      return; // The submit handler will disable it after the form fires.
+    }
+
+    disableButton(target);
   });
 })();
 
