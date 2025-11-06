@@ -13,6 +13,9 @@
 !write_tresorerie_snapshot.js
 !report_depense_papa.js
 !record_depense_papa.js
+!export_inventory_excel.js
+!package.json
+!package-lock.json
 
 # Allow icon assets referenced by the manifest
 !icons/
