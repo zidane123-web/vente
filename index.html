@@ -11460,41 +11460,58 @@ function retirerApproItem(index) {
             for (const item of finalItemsForFirestore) {
                 const stockQuery = await dbFirestore.collection("stock").where("name", "==", item.produit).limit(1).get();
                 let stockDocRef;
-                let newStockQty;
+                let stockFieldsAfter;
+                const locationUsed = resolveStockDestination({
+                    item,
+                    meta: { context: 'approvisionnement' },
+                    fallbackLocation: DEFAULT_STOCK_LOCATION
+                });
+                const quantityDelta = Number(item.quantite) || 0;
 
                 if (stockQuery.empty) {
                     stockDocRef = dbFirestore.collection("stock").doc();
-                    newStockQty = item.quantite;
+                    const initialState = buildStockStateFromValues({
+                        boutique: locationUsed === 'boutique' ? quantityDelta : 0,
+                        magasin: locationUsed === 'magasin' ? quantityDelta : 0
+                    });
+                    stockFieldsAfter = getStockWritePayload(initialState);
                     batch.set(stockDocRef, {
                         name: item.produit,
                         category: item.category,
-                        stock: newStockQty,
                         price: item.adjustedPrixAchat,
                         icon: item.category === "accessoires" ? "🎧" : "📱",
-                        createdAt: serverTimestamp
+                        createdAt: serverTimestamp,
+                        ...stockFieldsAfter
                     });
                 } else {
                     stockDocRef = stockQuery.docs[0].ref;
                     const stockData = stockQuery.docs[0].data();
-                    const oldStock = stockData.stock || 0;
+                    const normalizedData = normalizeStockLocations(stockData);
+                    const oldStock = parseFloat(normalizedData.stock) || 0;
                     const oldPrice = stockData.price || 0;
-                    newStockQty = oldStock + item.quantite;
+                    const totalAfter = oldStock + quantityDelta;
 
-                    const newAveragePrice = newStockQty > 0 ? ((oldStock * oldPrice) + (item.quantite * item.adjustedPrixAchat)) / newStockQty : item.adjustedPrixAchat;
+                    const newAveragePrice = totalAfter > 0
+                        ? ((oldStock * oldPrice) + (quantityDelta * item.adjustedPrixAchat)) / totalAfter
+                        : item.adjustedPrixAchat;
+
+                    const updatedState = applyStockDelta(normalizedData, quantityDelta, { location: locationUsed });
+                    stockFieldsAfter = getStockWritePayload(updatedState);
 
                     batch.update(stockDocRef, {
-                        stock: newStockQty,
-                        price: newAveragePrice
+                        price: newAveragePrice,
+                        ...stockFieldsAfter
                     });
                 }
 
                 const historyRef = stockDocRef.collection("history").doc();
                 batch.set(historyRef, {
                     timestamp: serverTimestamp,
-                    change: +item.quantite,
-                    newStock: newStockQty,
+                    change: +quantityDelta,
+                    newStock: stockFieldsAfter ? stockFieldsAfter.stockTotal : quantityDelta,
                     type: 'approvisionnement',
-                    costOfChange: item.quantite * item.adjustedPrixAchat,
+                    location: locationUsed,
+                    costOfChange: quantityDelta * item.adjustedPrixAchat,
                     sourceApproId: approRef.id,
                     sourceApproItemName: item.produit
                 });
@@ -15071,33 +15088,51 @@ async function soumettreReceptionCommande() {
                             category: orderItem.category || stockOp.category || 'telephones',
                             name: draftItem.produit
                         };
-                        const oldStock = parseFloat(stockData.stock || 0);
+                        const locationUsed = resolveStockDestination({
+                            item: draftItem || orderItem,
+                            meta: { context: 'approvisionnement-reception' },
+                            fallbackLocation: DEFAULT_STOCK_LOCATION
+                        });
+                        const quantityDelta = receptionQty;
+                        const normalizedExisting = stockOp.isNew ? null : normalizeStockLocations(stockData);
+                        const oldStock = normalizedExisting ? parseFloat(normalizedExisting.stock) || 0 : 0;
                         const oldPrice = parseFloat(stockData.price || 0);
-                        const newStock = oldStock + receptionQty;
-                        const newAveragePrice = newStock > 0 ? ((oldStock * oldPrice) + (receptionQty * unitCost)) / newStock : unitCost;
+                        const totalAfter = oldStock + quantityDelta;
+                        const newAveragePrice = totalAfter > 0
+                            ? ((oldStock * oldPrice) + (quantityDelta * unitCost)) / totalAfter
+                            : unitCost;
+                        let stockPayload;
 
                         if (stockOp.isNew) {
+                            const initialState = buildStockStateFromValues({
+                                boutique: locationUsed === 'boutique' ? quantityDelta : 0,
+                                magasin: locationUsed === 'magasin' ? quantityDelta : 0
+                            });
+                            stockPayload = getStockWritePayload(initialState);
                             tx.set(stockDocRef, {
                                 name: draftItem.produit,
                                 category: stockData.category,
-                                stock: newStock,
                                 price: newAveragePrice,
-                                createdAt: serverTs
+                                createdAt: serverTs,
+                                ...stockPayload
                             });
                         } else {
+                            const updatedState = applyStockDelta(normalizedExisting || {}, quantityDelta, { location: locationUsed });
+                            stockPayload = getStockWritePayload(updatedState);
                             tx.update(stockDocRef, {
-                                stock: newStock,
-                                price: newAveragePrice
+                                price: newAveragePrice,
+                                ...stockPayload
                             });
                         }
 
                         const historyRef = stockDocRef.collection("history").doc();
                         tx.set(historyRef, {
                             timestamp: serverTs,
-                            change: receptionQty,
-                            newStock: newStock,
+                            change: quantityDelta,
+                            newStock: stockPayload ? stockPayload.stockTotal : totalAfter,
                             type: 'approvisionnement-reception',
-                            costOfChange: receptionQty * unitCost,
+                            location: locationUsed,
+                            costOfChange: quantityDelta * unitCost,
                             sourceApproId: approRef.id,
                             sourceApproItemName: (draftItem && draftItem.produit) || orderItem.produit || stockData.name || ''
                         });
@@ -19359,7 +19394,7 @@ function fetchAndCacheStock() {
     .then(querySnapshot => {
       cachedStock = [];
       querySnapshot.forEach(doc => {
-        cachedStock.push({ id: doc.id, ...doc.data() });
+        cachedStock.push({ id: doc.id, ...normalizeStockLocations(doc.data()) });
       });
       console.log("Stock chargé en cache :", cachedStock);
     })
@@ -19809,11 +19844,12 @@ function updateBalanceDisplay() {
   return new Promise((resolve, reject) => {
     dbFirestore.collection("stock").onSnapshot(snapshot => {
       const stocks = [];
-      snapshot.forEach(doc => {
-        stocks.push({ id: doc.id, ...doc.data() });
-      });
-      // Mettre à jour le cache global
-      cachedStock = stocks;
+    snapshot.forEach(doc => {
+      const normalized = normalizeStockLocations(doc.data());
+      stocks.push({ id: doc.id, ...normalized });
+    });
+    // Mettre à jour le cache global
+    cachedStock = stocks;
       resolve(stocks);
     }, error => {
       reject(new Error("Erreur lors de la récupération du stock : " + error.message));
@@ -19830,7 +19866,8 @@ function updateBalanceDisplay() {
           });
           stocks.forEach(stockItem => {
             const docRef = dbFirestore.collection("stock").doc();
-            batch.set(docRef, stockItem);
+            const normalizedItem = normalizeStockLocations(stockItem);
+            batch.set(docRef, normalizedItem);
           });
           return batch.commit();
         })
@@ -19848,28 +19885,34 @@ function updateStockAfterSaleFirestore(items) {
     return dbFirestore
       .collection("stock")
       .where("name", "==", item.produit)
+      .limit(1)
       .get()
       .then(querySnapshot => {
-        if (!querySnapshot.empty) {
-          const docRef   = querySnapshot.docs[0].ref;
-          const data     = querySnapshot.docs[0].data();
-          const oldStock = parseFloat(data.stock) || 0;
-          // on retire la quantité vendue
-          const newStock = Math.max(0, oldStock - item.quantite);
-
-          return docRef.update({ stock: newStock })
-            .then(() => {
-              // Log de la variation ↓
-              return docRef
-                .collection("history")
-                .add({
-                  timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                  change: -item.quantite,
-                  newStock: newStock,
-                  type: 'vente'
-                });
-            });
+        if (querySnapshot.empty) {
+          return null;
         }
+        const docRef = querySnapshot.docs[0].ref;
+        const data = querySnapshot.docs[0].data();
+        const locationUsed = resolveStockDestination({
+          item,
+          sale: item,
+          fallbackLocation: DEFAULT_STOCK_LOCATION
+        });
+        const updatedState = applyStockDelta(data, -item.quantite, { location: locationUsed });
+        const stockPayload = getStockWritePayload(updatedState);
+
+        return docRef.update(stockPayload)
+          .then(() => {
+            return docRef
+              .collection("history")
+              .add({
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                change: -item.quantite,
+                newStock: stockPayload.stockTotal,
+                type: 'vente',
+                location: locationUsed
+              });
+          });
       });
   });
 
@@ -19886,8 +19929,14 @@ function updateStockAfterSaleFirestore(items) {
             if (!querySnapshot.empty) {
               const doc = querySnapshot.docs[0];
               const stockData = doc.data();
-              const newStock = stockData.stock + item.quantite;
-              return dbFirestore.collection("stock").doc(doc.id).update({ stock: newStock });
+              const locationUsed = resolveStockDestination({
+                item,
+                sale,
+                fallbackLocation: DEFAULT_STOCK_LOCATION
+              });
+              const updatedState = applyStockDelta(stockData, item.quantite, { location: locationUsed });
+              const stockPayload = getStockWritePayload(updatedState);
+              return dbFirestore.collection("stock").doc(doc.id).update(stockPayload);
             }
           });
       });
@@ -21042,6 +21091,115 @@ if (!navigator.onLine) {
 let currentArticleId = null; // Variable pour garder l'ID de l'article sélectionné
 let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
+const STOCK_LOCATION_VALUES = ['boutique', 'magasin'];
+const DEFAULT_STOCK_LOCATION = STOCK_LOCATION_VALUES[0];
+
+function toSafeNumber(value, fallback = 0) {
+  const parsed = parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildStockStateFromValues(values = {}) {
+  const boutique = Math.max(0, toSafeNumber(values.boutique));
+  const magasin = Math.max(0, toSafeNumber(values.magasin));
+  const stockTotal = Math.max(0, boutique + magasin);
+  return {
+    stockBoutique: boutique,
+    stockMagasin: magasin,
+    stockTotal,
+    stock: stockTotal
+  };
+}
+
+function normalizeStockLocations(stockData = {}) {
+  if (!stockData || typeof stockData !== 'object') {
+    return buildStockStateFromValues();
+  }
+  const hasBoutique = Number.isFinite(parseFloat(stockData.stockBoutique));
+  const hasMagasin = Number.isFinite(parseFloat(stockData.stockMagasin));
+  const fallbackTotal = toSafeNumber(
+    stockData.stockTotal !== undefined ? stockData.stockTotal : stockData.stock
+  );
+
+  let boutiqueValue = hasBoutique ? toSafeNumber(stockData.stockBoutique) : NaN;
+  let magasinValue = hasMagasin ? toSafeNumber(stockData.stockMagasin) : NaN;
+
+  if (Number.isNaN(boutiqueValue) && Number.isNaN(magasinValue)) {
+    boutiqueValue = fallbackTotal;
+    magasinValue = 0;
+  } else {
+    if (Number.isNaN(boutiqueValue)) {
+      boutiqueValue = Math.max(0, fallbackTotal - toSafeNumber(stockData.stockMagasin));
+    }
+    if (Number.isNaN(magasinValue)) {
+      magasinValue = Math.max(0, fallbackTotal - boutiqueValue);
+    }
+  }
+
+  const normalizedState = buildStockStateFromValues({
+    boutique: boutiqueValue,
+    magasin: magasinValue
+  });
+  return { ...stockData, ...normalizedState };
+}
+
+function resolveStockDestination(options = {}) {
+  const fallback = typeof options.fallbackLocation === 'string'
+    ? options.fallbackLocation.toLowerCase()
+    : DEFAULT_STOCK_LOCATION;
+  const candidates = [
+    options.location,
+    options.destination,
+    options.preferredLocation,
+    options.requestedLocation,
+    options.meta && options.meta.stockLocation,
+    options.item && options.item.stockLocation,
+    options.item && options.item.stockDestination,
+    options.sale && options.sale.stockLocation,
+    options.sale && options.sale.stockDestination,
+    fallback
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const normalized = candidate.toLowerCase();
+      if (STOCK_LOCATION_VALUES.includes(normalized)) {
+        return normalized;
+      }
+    }
+  }
+  return DEFAULT_STOCK_LOCATION;
+}
+
+function applyStockDelta(stockData, delta, options = {}) {
+  const normalized = normalizeStockLocations(stockData);
+  const destination = resolveStockDestination(options);
+  const targetKey = destination === 'magasin' ? 'stockMagasin' : 'stockBoutique';
+  const currentValue = toSafeNumber(normalized[targetKey]);
+  const candidateValue = currentValue + delta;
+
+  if (options.enforceNonNegative && candidateValue < 0) {
+    throw new Error("Stock " + destination + " insuffisant pour cette opération.");
+  }
+
+  const nextTargetValue = options.allowNegative ? candidateValue : Math.max(0, candidateValue);
+  const otherKey = targetKey === 'stockBoutique' ? 'stockMagasin' : 'stockBoutique';
+  const nextOtherValue = toSafeNumber(normalized[otherKey]);
+  const state = buildStockStateFromValues({
+    boutique: targetKey === 'stockBoutique' ? nextTargetValue : nextOtherValue,
+    magasin: targetKey === 'stockMagasin' ? nextTargetValue : nextOtherValue
+  });
+  return { ...normalized, ...state };
+}
+
+function getStockWritePayload(state = {}) {
+  const normalized = normalizeStockLocations(state);
+  return {
+    stockBoutique: normalized.stockBoutique,
+    stockMagasin: normalized.stockMagasin,
+    stockTotal: normalized.stockTotal,
+    stock: normalized.stock
+  };
+}
 let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
 const COMMISSION_PAR_TELEPHONE = 75;
 let aideCommandeInitialized = false;
@@ -21361,7 +21519,7 @@ async function ensureAideCommandeStock() {
   const snapshot = await dbFirestore.collection('stock').get();
   const stocks = [];
   snapshot.forEach(doc => {
-    stocks.push({ id: doc.id, ...doc.data() });
+    stocks.push({ id: doc.id, ...normalizeStockLocations(doc.data()) });
   });
   cachedStock = stocks;
   return stocks;
@@ -22283,22 +22441,36 @@ async function soumettreAjustementStock() {
         throw new Error("Article introuvable en base.");
       }
       const data = snapshot.data() || {};
-      const currentStock = parseFloat(data.stock || 0);
-      const newStock = currentStock + qty;
-      if (newStock < 0) {
+      const locationSelect = document.getElementById('adjustStockLocation');
+      const requestedLocation = locationSelect ? locationSelect.value : null;
+      const locationUsed = resolveStockDestination({
+        location: requestedLocation,
+        fallbackLocation: DEFAULT_STOCK_LOCATION
+      });
+      const normalizedData = normalizeStockLocations(data);
+      const targetValue = locationUsed === 'magasin'
+        ? normalizedData.stockMagasin
+        : normalizedData.stockBoutique;
+      const candidateValue = targetValue + qty;
+      if (candidateValue < 0) {
         throw new Error("Impossible de descendre le stock en dessous de 0.");
       }
 
-      tx.update(docRef, {
-        stock: newStock
+      const updatedState = applyStockDelta(normalizedData, qty, {
+        location: locationUsed,
+        enforceNonNegative: true
       });
+      const stockPayload = getStockWritePayload(updatedState);
+
+      tx.update(docRef, stockPayload);
 
       const historyRef = docRef.collection("history").doc();
       tx.set(historyRef, {
         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
         change: qty,
-        newStock: newStock,
+        newStock: stockPayload.stockTotal,
         type: 'ajustement_stock',
+        location: locationUsed,
         reason: reason,
         adjustedBy: user.displayName || user.email || user.uid || 'Utilisateur',
         adjustedByUid: user.uid || null
@@ -23221,7 +23393,8 @@ document.getElementById('exportInventoryBtn')
 
         let allStockItems = [];
         stockSnapshot.forEach(doc => {
-            allStockItems.push({ id: doc.id, ...doc.data() });
+            const normalized = normalizeStockLocations(doc.data());
+            allStockItems.push({ id: doc.id, ...normalized });
         });
 
         const inventoryPhones = [];
@@ -26804,24 +26977,32 @@ function annulerAchatTransaction(approId, approData) {
             if (!stockQuerySnapshot.empty) {
                 const stockDocRef = stockQuerySnapshot.docs[0].ref;
                 const stockData = stockQuerySnapshot.docs[0].data();
+                const normalizedData = normalizeStockLocations(stockData);
 
-                const currentStock = stockData.stock || 0;
+                const currentStock = parseFloat(normalizedData.stock) || 0;
                 const currentAvgPrice = stockData.price || 0;
                 const cancelledQty = item.quantite;
                 const cancelledItemCost = item.adjustedPrixAchat || item.prixAchat;
-                
-                const newStock = Math.max(0, currentStock - cancelledQty);
+                const locationUsed = resolveStockDestination({
+                    item,
+                    meta: { context: 'annulation_achat' },
+                    fallbackLocation: DEFAULT_STOCK_LOCATION
+                });
+
+                const updatedState = applyStockDelta(normalizedData, -cancelledQty, { location: locationUsed });
+                const stockPayload = getStockWritePayload(updatedState);
+                const totalAfter = stockPayload.stockTotal;
 
                 let newAvgPrice;
-                if (newStock > 0) {
-                    newAvgPrice = ((currentStock * currentAvgPrice) - (cancelledQty * cancelledItemCost)) / newStock;
+                if (totalAfter > 0) {
+                    newAvgPrice = ((currentStock * currentAvgPrice) - (cancelledQty * cancelledItemCost)) / totalAfter;
                 } else {
                     newAvgPrice = currentAvgPrice; // Garde l'ancien prix si le stock tombe à 0
                 }
 
                 transaction.update(stockDocRef, {
-                    stock: newStock,
-                    price: newAvgPrice 
+                    price: newAvgPrice,
+                    ...stockPayload
                 });
 
                 const historyRef = stockDocRef.collection("history").doc();
@@ -26830,7 +27011,8 @@ function annulerAchatTransaction(approId, approData) {
                     change: -cancelledQty,
                     type: 'annulation_achat',
                     refId: approId,
-                    newStock: newStock,
+                    newStock: stockPayload.stockTotal,
+                    location: locationUsed,
                     sourceApproId: approId,
                     sourceApproItemName: item.produit || ''
                 });
@@ -26958,13 +27140,17 @@ for (const item of saleData.items) {
     if (!stockQuery.empty) {
         const stockDocRef = stockQuery.docs[0].ref;
         const stockData = stockQuery.docs[0].data();
-        const oldStock = stockData.stock || 0;
-        const newStockAfterCancellation = oldStock + item.quantite;
+        const normalizedData = normalizeStockLocations(stockData);
+        const locationUsed = resolveStockDestination({
+            item,
+            sale: saleData,
+            fallbackLocation: DEFAULT_STOCK_LOCATION
+        });
+        const updatedState = applyStockDelta(normalizedData, item.quantite, { location: locationUsed });
+        const stockPayload = getStockWritePayload(updatedState);
 
         // 1. On met à jour le stock (on remet les articles)
-        transaction.update(stockDocRef, {
-            stock: newStockAfterCancellation
-        });
+        transaction.update(stockDocRef, stockPayload);
 
         // --- C'EST LA PARTIE QUI EST AJOUTÉE ---
         // 2. On enregistre ce retour en stock dans l'historique de l'article
@@ -26972,9 +27158,10 @@ for (const item of saleData.items) {
         transaction.set(historyRef, {
             timestamp: firebase.firestore.FieldValue.serverTimestamp(),
             change: +item.quantite, // Mouvement positif car on remet en stock
-            newStock: newStockAfterCancellation,
+            newStock: stockPayload.stockTotal,
             type: 'annulation_vente', // L'étiquette pour l'affichage
-            refId: saleId
+            refId: saleId,
+            location: locationUsed
         });
         // --- FIN DE LA PARTIE AJOUTÉE ---
     }
