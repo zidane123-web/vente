@@ -10446,6 +10446,12 @@ function logDepenseRemboursement({
                 <option value="commande">Commande fournisseur</option>
             </select>
 
+            <label for="stockDestinationAppro">Destination du stock <span style="color: #d9534f;">*</span></label>
+            <select id="stockDestinationAppro" required style="margin-bottom: 16px;">
+                <option value="boutique" selected>Boutique (point de vente)</option>
+                <option value="magasin">Magasin (réserve)</option>
+            </select>
+
             <div id="commandeAdditionalFields" style="display: none;">
                 <label for="commandeDatePrevue">Date prévue de réception</label>
                 <input type="date" id="commandeDatePrevue" />
@@ -11261,6 +11267,11 @@ dbFirestore.collection("stock")
   const prixAchat = parseFloat(document.getElementById("prixAchatAppro").value);
   const coutTotal = parseFloat(document.getElementById("coutTotalAppro").value);
   const typeAchatSelectionne = document.getElementById("typeAchatAppro").value;
+  const destinationSelect = document.getElementById("stockDestinationAppro");
+  const stockDestination = resolveStockDestination({
+    location: destinationSelect ? destinationSelect.value : DEFAULT_STOCK_LOCATION,
+    fallbackLocation: DEFAULT_STOCK_LOCATION
+  });
 
   // Validation
   if (!fournisseur || !categorie || !modele || isNaN(quantite) || quantite <= 0 || isNaN(prixAchat) || prixAchat <= 0) {
@@ -11292,6 +11303,7 @@ dbFirestore.collection("stock")
       quantite,
       prixAchat,
       coutTotal: coutTotal.toFixed(2),
+      stockDestination,
       imeis: []
     };
 
@@ -11313,6 +11325,9 @@ dbFirestore.collection("stock")
     document.getElementById("prixAchatAppro").value = "";
     document.getElementById("coutTotalAppro").value = "";
     document.getElementById("modeleAppro").focus();
+    if (destinationSelect) {
+      destinationSelect.value = DEFAULT_STOCK_LOCATION;
+    }
 
   } catch (error) {
     console.error("Erreur lors de l'ajout de l'approvisionnement ou du fournisseur : ", error);
@@ -11356,6 +11371,8 @@ function updatePanierApprovisionnement() {
     // Calcul du coût unitaire ajusté (prix d'achat fournisseur + part des frais de transport)
     let itemAdjustedCostDisplay = '';
     let itemAdjustedUnitCost = parseFloat(item.prixAchat); // Par défaut, c'est le prix d'achat fournisseur
+    const destinationLabel = formatStockLocationLabel(item.stockDestination);
+    const destinationDisplay = `<br><small>Destination : <strong>${destinationLabel}</strong></small>`;
     
     if (totalCostExcludingTransport > 0 && fraisTransport > 0) {
         // Calcul de la part proportionnelle des frais de transport pour cet article
@@ -11370,6 +11387,7 @@ function updatePanierApprovisionnement() {
         <span class="remove-item" onclick="retirerApproItem(${index})" style="cursor: pointer; color: red; float: right;">&times;</span>
         ${imeiInfo}
         ${itemAdjustedCostDisplay}
+        ${destinationDisplay}
     `;
     container.appendChild(div);
   });
@@ -11441,6 +11459,12 @@ function retirerApproItem(index) {
             }
             const itemCopy = { ...item };
             delete itemCopy.commande;
+            const normalizedDestination = resolveStockDestination({
+                item,
+                location: item.stockDestination,
+                fallbackLocation: DEFAULT_STOCK_LOCATION
+            });
+            itemCopy.stockDestination = normalizedDestination;
             const payload = {
                 ...itemCopy,
                 adjustedPrixAchat: adjustedPrixAchat
@@ -14726,6 +14750,11 @@ async function ouvrirReceptionCommande(approId, event) {
             const baseRemaining = item.remainingQty != null
                 ? parseFloat(item.remainingQty)
                 : Math.max(0, (parseFloat(item.quantite) || 0) - receivedQty);
+            const stockDestination = resolveStockDestination({
+                item,
+                location: item.stockDestination,
+                fallbackLocation: DEFAULT_STOCK_LOCATION
+            });
             return {
                 index,
                 produit: item.produit || `Article ${index + 1}`,
@@ -14736,7 +14765,8 @@ async function ouvrirReceptionCommande(approId, event) {
                 qtyToReceive: 0,
                 unitCost: parseFloat(item.adjustedPrixAchat || item.prixAchat || 0),
                 imeis: [],
-                existingImeis: Array.isArray(item.imeis) ? item.imeis : []
+                existingImeis: Array.isArray(item.imeis) ? item.imeis : [],
+                stockDestination
             };
         }).filter(item => item.restant > 0);
 
@@ -14824,6 +14854,7 @@ function renderCommandeReceptionItems() {
     let html = '';
     currentReceptionDraft.items.forEach((item, index) => {
         const disableInputs = item.restant <= 0;
+        const destinationLabel = formatStockLocationLabel(item.stockDestination);
         const scanButton = item.category === 'telephones'
             ? `<button type="button" class="btn-modern secondary" onclick="lancerScanDynamsoftReception(currentReceptionDraft.items[${index}], ${index})"><i data-lucide="smartphone"></i> Scanner IMEI</button>`
             : '';
@@ -14838,6 +14869,7 @@ function renderCommandeReceptionItems() {
                 <span>Commandé : ${item.quantiteCommandee}</span>
                 <span>Déjà reçu : ${item.dejaRecu}</span>
                 <span>Restant : ${item.restant}</span>
+                <span>Destination prévue : ${destinationLabel}</span>
             </div>
             <div class="reception-item-inputs">
                 <div>
@@ -14957,7 +14989,18 @@ async function soumettreReceptionCommande() {
     }
     const itemsToReceive = currentReceptionDraft.items
         .filter(item => (parseFloat(item.qtyToReceive) || 0) > 0)
-        .map(item => ({ ...item, qtyToReceive: parseFloat(item.qtyToReceive) || 0 }));
+        .map(item => {
+            const normalizedDestination = resolveStockDestination({
+                item,
+                location: item.stockDestination,
+                fallbackLocation: DEFAULT_STOCK_LOCATION
+            });
+            return {
+                ...item,
+                stockDestination: normalizedDestination,
+                qtyToReceive: parseFloat(item.qtyToReceive) || 0
+            };
+        });
 
     if (itemsToReceive.length === 0) {
         alert("Sélectionnez au moins un article à réceptionner.");
@@ -15059,10 +15102,16 @@ async function soumettreReceptionCommande() {
                     const unitCost = parseFloat(draftItem.unitCost) || 0;
                     newRemaining = Math.max(0, previousRemaining - receptionQty);
                     const newReceived = previousReceived + receptionQty;
+                    const locationUsed = resolveStockDestination({
+                        item: draftItem,
+                        location: draftItem.stockDestination || orderItem.stockDestination,
+                        fallbackLocation: DEFAULT_STOCK_LOCATION
+                    });
 
                     orderItem.receivedQty = newReceived;
                     orderItem.remainingQty = newRemaining;
                     orderItem.adjustedPrixAchat = unitCost;
+                    orderItem.stockDestination = locationUsed;
                     if (!Array.isArray(orderItem.imeis)) {
                         orderItem.imeis = [];
                     }
@@ -15072,14 +15121,19 @@ async function soumettreReceptionCommande() {
 
                     totalReceivedThisRun += receptionQty;
                     receptionValue += receptionQty * unitCost;
-                    receptionRecord.lignes.push({
+                    const lineRecord = {
                         produit: draftItem.produit,
                         quantite: receptionQty,
                         unitCost: unitCost,
-                        imeis: draftItem.imeis || []
-                    });
+                        imeis: draftItem.imeis || [],
+                        stockDestination: locationUsed,
+                        stockBoutiqueAfter: null,
+                        stockMagasinAfter: null,
+                        stockTotalAfter: null
+                    };
 
                     const stockOp = stockOperations.get(idx);
+                    let stockPayload = null;
                     if (stockOp) {
                         const stockDocRef = stockOp.docRef;
                         const stockData = stockOp.existingData || {
@@ -15088,11 +15142,6 @@ async function soumettreReceptionCommande() {
                             category: orderItem.category || stockOp.category || 'telephones',
                             name: draftItem.produit
                         };
-                        const locationUsed = resolveStockDestination({
-                            item: draftItem || orderItem,
-                            meta: { context: 'approvisionnement-reception' },
-                            fallbackLocation: DEFAULT_STOCK_LOCATION
-                        });
                         const quantityDelta = receptionQty;
                         const normalizedExisting = stockOp.isNew ? null : normalizeStockLocations(stockData);
                         const oldStock = normalizedExisting ? parseFloat(normalizedExisting.stock) || 0 : 0;
@@ -15101,7 +15150,6 @@ async function soumettreReceptionCommande() {
                         const newAveragePrice = totalAfter > 0
                             ? ((oldStock * oldPrice) + (quantityDelta * unitCost)) / totalAfter
                             : unitCost;
-                        let stockPayload;
 
                         if (stockOp.isNew) {
                             const initialState = buildStockStateFromValues({
@@ -15123,6 +15171,12 @@ async function soumettreReceptionCommande() {
                                 price: newAveragePrice,
                                 ...stockPayload
                             });
+                        }
+
+                        if (stockPayload) {
+                            lineRecord.stockBoutiqueAfter = stockPayload.stockBoutique;
+                            lineRecord.stockMagasinAfter = stockPayload.stockMagasin;
+                            lineRecord.stockTotalAfter = stockPayload.stockTotal;
                         }
 
                         const historyRef = stockDocRef.collection("history").doc();
@@ -15148,6 +15202,8 @@ async function soumettreReceptionCommande() {
                             });
                         }
                     }
+
+                    receptionRecord.lignes.push(lineRecord);
                 }
 
                 totalRemainingAfter += newRemaining;
@@ -21168,6 +21224,19 @@ function resolveStockDestination(options = {}) {
     }
   }
   return DEFAULT_STOCK_LOCATION;
+}
+
+function formatStockLocationLabel(location) {
+  if (typeof location === 'string') {
+    const normalized = location.toLowerCase();
+    if (normalized === 'magasin') {
+      return 'Magasin';
+    }
+    if (normalized === 'boutique') {
+      return 'Boutique';
+    }
+  }
+  return 'Boutique';
 }
 
 function applyStockDelta(stockData, delta, options = {}) {
