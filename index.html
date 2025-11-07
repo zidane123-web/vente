@@ -109,9 +109,9 @@ body.role-employe #screen-accueil .ako-quick-grid {
   margin: 20px 0 0;
 }
 
-.inventory-preview {
-  display: none;
-  background: var(--white);
+    .inventory-preview {
+      display: none;
+      background: var(--white);
       border-radius: var(--border-radius);
       box-shadow: var(--shadow);
       padding: 16px;
@@ -178,6 +178,46 @@ body.role-employe #screen-accueil .ako-quick-grid {
 
     .inventory-preview .inventory-section {
       margin-top: 16px;
+    }
+
+    .stock-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .stock-summary-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .stock-summary-title {
+      margin: 0 0 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .stock-breakdown {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stock-breakdown li {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .stock-breakdown strong {
+      color: #0f172a;
     }
 
     body.role-employe #screen-menu .menu-list-item[onclick*=\'tresorerie\'],
@@ -5280,8 +5320,24 @@ function generateInvoicePDF(sale) {
       </header>
       <div id="stock-home">
         <div class="summary" style="padding: 15px; background: var(--white); border-radius: var(--border-radius); box-shadow: var(--shadow); margin-bottom: 15px;">
-          <p><strong>Total Téléphones :</strong> <span id="total-telephones">0</span></p>
-          <p><strong>Total Accessoires :</strong> <span id="total-accessoires">0</span></p>
+          <div class="stock-summary-grid">
+            <div class="stock-summary-card">
+              <p class="stock-summary-title">Téléphones</p>
+              <ul class="stock-breakdown">
+                <li>Boutique <strong id="total-telephones-boutique">0</strong></li>
+                <li>Magasin <strong id="total-telephones-magasin">0</strong></li>
+                <li>Total <strong id="total-telephones">0</strong></li>
+              </ul>
+            </div>
+            <div class="stock-summary-card">
+              <p class="stock-summary-title">Accessoires</p>
+              <ul class="stock-breakdown">
+                <li>Boutique <strong id="total-accessoires-boutique">0</strong></li>
+                <li>Magasin <strong id="total-accessoires-magasin">0</strong></li>
+                <li>Total <strong id="total-accessoires">0</strong></li>
+              </ul>
+            </div>
+          </div>
         </div>
         <div class="card-buttons" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
   <button class="btn-modern" onclick="showStockCategory('telephones')">
@@ -10100,12 +10156,17 @@ onclick="exportDailyReportPDF()">
 
     // Mise à jour de la synthèse du stock (indépendante du filtre de date)
     getAllStockFirestore().then(stocks => {
-      const totalTelephones = stocks.filter(s => s.category === "telephones").reduce((sum, s) => sum + s.stock, 0);
-      const totalAccessoires = stocks.filter(s => s.category === "accessoires").reduce((sum, s) => sum + s.stock, 0);
-      const valeurStock = stocks.reduce((sum, s) => sum + (s.stock * s.price), 0);
-      document.getElementById("rapport-total-telephones").textContent = totalTelephones;
-      document.getElementById("rapport-total-accessoires").textContent = totalAccessoires;
-      document.getElementById("valeur-stock").textContent = valeurStock.toLocaleString() + " FCFA";
+      const totals = stocks.reduce((acc, item) => {
+        const category = (item.category || '').toLowerCase() === 'accessoires' ? 'accessoires' : 'telephones';
+        const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || 0;
+        const value = total * (Number(item.price) || 0);
+        acc[category] += total;
+        acc.value += value;
+        return acc;
+      }, { telephones: 0, accessoires: 0, value: 0 });
+      document.getElementById("rapport-total-telephones").textContent = totals.telephones.toLocaleString('fr-FR');
+      document.getElementById("rapport-total-accessoires").textContent = totals.accessoires.toLocaleString('fr-FR');
+      document.getElementById("valeur-stock").textContent = totals.value.toLocaleString('fr-FR') + " FCFA";
     });
 
     // Mise à jour du détail des dépenses
@@ -18785,14 +18846,25 @@ function updateAccueilSummary() {
         let totalStock = 0;
         let detailsStock = '';
         if (Array.isArray(stocks) && stocks.length) {
-          const telephones = stocks
-            .filter(s => (s.category || '').toLowerCase() === 'telephones')
-            .reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
-          const accessoires = stocks
-            .filter(s => (s.category || '').toLowerCase() === 'accessoires')
-            .reduce((sum, s) => sum + (parseFloat(s.stock) || 0), 0);
-          totalStock = telephones + accessoires;
-          detailsStock = `T\u00E9l: ${telephones.toLocaleString('fr-FR')} \u00B7 Acc: ${accessoires.toLocaleString('fr-FR')}`;
+          const summarizeCategory = (category) => {
+            return stocks
+              .filter(s => (s.category || '').toLowerCase() === category)
+              .reduce((acc, item) => {
+                const boutique = Number(item.stockBoutique) || 0;
+                const magasin = Number(item.stockMagasin) || 0;
+                const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || (boutique + magasin);
+                acc.boutique += boutique;
+                acc.magasin += magasin;
+                acc.total += total;
+                return acc;
+              }, { boutique: 0, magasin: 0, total: 0 });
+          };
+          const telephones = summarizeCategory('telephones');
+          const accessoires = summarizeCategory('accessoires');
+          totalStock = telephones.total + accessoires.total;
+          const telephonesDetail = `T\u00E9l: ${telephones.total.toLocaleString('fr-FR')} (B:${telephones.boutique.toLocaleString('fr-FR')} / M:${telephones.magasin.toLocaleString('fr-FR')})`;
+          const accessoiresDetail = `Acc: ${accessoires.total.toLocaleString('fr-FR')} (B:${accessoires.boutique.toLocaleString('fr-FR')} / M:${accessoires.magasin.toLocaleString('fr-FR')})`;
+          detailsStock = `${telephonesDetail} \u00B7 ${accessoiresDetail}`;
         }
 
         countEl.textContent = ventesCount.toLocaleString('fr-FR');
@@ -20140,10 +20212,32 @@ function updateStockAfterSaleFirestore(items) {
     // Mise à jour de l'affichage du stock
     function updateStockSummary() {
       getAllStockFirestore().then(stocks => {
-        const totalTelephones = stocks.filter(s => s.category === 'telephones').reduce((sum, s) => sum + s.stock, 0);
-        const totalAccessoires = stocks.filter(s => s.category === 'accessoires').reduce((sum, s) => sum + s.stock, 0);
-        document.getElementById("total-telephones").innerText = totalTelephones;
-        document.getElementById("total-accessoires").innerText = totalAccessoires;
+        const summaries = stocks.reduce((acc, item) => {
+          const category = (item.category || '').toLowerCase() === 'accessoires' ? 'accessoires' : 'telephones';
+          const boutique = Number(item.stockBoutique) || 0;
+          const magasin = Number(item.stockMagasin) || 0;
+          const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || boutique + magasin;
+          acc[category].boutique += boutique;
+          acc[category].magasin += magasin;
+          acc[category].total += total;
+          return acc;
+        }, {
+          telephones: { boutique: 0, magasin: 0, total: 0 },
+          accessoires: { boutique: 0, magasin: 0, total: 0 }
+        });
+
+        const setText = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = value.toLocaleString('fr-FR');
+        };
+
+        setText("total-telephones-boutique", summaries.telephones.boutique);
+        setText("total-telephones-magasin", summaries.telephones.magasin);
+        setText("total-telephones", summaries.telephones.total);
+        setText("total-accessoires-boutique", summaries.accessoires.boutique);
+        setText("total-accessoires-magasin", summaries.accessoires.magasin);
+        setText("total-accessoires", summaries.accessoires.total);
+
         renderInventoryPreview(stocks);
       }).catch(err => console.error("Erreur dans updateStockSummary : " + err.message));
     }
@@ -20217,15 +20311,22 @@ function updateStockAfterSaleFirestore(items) {
 
         const buildSection = (title, items) => {
           if (!items.length) return '';
-          let total = 0;
+          let totalBoutique = 0;
+          let totalMagasin = 0;
+          let totalGlobal = 0;
           const rows = items.map(item => {
-            const currentStock = Number(item.stock) || 0;
-            total += currentStock;
+            const boutique = Number(item.stockBoutique) || 0;
+            const magasin = Number(item.stockMagasin) || 0;
+            const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || (boutique + magasin);
+            totalBoutique += boutique;
+            totalMagasin += magasin;
+            totalGlobal += total;
             return `
               <tr>
                 <td>${sanitizeText(item.name)}</td>
-                <td class="align-center">${currentStock}</td>
-                <td class="align-center">-</td>
+                <td class="align-center">${boutique.toLocaleString('fr-FR')}</td>
+                <td class="align-center">${magasin.toLocaleString('fr-FR')}</td>
+                <td class="align-center">${total.toLocaleString('fr-FR')}</td>
               </tr>
             `;
           }).join('');
@@ -20237,8 +20338,9 @@ function updateStockAfterSaleFirestore(items) {
                 <thead>
                   <tr>
                     <th>Produit</th>
-                    <th>Stock actuel</th>
-                    <th>Quantité comptée</th>
+                    <th>Boutique</th>
+                    <th>Magasin</th>
+                    <th>Total</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -20247,8 +20349,9 @@ function updateStockAfterSaleFirestore(items) {
                 <tfoot>
                   <tr>
                     <td>Total ${sanitizeText(title)}</td>
-                    <td class="align-center">${total}</td>
-                    <td class="align-center">-</td>
+                    <td class="align-center">${totalBoutique.toLocaleString('fr-FR')}</td>
+                    <td class="align-center">${totalMagasin.toLocaleString('fr-FR')}</td>
+                    <td class="align-center">${totalGlobal.toLocaleString('fr-FR')}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -23887,9 +23990,10 @@ document.getElementById('exportInventoryBtn')
 
         const checkMovementPromises = allStockItems.map(async (item) => {
             let shouldInclude = false;
-            if (item.stock >= 1) {
+            const totalQty = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || 0;
+            if (totalQty >= 1) {
                 shouldInclude = true;
-            } else if (item.stock === 0) {
+            } else if (totalQty === 0) {
                 const historySnapshot = await dbFirestore.collection("stock").doc(item.id)
                     .collection("history")
                     .where("timestamp", ">=", startOfDayTimestamp)
@@ -23933,17 +24037,24 @@ document.getElementById('exportInventoryBtn')
         // --- Génération du PDF ---
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const tableColumn = ["Produit", "Stock Actuel", "Quantité Comptée"];
+        const tableColumn = ["Produit", "Boutique", "Magasin", "Total", "Quantité Comptée"];
         let yPos = 40; // Position de départ pour le premier tableau
 
         // --- SECTION TÉLÉPHONES ---
         if (inventoryPhones.length > 0) {
             const phoneRows = [];
+            let totalBoutiquePhones = 0;
+            let totalMagasinPhones = 0;
             let totalStockPhones = 0;
 
             inventoryPhones.forEach(item => {
-                phoneRows.push([item.name, item.stock, ""]);
-                totalStockPhones += (item.stock || 0);
+                const boutique = Number(item.stockBoutique) || 0;
+                const magasin = Number(item.stockMagasin) || 0;
+                const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || (boutique + magasin);
+                phoneRows.push([item.name, boutique, magasin, total, ""]);
+                totalBoutiquePhones += boutique;
+                totalMagasinPhones += magasin;
+                totalStockPhones += total;
             });
 
             doc.setFontSize(18);
@@ -23956,7 +24067,7 @@ document.getElementById('exportInventoryBtn')
                 startY: yPos,
                 head: [tableColumn],
                 body: phoneRows,
-                foot: [['TOTAL TÉLÉPHONES', totalStockPhones.toString(), '']],
+                foot: [['TOTAL TÉLÉPHONES', totalBoutiquePhones.toLocaleString('fr-FR'), totalMagasinPhones.toLocaleString('fr-FR'), totalStockPhones.toLocaleString('fr-FR'), '']],
                 showFoot: 'lastPage',
                 theme: 'grid',
                 headStyles: { fillColor: [0, 96, 100] },
@@ -23970,11 +24081,18 @@ document.getElementById('exportInventoryBtn')
         // --- NOUVEAU : SECTION ACCESSOIRES ---
         if (inventoryAccessories.length > 0) {
             const accessoryRows = [];
+            let totalBoutiqueAccessories = 0;
+            let totalMagasinAccessories = 0;
             let totalStockAccessories = 0;
 
             inventoryAccessories.forEach(item => {
-                accessoryRows.push([item.name, item.stock, ""]);
-                totalStockAccessories += (item.stock || 0);
+                const boutique = Number(item.stockBoutique) || 0;
+                const magasin = Number(item.stockMagasin) || 0;
+                const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || (boutique + magasin);
+                accessoryRows.push([item.name, boutique, magasin, total, ""]);
+                totalBoutiqueAccessories += boutique;
+                totalMagasinAccessories += magasin;
+                totalStockAccessories += total;
             });
             
             // On ajoute un titre pour cette nouvelle section
@@ -23986,7 +24104,7 @@ document.getElementById('exportInventoryBtn')
                 startY: yPos,
                 head: [tableColumn],
                 body: accessoryRows,
-                foot: [['TOTAL ACCESSOIRES', totalStockAccessories.toString(), '']],
+                foot: [['TOTAL ACCESSOIRES', totalBoutiqueAccessories.toLocaleString('fr-FR'), totalMagasinAccessories.toLocaleString('fr-FR'), totalStockAccessories.toLocaleString('fr-FR'), '']],
                 showFoot: 'lastPage',
                 theme: 'grid',
                 headStyles: { fillColor: [0, 77, 64] }, // Couleur légèrement différente pour distinguer
@@ -26265,7 +26383,7 @@ document.getElementById('exportStockBtn')
       }
       getAllStockFirestore()
         .then(stocks => {
-          const phones = stocks.filter(s => s.category === 'telephones' && s.stock >= 1);
+          const phones = stocks.filter(s => s.category === 'telephones' && ((Number(s.stockTotal !== undefined ? s.stockTotal : s.stock) || 0) > 0));
 
           if (phones.length === 0) {
             alert("Aucun téléphone en stock à exporter.");
@@ -26275,22 +26393,29 @@ document.getElementById('exportStockBtn')
           const { jsPDF } = window.jspdf;
           const doc = new jsPDF();
 
-          const tableColumn = ["Produit", "Stock", "Prix d'Achat Unitaire", "Valeur du Stock"];
+          const tableColumn = ["Produit", "Boutique", "Magasin", "Total", "Prix d'Achat", "Valeur du Stock"];
           const tableRows = [];
 
-          let totalStock = 0;
+          let totalBoutique = 0;
+          let totalMagasin = 0;
           let totalValue = 0;
 
           phones.forEach(phone => {
-            const phoneValue = phone.stock * phone.price;
+            const boutique = Number(phone.stockBoutique) || 0;
+            const magasin = Number(phone.stockMagasin) || 0;
+            const total = Number(phone.stockTotal !== undefined ? phone.stockTotal : phone.stock) || (boutique + magasin);
+            const phoneValue = total * phone.price;
             const phoneData = [
               phone.name,
-              phone.stock,
+              boutique,
+              magasin,
+              total,
               `${fmt(phone.price)} FCFA`,
               `${fmt(phoneValue)} FCFA`
             ];
             tableRows.push(phoneData);
-            totalStock += phone.stock;
+            totalBoutique += boutique;
+            totalMagasin += magasin;
             totalValue += phoneValue;
           });
           
@@ -26307,7 +26432,9 @@ document.getElementById('exportStockBtn')
             foot: [
               [
                 'TOTAL',
-                totalStock,
+                totalBoutique.toLocaleString('fr-FR'),
+                totalMagasin.toLocaleString('fr-FR'),
+                (totalBoutique + totalMagasin).toLocaleString('fr-FR'),
                 '',
                 `${fmt(totalValue)} FCFA`
               ]
@@ -26325,8 +26452,10 @@ document.getElementById('exportStockBtn')
             },
             columnStyles: {
               1: { halign: 'center' },
-              2: { halign: 'right' },
-              3: { halign: 'right' }
+              2: { halign: 'center' },
+              3: { halign: 'center' },
+              4: { halign: 'right' },
+              5: { halign: 'right' }
             }
           });
           
