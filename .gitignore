@@ -14,6 +14,7 @@
 !report_depense_papa.js
 !record_depense_papa.js
 !export_inventory_excel.js
+!calculate_commissions.js
 !package.json
 !package-lock.json
 
