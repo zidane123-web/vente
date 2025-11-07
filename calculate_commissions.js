@@ -114,6 +114,10 @@ function isSunday(date) {
     date.getUTCDay() === 0;
 }
 
+function resolveItemQuantity(item) {
+  return Math.max(1, toNumber(item?.quantite ?? item?.qty ?? item?.quantity ?? 0));
+}
+
 function detectEmployeeId(sale) {
   const candidates = [
     sale.enregistreParNom,
@@ -263,6 +267,7 @@ async function main() {
 
   const summaries = new Map(EMPLOYEES.map(emp => [emp.id, createEmptySummary(emp.label)]));
   const sundaySkips = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
+  const sundaySkipUnits = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
   const unmatchedSales = [];
 
   for (const sale of sales) {
@@ -272,17 +277,20 @@ async function main() {
       continue;
     }
 
+    const items = Array.isArray(sale.items) ? sale.items : [];
+
     if (employeeId === MANINI_ID) {
       const saleDate = toDate(sale.timestamp);
       if (isSunday(saleDate)) {
+        const sundayUnits = items.reduce((total, item) => total + resolveItemQuantity(item), 0);
         sundaySkips.set(employeeId, (sundaySkips.get(employeeId) || 0) + 1);
+        sundaySkipUnits.set(employeeId, (sundaySkipUnits.get(employeeId) || 0) + sundayUnits);
         continue;
       }
     }
 
     const summary = summaries.get(employeeId);
     const clientType = normalizeClientType(sale.clientType);
-    const items = Array.isArray(sale.items) ? sale.items : [];
 
     if (items.length === 0) {
       continue;
@@ -291,7 +299,7 @@ async function main() {
     summary.salesCount += 1;
 
     for (const item of items) {
-      const qty = Math.max(1, toNumber(item.quantite ?? item.qty ?? item.quantity ?? 0));
+      const qty = resolveItemQuantity(item);
       const unitPrice = extractUnitPrice(item, qty);
       const lineRevenue = unitPrice * qty;
       const bracket = pickBracket(clientType, unitPrice);
@@ -326,6 +334,7 @@ async function main() {
       continue;
     }
     const skippedSundayCount = sundaySkips.get(employee.id) || 0;
+    const skippedSundayUnits = sundaySkipUnits.get(employee.id) || 0;
     console.log(`  Ventes traitées: ${summary.salesCount}`);
     console.log(`  Téléphones vendus: ${formatNumber(summary.totalUnits)} (détails ${formatNumber(summary.retailUnits)}, gros ${formatNumber(summary.wholesaleUnits)})`);
     console.log(`  CA estimé: ${formatCurrency(summary.totalRevenue)}`);
@@ -334,7 +343,7 @@ async function main() {
     console.log(`  Bonus volume: ${formatCurrency(summary.bonusVolume)}`);
     console.log(`  Total à payer: ${formatCurrency(summary.totalPayout)}`);
     if (skippedSundayCount > 0) {
-      console.log(`  Ventes ignorées (dimanche): ${skippedSundayCount}`);
+      console.log(`  Ventes ignorées (dimanche): ${skippedSundayCount} | Téléphones ignorés: ${formatNumber(skippedSundayUnits)}`);
     }
 
     const detailBrackets = summary.bracketHits.details;
@@ -367,8 +376,9 @@ async function main() {
   }
 
   const maniniSundaySkips = sundaySkips.get(MANINI_ID) || 0;
+  const maniniSundayUnits = sundaySkipUnits.get(MANINI_ID) || 0;
   if (maniniSundaySkips > 0) {
-    console.log(`\nDimanches exclus pour Manini: ${maniniSundaySkips} ventes retirées du calcul.`);
+    console.log(`\nDimanches exclus pour Manini: ${maniniSundaySkips} ventes (${formatNumber(maniniSundayUnits)} téléphones) retirées du calcul.`);
   }
 }
 
