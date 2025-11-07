@@ -16,6 +16,7 @@ const EMPLOYEES = [
   { id: 'manini', label: 'Manini', aliases: ['manini'] },
   { id: 'sherrif', label: 'Sherrif', aliases: ['sherrif', 'sherif', 'cherif', 'cheriff', 'sheriff'] }
 ];
+const MANINI_ID = 'manini';
 
 const RETAIL_BRACKETS = [
   { min: 0, max: 4999, commission: 50, label: '0 - 4 999' },
@@ -105,6 +106,12 @@ function toDate(value) {
   }
   const millis = toNumber(value);
   return millis ? new Date(millis) : null;
+}
+
+function isSunday(date) {
+  return date instanceof Date &&
+    !Number.isNaN(date.getTime()) &&
+    date.getUTCDay() === 0;
 }
 
 function detectEmployeeId(sale) {
@@ -255,6 +262,7 @@ async function main() {
   console.log(`Ventes totales récupérées: ${sales.length}`);
 
   const summaries = new Map(EMPLOYEES.map(emp => [emp.id, createEmptySummary(emp.label)]));
+  const sundaySkips = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
   const unmatchedSales = [];
 
   for (const sale of sales) {
@@ -262,6 +270,14 @@ async function main() {
     if (!employeeId || !summaries.has(employeeId)) {
       unmatchedSales.push(sale);
       continue;
+    }
+
+    if (employeeId === MANINI_ID) {
+      const saleDate = toDate(sale.timestamp);
+      if (isSunday(saleDate)) {
+        sundaySkips.set(employeeId, (sundaySkips.get(employeeId) || 0) + 1);
+        continue;
+      }
     }
 
     const summary = summaries.get(employeeId);
@@ -309,6 +325,7 @@ async function main() {
       console.log('  Aucune vente associée sur la période.');
       continue;
     }
+    const skippedSundayCount = sundaySkips.get(employee.id) || 0;
     console.log(`  Ventes traitées: ${summary.salesCount}`);
     console.log(`  Téléphones vendus: ${formatNumber(summary.totalUnits)} (détails ${formatNumber(summary.retailUnits)}, gros ${formatNumber(summary.wholesaleUnits)})`);
     console.log(`  CA estimé: ${formatCurrency(summary.totalRevenue)}`);
@@ -316,6 +333,9 @@ async function main() {
     console.log(`  Commission gros: ${formatCurrency(summary.wholesaleCommission)}`);
     console.log(`  Bonus volume: ${formatCurrency(summary.bonusVolume)}`);
     console.log(`  Total à payer: ${formatCurrency(summary.totalPayout)}`);
+    if (skippedSundayCount > 0) {
+      console.log(`  Ventes ignorées (dimanche): ${skippedSundayCount}`);
+    }
 
     const detailBrackets = summary.bracketHits.details;
     const wholesaleBrackets = summary.bracketHits.gros;
@@ -344,6 +364,11 @@ async function main() {
     console.log('\n------------------------------');
     console.warn(`Attention: ${unmatchedCount} ventes n'ont pas pu être attribuées à Manini/Sherrif.`);
     console.warn(`Échantillon: ${sample.join(', ')}`);
+  }
+
+  const maniniSundaySkips = sundaySkips.get(MANINI_ID) || 0;
+  if (maniniSundaySkips > 0) {
+    console.log(`\nDimanches exclus pour Manini: ${maniniSundaySkips} ventes retirées du calcul.`);
   }
 }
 
