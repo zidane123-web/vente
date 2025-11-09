@@ -254,6 +254,42 @@ async function fetchSales(start, end) {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
+// Degressive commission per employee per month based on unit volume
+// 1–200 units: 100% of band rate; 201–400: 50%; 401+: 30%
+function computeDegressiveCommission({ employeeId, qty, baseCommissionPerUnit, employeeUnits }) {
+  const firstThreshold = 200;
+  const secondThreshold = 400;
+  let current = employeeUnits.get(employeeId) || 0;
+  let remaining = qty;
+  let commission = 0;
+
+  // Segment 1 (to 200)
+  if (current < firstThreshold && remaining > 0) {
+    const seg1Cap = firstThreshold - current;
+    const seg1Qty = Math.min(remaining, seg1Cap);
+    commission += seg1Qty * baseCommissionPerUnit * 1.0;
+    current += seg1Qty;
+    remaining -= seg1Qty;
+  }
+  // Segment 2 (201–400)
+  if (current < secondThreshold && remaining > 0) {
+    const seg2Cap = secondThreshold - current;
+    const seg2Qty = Math.min(remaining, seg2Cap);
+    commission += seg2Qty * baseCommissionPerUnit * 0.5;
+    current += seg2Qty;
+    remaining -= seg2Qty;
+  }
+  // Segment 3 (401+)
+  if (remaining > 0) {
+    commission += remaining * baseCommissionPerUnit * 0.3;
+    current += remaining;
+    remaining = 0;
+  }
+
+  employeeUnits.set(employeeId, current);
+  return commission;
+}
+
 async function main() {
   const periodArg = process.argv[2];
   const { year, month } = parseYearMonth(periodArg || '2025-10');
@@ -261,6 +297,7 @@ async function main() {
 
   console.log(`Calcul des commissions pour ${year}-${String(month).padStart(2, '0')}`);
   console.log(`Période UTC: ${start.toISOString()} -> ${end.toISOString()}`);
+  console.log('Méthode: dégressive uniforme (1–200:100%, 201–400:50%, 401+:30%)');
 
   const sales = await fetchSales(start, end);
   console.log(`Ventes totales récupérées: ${sales.length}`);
@@ -269,6 +306,8 @@ async function main() {
   const sundaySkips = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
   const sundaySkipUnits = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
   const unmatchedSales = [];
+  // Track per-employee units counted for degressive tiers
+  const employeeUnits = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
 
   for (const sale of sales) {
     const employeeId = detectEmployeeId(sale);
@@ -303,8 +342,14 @@ async function main() {
       const unitPrice = extractUnitPrice(item, qty);
       const lineRevenue = unitPrice * qty;
       const bracket = pickBracket(clientType, unitPrice);
-      const commissionPerUnit = bracket.commission;
-      const lineCommission = commissionPerUnit * qty;
+      const baseCommissionPerUnit = bracket.commission;
+      // Apply degressive commission uniformly to all employees
+      const lineCommission = computeDegressiveCommission({
+        employeeId,
+        qty,
+        baseCommissionPerUnit,
+        employeeUnits
+      });
 
       summary.totalUnits += qty;
       summary.totalRevenue += lineRevenue;
