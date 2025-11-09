@@ -57,15 +57,6 @@ const DEGRESSIVE_PROFILE_OVERRIDES = {
   }
 };
 
-const PARITY_PAYOUT_RULES = [
-  {
-    employeeId: 'sherrif',
-    peerId: 'manini',
-    compareBy: 'units',
-    targetPayout: 90000,
-    note: 'Alignement sur Manini quand le volume est équivalent'
-  }
-];
 
 function parseYearMonth(arg) {
   if (!arg) {
@@ -226,8 +217,6 @@ function createEmptySummary(label) {
     retailCommission: 0,
     wholesaleCommission: 0,
     bonusVolume: 0,
-    parityTopUp: 0,
-    parityNote: '',
     totalPayout: 0,
     bracketHits: {
       details: new Map(),
@@ -257,33 +246,6 @@ function applyBonus(summary) {
   }
   summary.bonusVolume = 0;
   summary.totalPayout = summary.retailCommission + summary.wholesaleCommission;
-}
-
-function applyParityTopUps(summaries) {
-  if (!Array.isArray(PARITY_PAYOUT_RULES) || PARITY_PAYOUT_RULES.length === 0) {
-    return;
-  }
-  for (const rule of PARITY_PAYOUT_RULES) {
-    const summary = summaries.get(rule.employeeId);
-    const peerSummary = summaries.get(rule.peerId);
-    if (!summary || !peerSummary) {
-      continue;
-    }
-    const compareMetric = (rule.compareBy || 'units').toLowerCase();
-    const subjectValue = compareMetric === 'sales' ? summary.salesCount : summary.totalUnits;
-    const peerValue = compareMetric === 'sales' ? peerSummary.salesCount : peerSummary.totalUnits;
-    if (peerValue <= 0 || subjectValue < peerValue) {
-      continue;
-    }
-    const target = Number(rule.targetPayout) || 0;
-    if (target <= 0 || summary.totalPayout >= target) {
-      continue;
-    }
-    const topUp = target - summary.totalPayout;
-    summary.parityTopUp += topUp;
-    summary.totalPayout = target;
-    summary.parityNote = rule.note || '';
-  }
 }
 
 function formatCurrency(amount) {
@@ -459,7 +421,6 @@ async function main() {
   for (const summary of summaries.values()) {
     applyBonus(summary);
   }
-  applyParityTopUps(summaries);
 
   for (const employee of EMPLOYEES) {
     const summary = summaries.get(employee.id);
@@ -477,10 +438,6 @@ async function main() {
     console.log(`  Commission détails: ${formatCurrency(summary.retailCommission)}`);
     console.log(`  Commission gros: ${formatCurrency(summary.wholesaleCommission)}`);
     console.log(`  Bonus volume: ${formatCurrency(summary.bonusVolume)}`);
-    if (summary.parityTopUp > 0) {
-      const parityNote = summary.parityNote ? ` (${summary.parityNote})` : '';
-      console.log(`  Prime parité: ${formatCurrency(summary.parityTopUp)}${parityNote}`);
-    }
     console.log(`  Total à payer: ${formatCurrency(summary.totalPayout)}`);
     if (skippedSundayCount > 0) {
       console.log(`  Ventes ignorées (dimanche): ${skippedSundayCount} | Téléphones ignorés: ${formatNumber(skippedSundayUnits)}`);
