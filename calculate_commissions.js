@@ -18,31 +18,10 @@ const EMPLOYEES = [
 ];
 const MANINI_ID = 'manini';
 
-const RETAIL_BRACKETS = [
-  { min: 0, max: 4999, commission: 50, label: '0 - 4 999' },
-  { min: 5000, max: 20000, commission: 200, label: '5 000 - 20 000' },
-  { min: 20000, max: 200000, commission: 800, label: '20 000 - 200 000' },
-  { min: 200000, max: Infinity, commission: 1000, label: '200 000 +' }
-];
-
-// The brief only specifies 20k-100k and 200k+, so we stretch the 3rd bracket
-// to 200k to avoid leaving a gap before the 200k+ tier.
-const WHOLESALE_BRACKETS = [
-  { min: 0, max: 4999, commission: 25, label: '0 - 4 999' },
-  { min: 5000, max: 20000, commission: 50, label: '5 000 - 20 000' },
-  { min: 20000, max: 200000, commission: 250, label: '20 000 - 200 000' },
-  { min: 200000, max: Infinity, commission: 500, label: '200 000 +' }
-];
-
-const BONUS_THRESHOLDS = [
-  { units: 400, bonus: 10000 },
-  { units: 200, bonus: 5000 }
-];
-
-const DEFAULT_DEGRESSIVE_PROFILE = {
-  thresholds: [200, 400],
-  multipliers: [1, 0.5, 0.3]
-};
+const UNIT_COMMISSION_STEP = 100;
+const UNIT_COMMISSION_RATE = 10000; // per tranche of 100 phones
+const DAILY_REVENUE_THRESHOLD = 1_000_000; // F CFA
+const DAILY_REVENUE_BONUS = 2000; // per qualifying day
 
 
 function parseYearMonth(arg) {
@@ -159,16 +138,6 @@ function normalizeClientType(value) {
   return 'details';
 }
 
-function pickBracket(clientType, unitPrice) {
-  const brackets = clientType === 'gros' ? WHOLESALE_BRACKETS : RETAIL_BRACKETS;
-  for (const bracket of brackets) {
-    if (unitPrice >= bracket.min && unitPrice < bracket.max) {
-      return bracket;
-    }
-  }
-  return brackets[brackets.length - 1];
-}
-
 function extractUnitPrice(item, qty) {
   const directUnit = toNumber(
     item.prix ??
@@ -201,38 +170,22 @@ function createEmptySummary(label) {
     totalRevenue: 0,
     retailUnits: 0,
     wholesaleUnits: 0,
-    retailCommission: 0,
-    wholesaleCommission: 0,
-    bonusVolume: 0,
+    unitsCommission: 0,
+    dailyRevenueBonus: 0,
+    dailyMillionDays: 0,
     totalPayout: 0,
-    bracketHits: {
-      details: new Map(),
-      gros: new Map()
-    }
+    dailyRevenue: new Map()
   };
 }
 
-function recordBracketHit(summary, clientType, bracket, qty, commission) {
-  const targetMap = summary.bracketHits[clientType];
-  if (!targetMap) {
-    return;
-  }
-  const current = targetMap.get(bracket.label) || { units: 0, commission: 0 };
-  current.units += qty;
-  current.commission += commission;
-  targetMap.set(bracket.label, current);
-}
-
-function applyBonus(summary) {
-  for (const { units, bonus } of BONUS_THRESHOLDS) {
-    if (summary.totalUnits >= units) {
-      summary.bonusVolume = bonus;
-      summary.totalPayout = summary.retailCommission + summary.wholesaleCommission + bonus;
-      return;
-    }
-  }
-  summary.bonusVolume = 0;
-  summary.totalPayout = summary.retailCommission + summary.wholesaleCommission;
+function applyCommissionRules(summary) {
+  const unitsCommission = Math.floor(summary.totalUnits / UNIT_COMMISSION_STEP) * UNIT_COMMISSION_RATE;
+  const millionDays = Array.from(summary.dailyRevenue.values()).filter(total => total >= DAILY_REVENUE_THRESHOLD).length;
+  const dailyRevenueBonus = millionDays * DAILY_REVENUE_BONUS;
+  summary.unitsCommission = unitsCommission;
+  summary.dailyRevenueBonus = dailyRevenueBonus;
+  summary.dailyMillionDays = millionDays;
+  summary.totalPayout = unitsCommission + dailyRevenueBonus;
 }
 
 function formatCurrency(amount) {
@@ -260,52 +213,6 @@ async function fetchSales(start, end) {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-function formatProfileMultipliers(profile) {
-  return profile.multipliers
-    .map(multiplier => {
-      const percent = (multiplier * 100).toFixed(1);
-      const trimmed = percent.endsWith('.0') ? percent.slice(0, -2) : percent;
-      return `${trimmed}%`;
-    })
-    .join(' / ');
-}
-
-// Degressive commission per employee per month based on unit volume.
-// Default profile: 1–200 units at 100%, 201–400 at 50%, 401+ at 30%.
-// Overrides can adjust these multipliers per employee & period when needed.
-function computeDegressiveCommission({ employeeId, qty, baseCommissionPerUnit, employeeUnits, profile }) {
-  const activeProfile = profile || DEFAULT_DEGRESSIVE_PROFILE;
-  const thresholds = activeProfile.thresholds || DEFAULT_DEGRESSIVE_PROFILE.thresholds;
-  const multipliers = activeProfile.multipliers || DEFAULT_DEGRESSIVE_PROFILE.multipliers;
-  const tierBounds = thresholds.slice(0, multipliers.length - 1);
-  tierBounds.push(Infinity);
-  let current = employeeUnits.get(employeeId) || 0;
-  let remaining = qty;
-  let commission = 0;
-
-  for (let index = 0; index < multipliers.length && remaining > 0; index += 1) {
-    const bound = tierBounds[index];
-    const multiplier = multipliers[index];
-    if (!Number.isFinite(bound)) {
-      commission += remaining * baseCommissionPerUnit * multiplier;
-      current += remaining;
-      remaining = 0;
-      break;
-    }
-    if (current >= bound) {
-      continue;
-    }
-    const tierCap = bound - current;
-    const tierQty = Math.min(remaining, tierCap);
-    commission += tierQty * baseCommissionPerUnit * multiplier;
-    current += tierQty;
-    remaining -= tierQty;
-  }
-
-  employeeUnits.set(employeeId, current);
-  return commission;
-}
-
 async function main() {
   const periodArg = process.argv[2];
   const { year, month } = parseYearMonth(periodArg || '2025-10');
@@ -313,8 +220,9 @@ async function main() {
 
   console.log(`Calcul des commissions pour ${year}-${String(month).padStart(2, '0')}`);
   console.log(`Période UTC: ${start.toISOString()} -> ${end.toISOString()}`);
-  console.log('Méthode: dégressive uniforme (1–200:100%, 201–400:50%, 401+:30%)');
-  console.log(`Profil appliqué (1–200 / 201–400 / 401+): ${formatProfileMultipliers(DEFAULT_DEGRESSIVE_PROFILE)}`);
+  console.log('Méthode: forfait 10 000 F par tranche de 100 téléphones + bonus journalier 2 000 F si CA ≥ 1 000 000 F.');
+  console.log('Règle unités: plancher(total_tél. / 100) × 10 000 F.');
+  console.log('Règle journalier: nombre de jours à 1 000 000 F CA × 2 000 F.');
 
   const sales = await fetchSales(start, end);
   console.log(`Ventes totales récupérées: ${sales.length}`);
@@ -323,8 +231,6 @@ async function main() {
   const sundaySkips = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
   const sundaySkipUnits = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
   const unmatchedSales = [];
-  // Track per-employee units counted for degressive tiers
-  const employeeUnits = new Map(EMPLOYEES.map(emp => [emp.id, 0]));
 
   for (const sale of sales) {
     const employeeId = detectEmployeeId(sale);
@@ -334,9 +240,9 @@ async function main() {
     }
 
     const items = Array.isArray(sale.items) ? sale.items : [];
+    const saleDate = toDate(sale.timestamp);
 
     if (employeeId === MANINI_ID) {
-      const saleDate = toDate(sale.timestamp);
       if (isSunday(saleDate)) {
         const sundayUnits = items.reduce((total, item) => total + resolveItemQuantity(item), 0);
         sundaySkips.set(employeeId, (sundaySkips.get(employeeId) || 0) + 1);
@@ -353,39 +259,32 @@ async function main() {
     }
 
     summary.salesCount += 1;
+    let saleRevenueTotal = 0;
 
     for (const item of items) {
       const qty = resolveItemQuantity(item);
       const unitPrice = extractUnitPrice(item, qty);
       const lineRevenue = unitPrice * qty;
-      const bracket = pickBracket(clientType, unitPrice);
-      const baseCommissionPerUnit = bracket.commission;
-      // Apply degressive commission uniformly to all employees
-      const lineCommission = computeDegressiveCommission({
-        employeeId,
-        qty,
-        baseCommissionPerUnit,
-        employeeUnits,
-        profile: DEFAULT_DEGRESSIVE_PROFILE
-      });
 
       summary.totalUnits += qty;
       summary.totalRevenue += lineRevenue;
+      saleRevenueTotal += lineRevenue;
 
       if (clientType === 'gros') {
         summary.wholesaleUnits += qty;
-        summary.wholesaleCommission += lineCommission;
       } else {
         summary.retailUnits += qty;
-        summary.retailCommission += lineCommission;
       }
+    }
 
-      recordBracketHit(summary, clientType, bracket, qty, lineCommission);
+    if (saleRevenueTotal > 0) {
+      const dayKey = saleDate ? saleDate.toISOString().slice(0, 10) : 'date inconnue';
+      summary.dailyRevenue.set(dayKey, (summary.dailyRevenue.get(dayKey) || 0) + saleRevenueTotal);
     }
   }
 
   for (const summary of summaries.values()) {
-    applyBonus(summary);
+    applyCommissionRules(summary);
   }
 
   for (const employee of EMPLOYEES) {
@@ -401,28 +300,12 @@ async function main() {
     console.log(`  Ventes traitées: ${summary.salesCount}`);
     console.log(`  Téléphones vendus: ${formatNumber(summary.totalUnits)} (détails ${formatNumber(summary.retailUnits)}, gros ${formatNumber(summary.wholesaleUnits)})`);
     console.log(`  CA estimé: ${formatCurrency(summary.totalRevenue)}`);
-    console.log(`  Commission détails: ${formatCurrency(summary.retailCommission)}`);
-    console.log(`  Commission gros: ${formatCurrency(summary.wholesaleCommission)}`);
-    console.log(`  Bonus volume: ${formatCurrency(summary.bonusVolume)}`);
+    console.log(`  Commission unités (10 000 F / 100 tél.): ${formatCurrency(summary.unitsCommission)}`);
+    const millionDaysLabel = summary.dailyMillionDays > 0 ? ` (${summary.dailyMillionDays} jour${summary.dailyMillionDays > 1 ? 's' : ''} ≥ 1 000 000 F)` : '';
+    console.log(`  Bonus jours millionnaires: ${formatCurrency(summary.dailyRevenueBonus)}${millionDaysLabel}`);
     console.log(`  Total à payer: ${formatCurrency(summary.totalPayout)}`);
     if (skippedSundayCount > 0) {
       console.log(`  Ventes ignorées (dimanche): ${skippedSundayCount} | Téléphones ignorés: ${formatNumber(skippedSundayUnits)}`);
-    }
-
-    const detailBrackets = summary.bracketHits.details;
-    const wholesaleBrackets = summary.bracketHits.gros;
-
-    if (detailBrackets.size > 0) {
-      console.log('  Répartition détails:');
-      for (const [label, stats] of detailBrackets.entries()) {
-        console.log(`    • ${label}: ${formatNumber(stats.units)} tél. | ${formatCurrency(stats.commission)}`);
-      }
-    }
-    if (wholesaleBrackets.size > 0) {
-      console.log('  Répartition gros:');
-      for (const [label, stats] of wholesaleBrackets.entries()) {
-        console.log(`    • ${label}: ${formatNumber(stats.units)} tél. | ${formatCurrency(stats.commission)}`);
-      }
     }
   }
 
