@@ -44,19 +44,6 @@ const DEFAULT_DEGRESSIVE_PROFILE = {
   multipliers: [1, 0.5, 0.3]
 };
 
-const DEGRESSIVE_PROFILE_OVERRIDES = {
-  '2025-10': {
-    manini: {
-      multipliers: [
-        0.6210939016342534,
-        0.3105469508171267,
-        0.18632817049055202
-      ],
-      note: 'Ajustement ciblé pour plafonner la paie d\'octobre 2025 à 90 000 F CFA'
-    }
-  }
-};
-
 
 function parseYearMonth(arg) {
   if (!arg) {
@@ -273,18 +260,6 @@ async function fetchSales(start, end) {
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
-function resolveDegressiveProfile({ employeeId, year, month }) {
-  const periodKey = `${year}-${String(month).padStart(2, '0')}`;
-  const override = DEGRESSIVE_PROFILE_OVERRIDES[periodKey]?.[employeeId] || null;
-  const thresholds = (override?.thresholds || DEFAULT_DEGRESSIVE_PROFILE.thresholds).slice();
-  const multipliers = (override?.multipliers || DEFAULT_DEGRESSIVE_PROFILE.multipliers).slice();
-  return {
-    thresholds,
-    multipliers,
-    note: override?.note || ''
-  };
-}
-
 function formatProfileMultipliers(profile) {
   return profile.multipliers
     .map(multiplier => {
@@ -338,17 +313,8 @@ async function main() {
 
   console.log(`Calcul des commissions pour ${year}-${String(month).padStart(2, '0')}`);
   console.log(`Période UTC: ${start.toISOString()} -> ${end.toISOString()}`);
-  console.log('Méthode: dégressive à profils configurables (défaut 1–200:100%, 201–400:50%, 401+:30%)');
-
-  const degressiveProfiles = new Map(
-    EMPLOYEES.map(emp => [emp.id, resolveDegressiveProfile({ employeeId: emp.id, year, month })])
-  );
-  console.log('Profils dégressifs actifs (1–200 / 201–400 / 401+):');
-  for (const employee of EMPLOYEES) {
-    const profile = degressiveProfiles.get(employee.id);
-    const note = profile.note ? ` – ${profile.note}` : '';
-    console.log(`  ${employee.label}: ${formatProfileMultipliers(profile)}${note}`);
-  }
+  console.log('Méthode: dégressive uniforme (1–200:100%, 201–400:50%, 401+:30%)');
+  console.log(`Profil appliqué (1–200 / 201–400 / 401+): ${formatProfileMultipliers(DEFAULT_DEGRESSIVE_PROFILE)}`);
 
   const sales = await fetchSales(start, end);
   console.log(`Ventes totales récupérées: ${sales.length}`);
@@ -400,7 +366,7 @@ async function main() {
         qty,
         baseCommissionPerUnit,
         employeeUnits,
-        profile: degressiveProfiles.get(employeeId)
+        profile: DEFAULT_DEGRESSIVE_PROFILE
       });
 
       summary.totalUnits += qty;
