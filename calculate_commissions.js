@@ -23,6 +23,18 @@ const UNIT_COMMISSION_RATE = 10000; // per tranche of 100 phones
 const DAILY_REVENUE_THRESHOLD = 1_000_000; // F CFA
 const DAILY_REVENUE_BONUS = 2000; // per qualifying day
 
+const EMPLOYEE_ID_OVERRIDES = {
+  '2025-10': [
+    {
+      source: 'zizakod',
+      target: 'manini',
+      start: '2025-10-01',
+      end: '2025-10-15',
+      note: 'Ventes attribuées à Manini (01-15 octobre)'
+    }
+  ]
+};
+
 
 function parseYearMonth(arg) {
   if (!arg) {
@@ -103,7 +115,7 @@ function resolveItemQuantity(item) {
   return Math.max(1, toNumber(item?.quantite ?? item?.qty ?? item?.quantity ?? 0));
 }
 
-function detectEmployeeId(sale) {
+function collectEmployeeCandidates(sale) {
   const candidates = [
     sale.enregistreParNom,
     sale.enregistrePar,
@@ -112,12 +124,21 @@ function detectEmployeeId(sale) {
     sale.enregistreParEmail,
     sale.ownerName
   ];
-
+  const seen = new Set();
+  const normalizedCandidates = [];
   for (const candidate of candidates) {
     const normalized = normalizeString(candidate);
-    if (!normalized) {
+    if (!normalized || seen.has(normalized)) {
       continue;
     }
+    seen.add(normalized);
+    normalizedCandidates.push(normalized);
+  }
+  return normalizedCandidates;
+}
+
+function detectEmployeeIdFromCandidates(candidates) {
+  for (const normalized of candidates) {
     for (const employee of EMPLOYEES) {
       if (employee.aliases.some(alias => normalized.includes(alias))) {
         return employee.id;
@@ -125,6 +146,63 @@ function detectEmployeeId(sale) {
     }
   }
   return null;
+}
+
+function detectEmployeeId(sale) {
+  return detectEmployeeIdFromCandidates(collectEmployeeCandidates(sale));
+}
+
+function parseDateOnly(isoDateString) {
+  if (!isoDateString) {
+    return null;
+  }
+  const parts = isoDateString.split('-').map(Number);
+  if (parts.length !== 3) {
+    return null;
+  }
+  const [year, month, day] = parts;
+  if ([year, month, day].some(value => Number.isNaN(value))) {
+    return null;
+  }
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+}
+
+function isWithinOverrideRange(date, start, end) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
+    return false;
+  }
+  const startDate = parseDateOnly(start);
+  if (startDate && date < startDate) {
+    return false;
+  }
+  const endDate = parseDateOnly(end);
+  if (endDate) {
+    const endBoundary = new Date(endDate.getTime() + (24 * 60 * 60 * 1000) - 1);
+    if (date > endBoundary) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function applyEmployeeOverrides({ employeeId, rawIdentifier, saleDate, periodKey }) {
+  const overrides = EMPLOYEE_ID_OVERRIDES[periodKey] || [];
+  const normalizedRaw = normalizeString(rawIdentifier);
+  const normalizedEmployee = normalizeString(employeeId);
+  for (const override of overrides) {
+    const normalizedSource = normalizeString(override.source);
+    const matchesSource =
+      (normalizedEmployee && normalizedEmployee.includes(normalizedSource)) ||
+      (normalizedRaw && normalizedRaw.includes(normalizedSource));
+    if (!matchesSource) {
+      continue;
+    }
+    if (!isWithinOverrideRange(saleDate, override.start, override.end)) {
+      continue;
+    }
+    return override.target;
+  }
+  return employeeId;
 }
 
 function normalizeClientType(value) {
@@ -218,7 +296,8 @@ async function main() {
   const { year, month } = parseYearMonth(periodArg || '2025-10');
   const { start, end } = buildDateRange({ year, month });
 
-  console.log(`Calcul des commissions pour ${year}-${String(month).padStart(2, '0')}`);
+  const periodKey = `${year}-${String(month).padStart(2, '0')}`;
+  console.log(`Calcul des commissions pour ${periodKey}`);
   console.log(`Période UTC: ${start.toISOString()} -> ${end.toISOString()}`);
   console.log('Méthode: forfait 10 000 F par tranche de 100 téléphones + bonus journalier 2 000 F si CA ≥ 1 000 000 F.');
   console.log('Règle unités: plancher(total_tél. / 100) × 10 000 F.');
@@ -233,14 +312,23 @@ async function main() {
   const unmatchedSales = [];
 
   for (const sale of sales) {
-    const employeeId = detectEmployeeId(sale);
+    const candidates = collectEmployeeCandidates(sale);
+    const primaryIdentifier = candidates[0] || '';
+    let employeeId = detectEmployeeIdFromCandidates(candidates);
+    const saleDate = toDate(sale.timestamp);
+    employeeId = applyEmployeeOverrides({
+      employeeId,
+      rawIdentifier: primaryIdentifier,
+      saleDate,
+      periodKey
+    });
+
     if (!employeeId || !summaries.has(employeeId)) {
       unmatchedSales.push(sale);
       continue;
     }
 
     const items = Array.isArray(sale.items) ? sale.items : [];
-    const saleDate = toDate(sale.timestamp);
 
     if (employeeId === MANINI_ID) {
       if (isSunday(saleDate)) {
