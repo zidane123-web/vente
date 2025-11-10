@@ -19,7 +19,7 @@ const EMPLOYEES = [
 const MANINI_ID = 'manini';
 
 const UNIT_COMMISSION_STEP = 100;
-const UNIT_COMMISSION_RATE = 10000; // per tranche of 100 phones
+const UNIT_COMMISSION_RATE = 7000; // per tranche of 100 phones
 const DAILY_REVENUE_THRESHOLD = 1_000_000; // F CFA
 const DAILY_REVENUE_BONUS = 2000; // per qualifying day
 
@@ -299,8 +299,8 @@ async function main() {
   const periodKey = `${year}-${String(month).padStart(2, '0')}`;
   console.log(`Calcul des commissions pour ${periodKey}`);
   console.log(`Période UTC: ${start.toISOString()} -> ${end.toISOString()}`);
-  console.log('Méthode: forfait 10 000 F par tranche de 100 téléphones + bonus journalier 2 000 F si CA ≥ 1 000 000 F.');
-  console.log('Règle unités: plancher(total_tél. / 100) × 10 000 F.');
+  console.log('Méthode: forfait 7 000 F par tranche de 100 téléphones + bonus journalier 2 000 F si CA ≥ 1 000 000 F.');
+  console.log('Règle unités: plancher(total_tél. / 100) × 7 000 F.');
   console.log('Règle journalier: nombre de jours à 1 000 000 F CA × 2 000 F.');
 
   const sales = await fetchSales(start, end);
@@ -388,7 +388,7 @@ async function main() {
     console.log(`  Ventes traitées: ${summary.salesCount}`);
     console.log(`  Téléphones vendus: ${formatNumber(summary.totalUnits)} (détails ${formatNumber(summary.retailUnits)}, gros ${formatNumber(summary.wholesaleUnits)})`);
     console.log(`  CA estimé: ${formatCurrency(summary.totalRevenue)}`);
-    console.log(`  Commission unités (10 000 F / 100 tél.): ${formatCurrency(summary.unitsCommission)}`);
+    console.log(`  Commission unités (7 000 F / 100 tél.): ${formatCurrency(summary.unitsCommission)}`);
     const millionDaysLabel = summary.dailyMillionDays > 0 ? ` (${summary.dailyMillionDays} jour${summary.dailyMillionDays > 1 ? 's' : ''} ≥ 1 000 000 F)` : '';
     console.log(`  Bonus jours millionnaires: ${formatCurrency(summary.dailyRevenueBonus)}${millionDaysLabel}`);
     console.log(`  Total à payer: ${formatCurrency(summary.totalPayout)}`);
