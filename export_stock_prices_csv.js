@@ -136,6 +136,28 @@ function normalizeCategoryKey(value) {
   return normalized;
 }
 
+function tokenizeKey(value) {
+  return normalizeKey(value)
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function tokenSimilarity(aTokens, bTokens) {
+  if (!aTokens.length || !bTokens.length) return 0;
+  const setB = new Set(bTokens);
+  let intersection = 0;
+  aTokens.forEach((token) => {
+    if (setB.has(token)) {
+      intersection += 1;
+    }
+  });
+  if (intersection === 0) return 0;
+  const union = new Set([...aTokens, ...bTokens]).size;
+  const jaccard = union ? intersection / union : 0;
+  const containment = intersection / Math.max(aTokens.length, bTokens.length);
+  return Math.max(jaccard, containment);
+}
+
 function parseCsv(content) {
   const rows = [];
   let current = '';
@@ -205,6 +227,7 @@ function loadSaleCatalog(filePath) {
   const rows = parseCsv(raw);
   const records = rowsToObjects(rows);
   const map = new Map();
+  const entries = [];
   records.forEach((record) => {
     const name =
       (record.name ||
@@ -220,43 +243,73 @@ function loadSaleCatalog(filePath) {
         record.salePrice ||
         record.prix_vente
     );
+    if (!Number.isFinite(price) || price <= 0) {
+      return;
+    }
     const category = record.category || record.categorie || record.type || '';
+    const normalizedCategory = normalizeCategoryKey(category);
     const key = normalizeKey(name);
-    if (!key) return;
+    const tokens = tokenizeKey(name);
+    if (!key || !tokens.length) return;
+    const entry = {
+      name,
+      category,
+      normalizedCategory,
+      price,
+      tokens
+    };
     if (!map.has(key)) {
       map.set(key, []);
     }
-    map.get(key).push({
-      name,
-      category,
-      price: Number.isFinite(price) && price > 0 ? price : null
-    });
+    map.get(key).push(entry);
+    entries.push(entry);
   });
-  return { path: resolvedPath, map };
+  return { path: resolvedPath, map, entries };
 }
 
-function findSalePrice(itemName, itemCategory, saleMap) {
-  if (!saleMap) return null;
+function findSalePrice(itemName, itemCategory, saleCatalog) {
+  if (!saleCatalog) return null;
+  const { map, entries } = saleCatalog;
   const key = normalizeKey(itemName);
   if (!key) return null;
-  const candidates = saleMap.get(key);
-  if (!candidates || !candidates.length) return null;
-  const pricedCandidates = candidates.filter(
-    (candidate) => Number.isFinite(candidate.price) && candidate.price > 0
-  );
-  if (!pricedCandidates.length) return null;
-
-  if (itemCategory) {
-    const normalizedCategory = normalizeCategoryKey(itemCategory);
-    const match = pricedCandidates.find(
-      (candidate) =>
-        normalizeCategoryKey(candidate.category) === normalizedCategory
-    );
-    if (match) {
-      return match.price;
-    }
+  const normalizedCategory = normalizeCategoryKey(itemCategory);
+  const exactMatches = map.get(key);
+  if (exactMatches && exactMatches.length) {
+    const preferred = normalizedCategory
+      ? exactMatches.find(
+        (candidate) => candidate.normalizedCategory === normalizedCategory
+      )
+      : null;
+    return (preferred || exactMatches[0]).price;
   }
-  return pricedCandidates[0].price;
+
+  const itemTokens = tokenizeKey(itemName);
+  if (!itemTokens.length) return null;
+
+  const MIN_SCORE = 0.55;
+  let best = null;
+
+  entries.forEach((candidate) => {
+    if (!candidate.tokens.length) return;
+    const baseScore = tokenSimilarity(itemTokens, candidate.tokens);
+    if (baseScore < MIN_SCORE) return;
+    let score = baseScore;
+    if (
+      normalizedCategory &&
+      candidate.normalizedCategory &&
+      candidate.normalizedCategory === normalizedCategory
+    ) {
+      score += 0.15;
+    }
+    if (candidate.tokens[0] && itemTokens[0] && candidate.tokens[0] === itemTokens[0]) {
+      score += 0.05;
+    }
+    if (!best || score > best.score) {
+      best = { score, price: candidate.price };
+    }
+  });
+
+  return best ? best.price : null;
 }
 
 function toCsvRow(fields) {
@@ -356,7 +409,7 @@ async function main() {
 
     let matchedSalePrices = 0;
     const enrichedItems = items.map((item) => {
-      const salePrice = saleCatalog ? findSalePrice(item.name, item.category, saleCatalog.map) : null;
+      const salePrice = saleCatalog ? findSalePrice(item.name, item.category, saleCatalog) : null;
       if (salePrice !== null && salePrice !== undefined) {
         matchedSalePrices += 1;
       }
