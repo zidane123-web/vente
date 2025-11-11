@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Exporte la collection Firestore `stock` dans un CSV avec prix unitaire et stock.
+ * Exporte la collection Firestore `stock` dans un CSV avec prix unitaire, stock,
+ * et fusion optionnelle avec un CSV de prix de vente.
  */
 
 const fs = require('fs');
@@ -10,6 +11,7 @@ const admin = require('firebase-admin');
 
 const SERVICE_ACCOUNT_FILE = 'africaphone1-accfb-firebase-adminsdk-fbsvc-37efae2abd.json';
 const DEFAULT_OUTPUT = 'stock_inventory_snapshot.csv';
+const DEFAULT_PRODUCTS_FILE = 'products.csv';
 
 function parseArgs(argv) {
   const args = { positional: [] };
@@ -19,6 +21,11 @@ function parseArgs(argv) {
       case '--output':
       case '-o':
         args.output = argv[i + 1];
+        i += 1;
+        break;
+      case '--products':
+      case '-p':
+        args.products = argv[i + 1];
         i += 1;
         break;
       case '--help':
@@ -40,6 +47,7 @@ function printHelp() {
 
 Options:
   -o, --output <fichier>    Fichier de sortie (defaut: ${DEFAULT_OUTPUT})
+  -p, --products <fichier>  CSV des prix de vente (defaut: ${DEFAULT_PRODUCTS_FILE} si present)
   -h, --help                Affiche cette aide
 `);
 }
@@ -100,6 +108,157 @@ function getUnitPrice(raw = {}) {
   return 0;
 }
 
+function normalizeKey(value) {
+  if (value === null || value === undefined) return '';
+  return value
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function normalizeCategoryKey(value) {
+  const normalized = normalizeKey(value);
+  if (!normalized) return '';
+  if (normalized.includes('access')) return 'accessoires';
+  if (
+    normalized.includes('smart') ||
+    normalized.includes('portable') ||
+    normalized.includes('telephone') ||
+    normalized.includes('phone') ||
+    normalized.includes('tablette') ||
+    normalized.includes('tablet')
+  ) {
+    return 'telephones';
+  }
+  return normalized;
+}
+
+function parseCsv(content) {
+  const rows = [];
+  let current = '';
+  let row = [];
+  let inQuotes = false;
+
+  for (let i = 0; i < content.length; i += 1) {
+    const char = content[i];
+    if (inQuotes) {
+      if (char === '"') {
+        if (content[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += char;
+      }
+    } else if (char === '"') {
+      inQuotes = true;
+    } else if (char === ',') {
+      row.push(current);
+      current = '';
+    } else if (char === '\r') {
+      // ignore carriage returns
+    } else if (char === '\n') {
+      row.push(current);
+      rows.push(row);
+      row = [];
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+
+  if (current.length > 0 || row.length) {
+    row.push(current);
+    rows.push(row);
+  }
+
+  return rows;
+}
+
+function rowsToObjects(rows) {
+  if (!rows.length) return [];
+  const headers = rows[0].map((header) => header.trim());
+  return rows
+    .slice(1)
+    .filter((row) => row.some((cell) => cell && cell.trim && cell.trim() !== ''))
+    .map((row) => {
+      const record = {};
+      headers.forEach((header, index) => {
+        if (!header) return;
+        record[header] = row[index] !== undefined ? row[index] : '';
+      });
+      return record;
+    });
+}
+
+function loadSaleCatalog(filePath) {
+  const resolvedPath = path.resolve(process.cwd(), filePath);
+  if (!fs.existsSync(resolvedPath)) {
+    throw new Error(`Fichier produits introuvable: ${resolvedPath}`);
+  }
+  const raw = fs.readFileSync(resolvedPath, 'utf8');
+  const rows = parseCsv(raw);
+  const records = rowsToObjects(rows);
+  const map = new Map();
+  records.forEach((record) => {
+    const name =
+      (record.name ||
+        record.Name ||
+        record.produit ||
+        record.Produit ||
+        '').trim();
+    if (!name) return;
+    const price = coerceNumber(
+      record.price ||
+        record.prix ||
+        record.prixVente ||
+        record.salePrice ||
+        record.prix_vente
+    );
+    const category = record.category || record.categorie || record.type || '';
+    const key = normalizeKey(name);
+    if (!key) return;
+    if (!map.has(key)) {
+      map.set(key, []);
+    }
+    map.get(key).push({
+      name,
+      category,
+      price: Number.isFinite(price) && price > 0 ? price : null
+    });
+  });
+  return { path: resolvedPath, map };
+}
+
+function findSalePrice(itemName, itemCategory, saleMap) {
+  if (!saleMap) return null;
+  const key = normalizeKey(itemName);
+  if (!key) return null;
+  const candidates = saleMap.get(key);
+  if (!candidates || !candidates.length) return null;
+  const pricedCandidates = candidates.filter(
+    (candidate) => Number.isFinite(candidate.price) && candidate.price > 0
+  );
+  if (!pricedCandidates.length) return null;
+
+  if (itemCategory) {
+    const normalizedCategory = normalizeCategoryKey(itemCategory);
+    const match = pricedCandidates.find(
+      (candidate) =>
+        normalizeCategoryKey(candidate.category) === normalizedCategory
+    );
+    if (match) {
+      return match.price;
+    }
+  }
+  return pricedCandidates[0].price;
+}
+
 function toCsvRow(fields) {
   return fields
     .map((value) => {
@@ -130,15 +289,16 @@ async function fetchStockItems(db) {
 
 async function writeCsv(items, outputPath) {
   const rows = [
-    toCsvRow(['Produit', 'Prix unitaire (FCFA)', 'Stock', 'Categorie'])
+    toCsvRow(['Produit', 'Categorie', 'Stock', 'Prix achat (FCFA)', 'Prix vente (FCFA)'])
   ];
   items.forEach((item) => {
     rows.push(
       toCsvRow([
         item.name,
-        item.unitPrice,
+        item.category,
         item.stock,
-        item.category
+        item.unitPrice,
+        item.salePrice ?? ''
       ])
     );
   });
@@ -168,6 +328,13 @@ async function main() {
   const outputPath = args.output
     ? path.resolve(process.cwd(), args.output)
     : path.join(__dirname, DEFAULT_OUTPUT);
+  const defaultProductsPath = path.join(__dirname, DEFAULT_PRODUCTS_FILE);
+  const productsPath =
+    args.products !== undefined
+      ? path.resolve(process.cwd(), args.products)
+      : fs.existsSync(defaultProductsPath)
+        ? defaultProductsPath
+        : undefined;
 
   try {
     console.log('Recuperation des articles en stock...');
@@ -175,7 +342,32 @@ async function main() {
     if (!items.length) {
       console.warn('Aucun article trouve dans la collection `stock`.');
     }
-    await writeCsv(items, outputPath);
+    let saleCatalog = null;
+    if (productsPath) {
+      try {
+        saleCatalog = loadSaleCatalog(productsPath);
+        console.log(`Catalogue de prix de vente charge: ${productsPath}`);
+      } catch (loadError) {
+        throw new Error(`Impossible de charger ${productsPath}: ${loadError.message}`);
+      }
+    } else {
+      console.log('Aucun fichier de prix de vente detecte; la colonne restera vide.');
+    }
+
+    let matchedSalePrices = 0;
+    const enrichedItems = items.map((item) => {
+      const salePrice = saleCatalog ? findSalePrice(item.name, item.category, saleCatalog.map) : null;
+      if (salePrice !== null && salePrice !== undefined) {
+        matchedSalePrices += 1;
+      }
+      return { ...item, salePrice: salePrice ?? '' };
+    });
+
+    if (saleCatalog) {
+      console.log(`Prix de vente trouves pour ${matchedSalePrices}/${items.length} articles.`);
+    }
+
+    await writeCsv(enrichedItems, outputPath);
     console.log(`CSV genere: ${outputPath}`);
   } catch (error) {
     console.error("Erreur lors de l'export CSV:", error.message);
