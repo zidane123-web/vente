@@ -14,6 +14,7 @@
 !report_depense_papa.js
 !record_depense_papa.js
 !export_inventory_excel.js
+!export_stock_prices_csv.js
 !calculate_commissions.js
 !commission_formula.pdf
 !package.json
