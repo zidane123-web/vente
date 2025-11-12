@@ -16,6 +16,7 @@
 !export_inventory_excel.js
 !export_stock_prices_csv.js
 !fix_abdoul_redmi_prices.js
+!adjust_abdoul_payment_balance.js
 !list_abdoul_supplies_since_payment.js
 !calculate_commissions.js
 !commission_formula.pdf
