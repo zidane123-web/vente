@@ -176,12 +176,41 @@ async function adjustPaymentBalance() {
     return;
   }
 
-  const paymentUpdate = {
-    balanceAfter: targetBalance
-  };
+  const balanceDelta = targetBalance - match.balanceAfter;
+  if (Math.abs(balanceDelta) < 1e-3) {
+    console.log('Aucun écart détecté, aucune mise à jour nécessaire.');
+    return;
+  }
+  const paymentDelta = -balanceDelta;
 
-  await match.ref.update(paymentUpdate);
-  console.log('• Sous-document payments mis à jour.');
+  const newAmount = Math.max(0, parseNumeric(match.amount) + paymentDelta);
+  const newApplied = Math.max(0, parseNumeric(match.appliedAmount) + paymentDelta);
+
+  await match.ref.update({
+    balanceAfter: targetBalance,
+    amount: newAmount,
+    appliedAmount: newApplied
+  });
+  console.log(`• Paiement ajusté: montant=${formatAmount(newAmount)}, applied=${formatAmount(newApplied)}, balance=${formatAmount(targetBalance)}`);
+
+  const approRef = match.ref.parent.parent;
+  if (approRef) {
+    const approSnap = await approRef.get();
+    if (approSnap.exists) {
+      const approData = approSnap.data();
+      const paymentsTotal = parseNumeric(approData.paymentsTotalPaid) + paymentDelta;
+      const remainingAmount = Math.max(0, parseNumeric(approData.remainingAmount) + balanceDelta);
+      const netSupplierBalance = parseNumeric(approData.netSupplierBalance) + paymentDelta;
+      await approRef.update({
+        paymentsTotalPaid: paymentsTotal,
+        remainingAmount,
+        netSupplierBalance
+      });
+      console.log(
+        `• Approvisionnement mis à jour: paymentsTotalPaid=${formatAmount(paymentsTotal)}, remainingAmount=${formatAmount(remainingAmount)}, netSupplierBalance=${formatAmount(netSupplierBalance)}`
+      );
+    }
+  }
 
   console.log('Correction terminée.');
 }
