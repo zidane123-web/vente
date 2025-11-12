@@ -18,19 +18,19 @@ const SUPPLIER_CANONICALS = new Map([
 ]);
 
 const argv = yargs(hideBin(process.argv))
-  .option('since', {
+.option('since', {
     alias: 's',
     type: 'string',
-    describe: "Date/heure du paiement MoMo (ISO, timestamp numérique ou texte lisible)"
+    describe: "Date/heure du paiement MoMo (ISO, timestamp numerique ou texte lisible)"
   })
   .option('json', {
     type: 'string',
-    describe: 'Chemin de fichier optionnel pour enregistrer le détail en JSON'
+    describe: 'Chemin de fichier optionnel pour enregistrer le detail en JSON'
   })
   .option('limit', {
     alias: 'l',
     type: 'number',
-    describe: 'Nombre max. d’approvisionnements à afficher'
+    describe: 'Nombre max. d approvisionnements a afficher'
   })
   .help()
   .alias('help', 'h')
@@ -299,9 +299,9 @@ function formatDateTime(date) {
 }
 
 function printReport(summaries, cutoff) {
-  console.log(`Approvisionnements ${SUPPLIER_NAME} enregistrés depuis ${formatDateTime(cutoff)} (${cutoff.toISOString()})`);
+  console.log(`Approvisionnements ${SUPPLIER_NAME} enregistres depuis ${formatDateTime(cutoff)} (${cutoff.toISOString()})`);
   if (!summaries.length) {
-    console.log('Aucun mouvement trouvé dans Firestore.');
+    console.log('Aucun mouvement trouve dans Firestore.');
     return;
   }
 
@@ -317,13 +317,13 @@ function printReport(summaries, cutoff) {
       formatDateTime(summary.timestamp),
       summary.reference || summary.id
     ].filter(Boolean);
-    console.log(`\n${index + 1}. ${titleParts.join(' • ')}`);
-    console.log(`   Quantité: ${formatQuantity(summary.totalQty)} · Montant estimé: ${formatCurrency(summary.totalValue)}`);
+    console.log(`\n${index + 1}. ${titleParts.join(' - ')}`);
+    console.log(`   Quantite: ${formatQuantity(summary.totalQty)} - Montant estime: ${formatCurrency(summary.totalValue)}`);
     if (summary.transport > 0) {
       console.log(`   Frais/transport: ${formatCurrency(summary.transport)}`);
     }
     if (summary.declaredTotal > 0) {
-      console.log(`   Total déclaré: ${formatCurrency(summary.declaredTotal)}`);
+      console.log(`   Total declare: ${formatCurrency(summary.declaredTotal)}`);
     }
     if (summary.paymentMethod) {
       console.log(`   Mode de paiement: ${summary.paymentMethod}`);
@@ -336,24 +336,24 @@ function printReport(summaries, cutoff) {
     }
     summary.items.forEach(item => {
       console.log(
-        `     • ${item.name}: ${formatQuantity(item.qty)} × ${formatCurrency(item.unitCost)} = ${formatCurrency(item.lineCost)}`
+        `     - ${item.name}: ${formatQuantity(item.qty)} x ${formatCurrency(item.unitCost)} = ${formatCurrency(item.lineCost)}`
       );
     });
   });
 
   console.log('\nTotaux depuis le paiement:');
   console.log(` - Approvisionnements: ${summaries.length}`);
-  console.log(` - Quantité achetée: ${formatQuantity(totalQty)} unités`);
-  console.log(` - Achats estimés: ${formatCurrency(totalValue)}`);
+  console.log(` - Quantite achetee: ${formatQuantity(totalQty)} unites`);
+  console.log(` - Achats estimes: ${formatCurrency(totalValue)}`);
   if (totalTransport > 0) {
-    console.log(` - Frais identifiés: ${formatCurrency(totalTransport)}`);
+    console.log(` - Frais identifies: ${formatCurrency(totalTransport)}`);
     console.log(` - Achats + frais: ${formatCurrency(totalValue + totalTransport)}`);
   }
 }
 
 async function main() {
   try {
-    console.log('Connexion à Firestore en utilisant le service account local...');
+    console.log('Connexion a Firestore en utilisant le service account local...');
     const purchases = await fetchAbdoulPurchasesSince(sinceDate);
     const limit = Number.isFinite(argv.limit) && argv.limit > 0 ? argv.limit : purchases.length;
     const summaries = purchases.slice(0, limit).map(summarizePurchase);
@@ -368,10 +368,10 @@ async function main() {
         summaries
       };
       fs.writeFileSync(path.resolve(argv.json), JSON.stringify(payload, null, 2), 'utf8');
-      console.log(`\nExport JSON enregistré dans ${path.resolve(argv.json)}`);
+      console.log(`\nExport JSON enregistre dans ${path.resolve(argv.json)}`);
     }
   } catch (error) {
-    console.error('Erreur lors de la récupération des approvisionnements:', error);
+    console.error('Erreur lors de la recuperation des approvisionnements:', error);
     process.exitCode = 1;
   } finally {
     await admin.app().delete().catch(() => {});
