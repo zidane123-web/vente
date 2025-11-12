@@ -6,6 +6,7 @@ const { hideBin } = require('yargs/helpers');
 
 const SERVICE_ACCOUNT_FILE = 'africaphone1-accfb-firebase-adminsdk-fbsvc-37efae2abd.json';
 const DEFAULT_PAYMENT_ISO = '2025-11-06T10:38:00+01:00';
+const DEFAULT_BASE_DEBT = 3000000;
 const SUPPLIER_NAME = 'Abdoul';
 
 const SUPPLIER_CANONICALS = new Map([
@@ -17,11 +18,23 @@ const SUPPLIER_CANONICALS = new Map([
   ['abdoul tg/', 'Abdoul']
 ]);
 
+const PRICE_OVERRIDES = new Map([
+  ['redmi a5 64 + 3', 34000],
+  ['redmi a5 64+3', 34000],
+  ['redmi a5 64gb', 34000],
+  ['redmi a5 64 g', 34000]
+]);
+
 const argv = yargs(hideBin(process.argv))
-.option('since', {
+  .option('since', {
     alias: 's',
     type: 'string',
     describe: "Date/heure du paiement MoMo (ISO, timestamp numerique ou texte lisible)"
+  })
+  .option('base-debt', {
+    alias: 'b',
+    type: 'number',
+    describe: 'Dette initiale a ajouter aux achats (par defaut 3 000 000 FCFA)'
   })
   .option('json', {
     type: 'string',
@@ -85,14 +98,23 @@ function summarizePurchase(purchase) {
     if (qty <= 0 && lineCost <= 0) {
       continue;
     }
+    const name = getItemName(item);
+    const normalized = normalizeLabel(name);
+    let effectiveLineCost = lineCost;
+    let unitCost = qty > 0 ? lineCost / qty : getItemUnitCost(item);
+    const override = getPriceOverride(normalized);
+    if (override !== null && qty > 0) {
+      unitCost = override;
+      effectiveLineCost = override * qty;
+    }
     totalQty += qty;
-    totalValue += lineCost;
-    const unitCost = qty > 0 ? lineCost / qty : getItemUnitCost(item);
+    totalValue += effectiveLineCost;
     itemSummaries.push({
-      name: getItemName(item),
+      name,
       qty,
       unitCost,
-      lineCost
+      lineCost: effectiveLineCost,
+      overrideApplied: override !== null
     });
   }
 
@@ -165,6 +187,22 @@ function normalizeList(value) {
   }
   const coerced = String(value ?? '').trim();
   return coerced ? [coerced] : [];
+}
+
+function normalizeLabel(value) {
+  return (value || '')
+    .toString()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getPriceOverride(normalizedName) {
+  if (!normalizedName) return null;
+  const override = PRICE_OVERRIDES.get(normalizedName);
+  return Number.isFinite(override) && override > 0 ? override : null;
 }
 
 function canonicalSupplier(raw) {
@@ -300,19 +338,20 @@ function formatDateTime(date) {
 
 function printReport(summaries, cutoff) {
   console.log(`Approvisionnements ${SUPPLIER_NAME} enregistres depuis ${formatDateTime(cutoff)} (${cutoff.toISOString()})`);
+  const totals = {
+    totalQty: 0,
+    totalValue: 0,
+    totalTransport: 0
+  };
   if (!summaries.length) {
     console.log('Aucun mouvement trouve dans Firestore.');
-    return;
+    return totals;
   }
 
-  let totalQty = 0;
-  let totalValue = 0;
-  let totalTransport = 0;
-
   summaries.forEach((summary, index) => {
-    totalQty += summary.totalQty;
-    totalValue += summary.totalValue;
-    totalTransport += summary.transport;
+    totals.totalQty += summary.totalQty;
+    totals.totalValue += summary.totalValue;
+    totals.totalTransport += summary.transport;
     const titleParts = [
       formatDateTime(summary.timestamp),
       summary.reference || summary.id
@@ -343,11 +382,62 @@ function printReport(summaries, cutoff) {
 
   console.log('\nTotaux depuis le paiement:');
   console.log(` - Approvisionnements: ${summaries.length}`);
-  console.log(` - Quantite achetee: ${formatQuantity(totalQty)} unites`);
-  console.log(` - Achats estimes: ${formatCurrency(totalValue)}`);
-  if (totalTransport > 0) {
-    console.log(` - Frais identifies: ${formatCurrency(totalTransport)}`);
-    console.log(` - Achats + frais: ${formatCurrency(totalValue + totalTransport)}`);
+  console.log(` - Quantite achetee: ${formatQuantity(totals.totalQty)} unites`);
+  console.log(` - Achats estimes: ${formatCurrency(totals.totalValue)}`);
+  if (totals.totalTransport > 0) {
+    console.log(` - Frais identifies: ${formatCurrency(totals.totalTransport)}`);
+    console.log(` - Achats + frais: ${formatCurrency(totals.totalValue + totals.totalTransport)}`);
+  }
+
+  return totals;
+}
+
+function consolidateItems(summaries) {
+  const aggregated = new Map();
+  for (const summary of summaries) {
+    const items = Array.isArray(summary.items) ? summary.items : [];
+    for (const item of items) {
+      const normalized = normalizeLabel(item.name);
+      if (!normalized) continue;
+      const existing = aggregated.get(normalized) || { name: item.name, qty: 0, totalCost: 0 };
+      if (!existing.name && item.name) {
+        existing.name = item.name;
+      }
+      existing.qty += item.qty;
+      existing.totalCost += item.lineCost;
+      aggregated.set(normalized, existing);
+    }
+  }
+  return Array.from(aggregated.values()).map(entry => ({
+    name: entry.name,
+    qty: entry.qty,
+    totalCost: entry.totalCost,
+    unitCost: entry.qty > 0 ? entry.totalCost / entry.qty : 0
+  }));
+}
+
+function printConsolidatedSummary(summaries, totals, baseDebt) {
+  console.log('\nVue consolidee par produit:');
+  const rows = consolidateItems(summaries).sort((a, b) => b.qty - a.qty);
+  if (!rows.length) {
+    console.log('  Aucun article a consolider.');
+  } else {
+    rows.forEach(row => {
+      console.log(
+        ` - ${row.name}: ${formatQuantity(row.qty)} unites @ ${formatCurrency(row.unitCost)} => ${formatCurrency(row.totalCost)}`
+      );
+    });
+  }
+
+  const safeBaseDebt = Number.isFinite(baseDebt) && baseDebt >= 0 ? baseDebt : DEFAULT_BASE_DEBT;
+  const currentDebt = safeBaseDebt + totals.totalValue;
+  const currentDebtWithFees = currentDebt + totals.totalTransport;
+
+  console.log('\nDette actualisee:');
+  console.log(` - Dette initiale (override possible via --base-debt): ${formatCurrency(safeBaseDebt)}`);
+  console.log(` - Dette hors frais: ${formatCurrency(currentDebt)}`);
+  if (totals.totalTransport > 0) {
+    console.log(` - Dette avec frais: ${formatCurrency(currentDebtWithFees)}`);
   }
 }
 
@@ -358,13 +448,26 @@ async function main() {
     const limit = Number.isFinite(argv.limit) && argv.limit > 0 ? argv.limit : purchases.length;
     const summaries = purchases.slice(0, limit).map(summarizePurchase);
 
-    printReport(summaries, sinceDate);
+    const baseDebt =
+      argv.baseDebt !== undefined
+        ? Math.max(0, parseNumeric(argv.baseDebt))
+        : DEFAULT_BASE_DEBT;
+
+    const totals = printReport(summaries, sinceDate);
+    printConsolidatedSummary(summaries, totals, baseDebt);
 
     if (argv.json) {
+      const consolidated = consolidateItems(summaries);
+      const currentDebt = baseDebt + totals.totalValue;
       const payload = {
         since: sinceDate.toISOString(),
         generatedAt: new Date().toISOString(),
         supplier: SUPPLIER_NAME,
+        baseDebt,
+        totals,
+        currentDebt,
+        currentDebtWithFees: currentDebt + totals.totalTransport,
+        consolidated,
         summaries
       };
       fs.writeFileSync(path.resolve(argv.json), JSON.stringify(payload, null, 2), 'utf8');
