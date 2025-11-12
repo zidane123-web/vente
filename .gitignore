@@ -15,6 +15,7 @@
 !record_depense_papa.js
 !export_inventory_excel.js
 !export_stock_prices_csv.js
+!list_abdoul_supplies_since_payment.js
 !calculate_commissions.js
 !commission_formula.pdf
 !package.json
