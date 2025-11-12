@@ -221,7 +221,15 @@ function buildDocUpdates(docData, itemsInfo) {
   const updates = {
     items: itemsInfo.items
   };
-  const fieldsToMirror = ['total', 'montant', 'montantTotal', 'amount', 'totalAchat'];
+  const fieldsToMirror = [
+    'total',
+    'montant',
+    'montantTotal',
+    'amount',
+    'totalAchat',
+    'totalCost',
+    'receivedTotalCost'
+  ];
   for (const field of fieldsToMirror) {
     if (docData[field] !== undefined) {
       updates[field] = itemsInfo.newTotal;
