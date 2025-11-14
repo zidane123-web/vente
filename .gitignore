@@ -22,6 +22,7 @@
 !audit_stock_movements.js
 !dump_firestore_doc.js
 !commission_formula.pdf
+!fix_sachet_cost.js
 !package.json
 !package-lock.json
 
