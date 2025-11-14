@@ -21,6 +21,7 @@
 !calculate_commissions.js
 !audit_stock_movements.js
 !dump_firestore_doc.js
+!compare_manini_sales.js
 !commission_formula.pdf
 !fix_sachet_cost.js
 !package.json
