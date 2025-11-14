@@ -19,6 +19,8 @@
 !adjust_abdoul_payment_balance.js
 !list_abdoul_supplies_since_payment.js
 !calculate_commissions.js
+!audit_stock_movements.js
+!dump_firestore_doc.js
 !commission_formula.pdf
 !package.json
 !package-lock.json
