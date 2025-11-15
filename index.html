@@ -2912,11 +2912,6 @@ body.drawer-open {
         <!-- Étape 1 : Client & Livraison -->
         <div class="sale-step active" id="step2">
           <h2>Étape 1 : Client & Livraison</h2>
-          <div class="step-actions">
-            <button type="button" class="btn-modern secondary" onclick="ouvrirPanier()">
-              <i data-lucide="shopping-bag"></i> Voir Panier
-            </button>
-          </div>
           <p class="step-intro">Identifiez clairement le client et, si nécessaire, préparez la livraison avant de passer aux paiements.</p>
           <div class="step-two-layout">
             <section class="info-card client-card" id="clientCard">
@@ -2969,7 +2964,7 @@ body.drawer-open {
           <input type="hidden" id="livreurNumero">
           <div class="step-navigation">
             <span></span>
-            <button class="btn-modern" onclick="nextStep()">
+            <button class="btn-modern" onclick="allerVersPanierDepuisClient()">
               Suivant <i data-lucide="arrow-right"></i>
             </button>
           </div>
@@ -19079,6 +19074,25 @@ function updateAccueilSummary() {
         generateRecap();
       }
     }
+    function allerVersPanierDepuisClient() {
+    const nom = document.getElementById('clientNom')?.value.trim() || '';
+    const numero = document.getElementById('clientNumero')?.value.trim() || '';
+    const typeSelection = document.getElementById('clientType')?.value.trim() || '';
+    if (!nom || !numero) {
+      showToast("Sélectionnez ou créez un client avant de continuer.");
+      return;
+    }
+    if (!typeSelection) {
+      showToast("Le client choisi doit avoir un type défini (ordinaire ou revendeur).");
+      return;
+    }
+    appliquerTypeVenteAuFormulaire();
+    window.location.hash = 'panier';
+    updatePanierPage();
+    updateSearchCartBadge();
+    updateCartFooter();
+    mettreAJourBadgeTypeVente();
+  }
     function nextStep() {
   const activeStep = steps[currentStep];
   const activeStepId = activeStep ? activeStep.id : null;
@@ -23587,7 +23601,7 @@ function continuerDepuisPanier() {
   if (currentItems.length === 0) return;
   appliquerTypeVenteAuFormulaire();
   window.location.hash = 'vendre';   // retour au wizard
-  currentStep = 0;                   // Étape 1 : infos client
+  currentStep = 1;                   // Étape 2 : Canal de vente
   showStep(currentStep);
   updateCartFooter();                // ← garde le footer frais
 }
