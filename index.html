@@ -23264,10 +23264,24 @@ document.getElementById('searchCartIcon').addEventListener('click', () => {
   mettreAJourBadgeTypeVente();
 });
 
+// Force le panier à utiliser le prix du stock lorsqu'il est disponible
+function resolveCartUnitPrice(productName, fallbackPrice = 0) {
+  if (!productName) return 0;
+  const stockRecord = cachedStock.find(s => s.name === productName);
+  if (stockRecord && stockRecord.price != null) {
+    const parsedFromStock = Number(stockRecord.price);
+    if (!Number.isNaN(parsedFromStock)) {
+      return parsedFromStock;
+    }
+  }
+  const parsedFallback = Number(fallbackPrice);
+  return Number.isNaN(parsedFallback) ? 0 : parsedFallback;
+}
+
 /* Ajoute un produit ou incrémente sa quantité ------------------ */
 function addOrIncrementItem(prod) {
-  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') || (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
   const idx = currentItems.findIndex(it => it.produit === prod.name);
+  const unitPrice = resolveCartUnitPrice(prod.name, prod.price);
 
   if (idx > -1) {
     if (currentItems[idx].quantite >= prod.stock) {
@@ -23275,6 +23289,7 @@ function addOrIncrementItem(prod) {
       return;
     }
     currentItems[idx].quantite += 1;
+    currentItems[idx].prix = unitPrice;
     currentItems[idx].total     = currentItems[idx].quantite * currentItems[idx].prix;
     currentItems[idx].category  = prod.category;
     currentItems[idx].stockDestination = resolveStockDestination({
@@ -23289,9 +23304,9 @@ function addOrIncrementItem(prod) {
     }
     currentItems.push({
       produit  : prod.name,
-      prix     : isEmployee ? 0 : prod.price,
+      prix     : unitPrice,
       quantite : 1,
-      total    : isEmployee ? 0 : prod.price,
+      total    : unitPrice,
       category : prod.category,
       stockDestination: currentSalePickupLocation
     });
@@ -23320,7 +23335,6 @@ function renderMiniPanier(){
 /* ========== Écran #panier complet ========= */
 function updatePanierPage() {
   const container = document.getElementById("panierContainer");
-  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') || (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
   ensureCartItemsHaveLocation();
   syncPickupLocationSelector();
 
@@ -23331,8 +23345,11 @@ function updatePanierPage() {
   currentItems.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "panier-item";
-    const priceValue = (isEmployee && (!item.prix || Number(item.prix) === 0)) ? '' : item.prix;
-    const pricePlaceholder = isEmployee ? ' placeholder="Montant a saisir"' : '';
+    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix);
+    currentItems[index].prix = resolvedPrice;
+    currentItems[index].total = currentItems[index].quantite * resolvedPrice;
+    const priceLabel = resolvedPrice.toLocaleString('fr-FR') + " FCFA";
+    const totalLabel = currentItems[index].total.toLocaleString('fr-FR') + " FCFA";
     const itemLocationLabel = formatStockLocationLabel(item.stockDestination);
     row.innerHTML = `
       <strong>${item.produit}</strong><br>
@@ -23340,18 +23357,16 @@ function updatePanierPage() {
         <input type="number" min="1" value="${item.quantite}"
                data-idx="${index}" class="inpQt">
       Prix :
-        <input type="number" min="0" step="100" value="${priceValue}"${pricePlaceholder}
-               data-idx="${index}" class="inpPx">
+        <span class="lignePrix">${priceLabel}</span>
       Total :
-        <span class="ligneTotal">${item.total.toLocaleString()} FCFA</span>
+        <span class="ligneTotal">${totalLabel}</span>
       <span class="remove-item" onclick="retirerArticle(${index})">×</span>
       <div class="panier-item-location">Lieu : <strong>${itemLocationLabel}</strong></div>
     `;
     container.appendChild(row);
   });
 
-  container.querySelectorAll('.inpQt').forEach(el => el.oninput = onChangeQtOrPx);
-  container.querySelectorAll('.inpPx').forEach(el => el.oninput = onChangeQtOrPx);
+  container.querySelectorAll('.inpQt').forEach(el => el.oninput = onChangeCartQuantity);
 
   updateCartFooter();   // ← un seul point de vérité pour le footer
 }
@@ -23366,12 +23381,11 @@ window.addEventListener('hashchange', () => {
     updateSearchCartBadge();
   }
 });
-/* Recalcul lors d'une saisie Qté ou Prix ---------------------- */
-function onChangeQtOrPx(e) {
+/* Recalcul lors d'une modification de quantité ---------------- */
+function onChangeCartQuantity(e) {
   const idx  = +e.target.dataset.idx;
   const wrap = e.target.closest('.panier-item');
   const q    = +wrap.querySelector('.inpQt').value || 0;
-  const p    = +wrap.querySelector('.inpPx').value || 0;
 
   const stockItem = cachedStock.find(s => s.name === currentItems[idx].produit);
   if (stockItem && q > stockItem.stock) {
@@ -23382,10 +23396,15 @@ function onChangeQtOrPx(e) {
     currentItems[idx].quantite = q;
   }
 
-  currentItems[idx].prix  = p;
+  const resolvedPrice = resolveCartUnitPrice(currentItems[idx].produit, currentItems[idx].prix);
+  currentItems[idx].prix  = resolvedPrice;
   currentItems[idx].total = currentItems[idx].quantite * currentItems[idx].prix;
+  const priceNode = wrap.querySelector('.lignePrix');
+  if (priceNode) {
+    priceNode.textContent = resolvedPrice.toLocaleString('fr-FR') + " FCFA";
+  }
   wrap.querySelector('.ligneTotal').textContent =
-        currentItems[idx].total.toLocaleString() + " FCFA";
+        currentItems[idx].total.toLocaleString('fr-FR') + " FCFA";
 
   updateCartFooter();            // ← NOUVEL appel
 }
