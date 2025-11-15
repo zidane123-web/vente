@@ -794,6 +794,16 @@ body.role-employe #screen-accueil .ako-quick-grid {
       margin-top: 4px;
       display: block;
     }
+    .client-card.client-type-required {
+      border: 2px solid #f87171;
+      box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.35);
+      animation: clientCardPulse 0.6s ease;
+    }
+    @keyframes clientCardPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.01); }
+      100% { transform: scale(1); }
+    }
     .selection-summary {
       border: 1px dashed rgba(59,130,246,0.3);
       background: rgba(59,130,246,0.08);
@@ -16965,29 +16975,6 @@ async function annulerCommandeFournisseur(approId, event) {
       </button>
     </div>
 
-    <script>
-      document.querySelectorAll('.btn-search').forEach(btn => {
-  btn.addEventListener('click', function(e) {
-    const circle = document.createElement('span');
-    circle.classList.add('ripple');
-    const d = Math.max(this.clientWidth, this.clientHeight);
-    circle.style.width  = circle.style.height = d + 'px';
-    const rect = this.getBoundingClientRect();
-    circle.style.left = `${e.clientX - rect.left - d/2}px`;
-    circle.style.top  = `${e.clientY - rect.top  - d/2}px`;
-    this.appendChild(circle);
-
-    // Au lieu de tout casser de suite, on attend la fin de l'anim :
-    circle.addEventListener('animationend', () => {
-      circle.remove();
-      window.location.hash = 'search-article';
-      updateSearchCartBadge();
-    });
-  });
-});
-
-      </script>
-      
 </section>
 
 
@@ -17727,7 +17714,9 @@ async function enregistrerModificationClient() {
     let clientsLoadingPromise = null;
     let clientSearchMode = 'nom';
     let selectedClientId = null;
-    let currentClientType = '';
+let currentClientType = '';
+let clientCardAttentionTimeout = null;
+let cartStateReadyForPricing = false;
 
     function normalizeClientType(value, fallback = '') {
       if (typeof value !== 'string') return fallback;
@@ -17735,6 +17724,75 @@ async function enregistrerModificationClient() {
       if (normalized === 'revendeur') return 'revendeur';
       if (normalized === 'ordinaire' || normalized === 'client' || normalized === 'standard') return 'ordinaire';
       return fallback;
+    }
+
+    function describeClientType(type, options = {}) {
+      const fallbackLabel = options && options.fallback ? options.fallback : 'Type client non défini';
+      const normalized = normalizeClientType(type || '', '');
+      if (normalized === 'revendeur') {
+        return (options && options.revendeurLabel) || 'Revendeur';
+      }
+      if (normalized === 'ordinaire') {
+        return (options && options.ordinaireLabel) || 'Client ordinaire';
+      }
+      return fallbackLabel;
+    }
+
+    function getActiveClientType() {
+      if (typeof document === 'undefined') return currentClientType || '';
+      const hiddenInput = document.getElementById('clientType');
+      return hiddenInput?.value || currentClientType || '';
+    }
+
+    function clearClientCardAttentionFlag() {
+      if (clientCardAttentionTimeout) {
+        clearTimeout(clientCardAttentionTimeout);
+        clientCardAttentionTimeout = null;
+      }
+      if (typeof document === 'undefined') return;
+      const clientCard = document.getElementById('clientCard');
+      if (clientCard) {
+        clientCard.classList.remove('client-type-required');
+      }
+    }
+
+    function flagClientCardAttention() {
+      if (typeof document === 'undefined') return;
+      const clientCard = document.getElementById('clientCard');
+      if (!clientCard) return;
+      clientCard.classList.add('client-type-required');
+      if (clientCardAttentionTimeout) {
+        clearTimeout(clientCardAttentionTimeout);
+      }
+      clientCardAttentionTimeout = setTimeout(() => {
+        clientCard.classList.remove('client-type-required');
+        clientCardAttentionTimeout = null;
+      }, 1500);
+    }
+
+    function ensureClientProfileSelected(options = {}) {
+      const currentType = getActiveClientType();
+      if (currentType) {
+        return true;
+      }
+      if (!options.silent) {
+        const msg = options.message || "Sélectionnez d'abord le type du client (ordinaire ou revendeur).";
+        if (typeof showToast === 'function') {
+          showToast(msg);
+        } else {
+          alert(msg);
+        }
+      }
+      if (options.highlight !== false) {
+        flagClientCardAttention();
+      }
+      if (options.redirect !== false) {
+        window.location.hash = 'vendre';
+        if (typeof showStep === 'function') {
+          showStep(0);
+        }
+      }
+      return false;
     }
 
     function setClientType(type) {
@@ -17749,6 +17807,11 @@ async function enregistrerModificationClient() {
         chip.classList.toggle('active', chip.dataset.type === normalizedType);
       });
       updateClientSelectedSummary();
+      clearClientCardAttentionFlag();
+      mettreAJourBadgeTypeVente();
+      if (cartStateReadyForPricing && typeof refreshCartPricingForClientType === 'function') {
+        refreshCartPricingForClientType();
+      }
     }
 
     function openClientSelection() {
@@ -17981,7 +18044,7 @@ async function enregistrerModificationClient() {
         }
         const numeroDisplay = client.numero ? client.numero : 'Numéro non renseigné';
         const typeValue = normalizeClientType(client.typeClient || client.clientType || client.type, '');
-        const typeLabel = typeValue === 'revendeur' ? 'Revendeur' : typeValue === 'ordinaire' ? 'Client ordinaire' : '';
+        const typeLabel = describeClientType(typeValue, { fallback: '' });
         const typeBadge = typeLabel ? `<span class="client-type-tag ${typeValue}">${typeLabel}</span>` : '';
         item.innerHTML = `
           <div>
@@ -18033,7 +18096,7 @@ async function enregistrerModificationClient() {
       const nom = document.getElementById('clientNom')?.value.trim() || '';
       const numero = document.getElementById('clientNumero')?.value.trim() || '';
       const typeValue = document.getElementById('clientType')?.value || currentClientType || '';
-      const typeLabel = typeValue === 'revendeur' ? 'Revendeur' : typeValue === 'ordinaire' ? 'Client ordinaire' : 'Type à préciser';
+      const typeLabel = describeClientType(typeValue, { fallback: 'Type à préciser' });
       if (!summary || !textEl) return;
       if (nom) {
         const base = numero ? `${nom} (${numero})` : nom;
@@ -19073,11 +19136,7 @@ function updateAccueilSummary() {
       const recapClientNumero = document.getElementById("clientNumero").value;
       const recapClientTypeRaw = document.getElementById("clientType")?.value || '';
       const recapClientType = normalizeClientType(recapClientTypeRaw, '');
-      const recapClientTypeLabel = recapClientType === 'revendeur'
-        ? 'Revendeur'
-        : recapClientType === 'ordinaire'
-          ? 'Client ordinaire'
-          : 'Type non défini';
+      const recapClientTypeLabel = describeClientType(recapClientType, { fallback: 'Type non défini' });
       html += "<br><strong>Client :</strong> " + recapClientNom + " (" + recapClientNumero + ") - " + recapClientTypeLabel + "<br>";
       html += "<strong>Canal de vente :</strong> " + document.getElementById("vendeurSelect").value + "<br>";
       const livraisonNom = (document.getElementById("livreurNom")?.value || "").trim();
@@ -23076,7 +23135,8 @@ function mettreAJourBadgeTypeVente() {
   const iconName = isDelivery ? 'truck' : 'shopping-cart';
   const label = isDelivery ? 'Livraison' : 'Vente directe';
   const locationLabel = formatStockLocationLabel(currentSalePickupLocation);
-  badge.innerHTML = `<i data-lucide="${iconName}"></i><div class="badge-text"><span>${label}</span><small>Lieu de retrait : ${locationLabel}</small></div>`;
+  const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client non sélectionné' });
+  badge.innerHTML = `<i data-lucide="${iconName}"></i><div class="badge-text"><span>${label}</span><small>${clientTypeLabel} • Lieu : ${locationLabel}</small></div>`;
   if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
     refreshLucideIcons();
   }
@@ -23264,24 +23324,118 @@ document.getElementById('searchCartIcon').addEventListener('click', () => {
   mettreAJourBadgeTypeVente();
 });
 
-// Force le panier à utiliser le prix du stock lorsqu'il est disponible
-function resolveCartUnitPrice(productName, fallbackPrice = 0) {
-  if (!productName) return 0;
-  const stockRecord = cachedStock.find(s => s.name === productName);
-  if (stockRecord && stockRecord.price != null) {
-    const parsedFromStock = Number(stockRecord.price);
-    if (!Number.isNaN(parsedFromStock)) {
-      return parsedFromStock;
+document.querySelectorAll('.btn-search').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    if (!ensureClientProfileSelected({ message: "Choisissez le type de client avant d'ouvrir le catalogue." })) {
+      e.preventDefault();
+      return;
+    }
+    const circle = document.createElement('span');
+    circle.classList.add('ripple');
+    const diameter = Math.max(this.clientWidth, this.clientHeight);
+    circle.style.width = circle.style.height = diameter + 'px';
+    const rect = this.getBoundingClientRect();
+    circle.style.left = `${e.clientX - rect.left - diameter / 2}px`;
+    circle.style.top = `${e.clientY - rect.top - diameter / 2}px`;
+    this.appendChild(circle);
+    circle.addEventListener('animationend', () => {
+      circle.remove();
+      window.location.hash = 'search-article';
+      updateSearchCartBadge();
+    });
+  });
+});
+
+const CLIENT_PRICE_KEY_MAP = {
+  ordinaire: ['price', 'prix', 'prixVente', 'prix_vente', 'clientPrice', 'prixClient', 'retailPrice'],
+  revendeur: ['priceRevendeur', 'revendeurPrice', 'priceReseller', 'resellerPrice', 'prixRevendeur', 'prix_revendeur', 'wholesalePrice', 'prixGrossiste', 'prix_grossiste']
+};
+const GENERIC_PRICE_KEYS = ['price', 'prix', 'prixVente', 'prix_vente', 'retailPrice'];
+
+function pickPriceFromSource(source, keys) {
+  if (!source || !keys || !keys.length) return null;
+  for (const key of keys) {
+    if (Object.prototype.hasOwnProperty.call(source, key) && source[key] != null) {
+      const parsed = Number(source[key]);
+      if (!Number.isNaN(parsed)) {
+        return parsed;
+      }
     }
   }
+  return null;
+}
+
+// Force le panier à utiliser le prix du stock lorsqu'il est disponible
+function resolveCartUnitPrice(productName, fallbackPrice = 0, contextData = null) {
+  const activeType = getActiveClientType() || 'ordinaire';
+  const preferredKeys = CLIENT_PRICE_KEY_MAP[activeType] || CLIENT_PRICE_KEY_MAP.ordinaire;
+  const otherKeys = activeType === 'revendeur'
+    ? CLIENT_PRICE_KEY_MAP.ordinaire
+    : CLIENT_PRICE_KEY_MAP.revendeur;
+  const sources = [];
+  if (productName) {
+    const stockRecord = cachedStock.find(s => s.name === productName);
+    if (stockRecord) {
+      sources.push(stockRecord);
+    }
+  }
+  if (contextData && typeof contextData === 'object') {
+    sources.push(contextData);
+  }
+  sources.push({ price: fallbackPrice });
+
+  for (const keySet of [preferredKeys, GENERIC_PRICE_KEYS, otherKeys]) {
+    if (!keySet || !keySet.length) continue;
+    for (const source of sources) {
+      const value = pickPriceFromSource(source, keySet);
+      if (value !== null) {
+        return value;
+      }
+    }
+  }
+
   const parsedFallback = Number(fallbackPrice);
   return Number.isNaN(parsedFallback) ? 0 : parsedFallback;
 }
 
+function refreshCartPricingForClientType() {
+  if (!Array.isArray(currentItems) || currentItems.length === 0) {
+    updateCartFooter();
+    return;
+  }
+  let updated = false;
+  currentItems.forEach((item, index) => {
+    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item);
+    if (resolvedPrice !== item.prix) {
+      item.prix = resolvedPrice;
+      updated = true;
+    }
+    const recalculatedTotal = (Number(item.quantite) || 0) * item.prix;
+    if (recalculatedTotal !== item.total) {
+      item.total = recalculatedTotal;
+      updated = true;
+    }
+  });
+  if (updated) {
+    renderMiniPanier();
+    updatePanierPage();
+  } else {
+    updatePanierPage();
+  }
+  updateSearchCartBadge();
+  updateCartFooter();
+}
+
+cartStateReadyForPricing = true;
+refreshCartPricingForClientType();
+
 /* Ajoute un produit ou incrémente sa quantité ------------------ */
 function addOrIncrementItem(prod) {
+  if (!ensureClientProfileSelected({ message: "Sélectionnez d'abord le type du client pour appliquer le bon prix." })) {
+    return;
+  }
   const idx = currentItems.findIndex(it => it.produit === prod.name);
-  const unitPrice = resolveCartUnitPrice(prod.name, prod.price);
+  const unitPrice = resolveCartUnitPrice(prod.name, prod.price, prod);
 
   if (idx > -1) {
     if (currentItems[idx].quantite >= prod.stock) {
@@ -23345,18 +23499,19 @@ function updatePanierPage() {
   currentItems.forEach((item, index) => {
     const row = document.createElement("div");
     row.className = "panier-item";
-    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix);
+    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item);
     currentItems[index].prix = resolvedPrice;
     currentItems[index].total = currentItems[index].quantite * resolvedPrice;
     const priceLabel = resolvedPrice.toLocaleString('fr-FR') + " FCFA";
     const totalLabel = currentItems[index].total.toLocaleString('fr-FR') + " FCFA";
+    const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client non défini' });
     const itemLocationLabel = formatStockLocationLabel(item.stockDestination);
     row.innerHTML = `
       <strong>${item.produit}</strong><br>
       Qté :
         <input type="number" min="1" value="${item.quantite}"
                data-idx="${index}" class="inpQt">
-      Prix :
+      Prix (${clientTypeLabel}) :
         <span class="lignePrix">${priceLabel}</span>
       Total :
         <span class="ligneTotal">${totalLabel}</span>
@@ -23396,7 +23551,7 @@ function onChangeCartQuantity(e) {
     currentItems[idx].quantite = q;
   }
 
-  const resolvedPrice = resolveCartUnitPrice(currentItems[idx].produit, currentItems[idx].prix);
+  const resolvedPrice = resolveCartUnitPrice(currentItems[idx].produit, currentItems[idx].prix, currentItems[idx]);
   currentItems[idx].prix  = resolvedPrice;
   currentItems[idx].total = currentItems[idx].quantite * currentItems[idx].prix;
   const priceNode = wrap.querySelector('.lignePrix');
@@ -26072,6 +26227,10 @@ async function majCartesTresorerie(options = {}) {
     // *************** MODIFICATIONS POUR L'ÉCRAN DE RECHERCHE D'ARTICLE ***************
     if (produitInput) {
       produitInput.addEventListener('focus', function() {
+        if (!ensureClientProfileSelected({ message: "Sélectionnez le client avant de rechercher un article." })) {
+          produitInput.blur();
+          return;
+        }
         window.location.hash = 'search-article';
       });
     } else {
@@ -26097,12 +26256,14 @@ async function majCartesTresorerie(options = {}) {
         filtered.forEach(prod => {
             const card = document.createElement("div");
             card.className = "product-card";
+            const displayedPrice = resolveCartUnitPrice(prod.name, prod.price, prod);
+            const clientLabel = describeClientType(getActiveClientType(), { fallback: "Type client à préciser" });
             card.innerHTML = `
               <div class="product-icon">${prod.icon}</div>
               <div class="product-details">
                 <h3>${prod.name}</h3>
                 <p>🔹 Stock : ${prod.stock} unités</p>
-                <p class="price-label">💰 Prix : ${prod.price.toLocaleString()} FCFA</p>
+                <p class="price-label">💰 ${clientLabel} : ${displayedPrice.toLocaleString('fr-FR')} FCFA</p>
               </div>`;
 
             // === LA CORRECTION EST ICI ===
@@ -26176,7 +26337,10 @@ function loadArticleDetail() {
       loadProducts();
     }
     /* -------- selectProduct : ajoute direct & ouvre panier -------- */
-    function selectProduct(prod){
+function selectProduct(prod){
+  if (!ensureClientProfileSelected({ message: "Choisissez le client avant d'ajouter des articles." })) {
+    return;
+  }
   addOrIncrementItem(prod);     // ajoute ou incrémente
   updatePanierPage();
   showToast(`+1 ${prod.name} ajouté au panier`);           // met à jour badge & totaux
