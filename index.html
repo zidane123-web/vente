@@ -23354,7 +23354,6 @@ const CLIENT_PRICE_KEY_MAP = {
   ordinaire: ['price', 'prix', 'prixVente', 'prix_vente', 'clientPrice', 'prixClient', 'retailPrice'],
   revendeur: ['priceRevendeur', 'revendeurPrice', 'priceReseller', 'resellerPrice', 'prixRevendeur', 'prix_revendeur', 'wholesalePrice', 'prixGrossiste', 'prix_grossiste']
 };
-const GENERIC_PRICE_KEYS = ['price', 'prix', 'prixVente', 'prix_vente', 'retailPrice'];
 
 function pickPriceFromSource(source, keys) {
   if (!source || !keys || !keys.length) return null;
@@ -23370,12 +23369,9 @@ function pickPriceFromSource(source, keys) {
 }
 
 // Force le panier à utiliser le prix du stock lorsqu'il est disponible
-function resolveCartUnitPrice(productName, fallbackPrice = 0, contextData = null) {
+function resolveCartUnitPrice(productName, fallbackPrice = 0, contextData = null, options = {}) {
   const activeType = getActiveClientType() || 'ordinaire';
-  const preferredKeys = CLIENT_PRICE_KEY_MAP[activeType] || CLIENT_PRICE_KEY_MAP.ordinaire;
-  const otherKeys = activeType === 'revendeur'
-    ? CLIENT_PRICE_KEY_MAP.ordinaire
-    : CLIENT_PRICE_KEY_MAP.revendeur;
+  const preferredKeys = CLIENT_PRICE_KEY_MAP[activeType] || [];
   const sources = [];
   if (productName) {
     const stockRecord = cachedStock.find(s => s.name === productName);
@@ -23386,20 +23382,18 @@ function resolveCartUnitPrice(productName, fallbackPrice = 0, contextData = null
   if (contextData && typeof contextData === 'object') {
     sources.push(contextData);
   }
-  sources.push({ price: fallbackPrice });
-
-  for (const keySet of [preferredKeys, GENERIC_PRICE_KEYS, otherKeys]) {
-    if (!keySet || !keySet.length) continue;
-    for (const source of sources) {
-      const value = pickPriceFromSource(source, keySet);
-      if (value !== null) {
-        return value;
-      }
+  for (const source of sources) {
+    const value = pickPriceFromSource(source, preferredKeys);
+    if (value !== null) {
+      return value;
     }
   }
-
-  const parsedFallback = Number(fallbackPrice);
-  return Number.isNaN(parsedFallback) ? 0 : parsedFallback;
+  if (options.notifyOnMissing && typeof showToast === 'function') {
+    const typeLabel = describeClientType(activeType, { fallback: 'Type client' });
+    const productLabel = productName || 'cet article';
+    showToast(`Prix ${typeLabel.toLowerCase()} non défini pour ${productLabel}. Ajoutez-le dans la base.`);
+  }
+  return null;
 }
 
 function refreshCartPricingForClientType() {
@@ -23409,7 +23403,10 @@ function refreshCartPricingForClientType() {
   }
   let updated = false;
   currentItems.forEach((item, index) => {
-    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item);
+    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item, { notifyOnMissing: true });
+    if (resolvedPrice === null) {
+      return;
+    }
     if (resolvedPrice !== item.prix) {
       item.prix = resolvedPrice;
       updated = true;
@@ -23439,7 +23436,10 @@ function addOrIncrementItem(prod) {
     return;
   }
   const idx = currentItems.findIndex(it => it.produit === prod.name);
-  const unitPrice = resolveCartUnitPrice(prod.name, prod.price, prod);
+  const unitPrice = resolveCartUnitPrice(prod.name, prod.price, prod, { notifyOnMissing: true });
+  if (unitPrice === null) {
+    return;
+  }
 
   if (idx > -1) {
     if (currentItems[idx].quantite >= prod.stock) {
@@ -23504,9 +23504,12 @@ function updatePanierPage() {
     const row = document.createElement("div");
     row.className = "panier-item";
     const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item);
-    currentItems[index].prix = resolvedPrice;
-    currentItems[index].total = currentItems[index].quantite * resolvedPrice;
-    const priceLabel = resolvedPrice.toLocaleString('fr-FR') + " FCFA";
+    const safePrice = resolvedPrice != null ? resolvedPrice : Number(item.prix) || 0;
+    currentItems[index].prix = safePrice;
+    currentItems[index].total = currentItems[index].quantite * safePrice;
+    const priceLabel = resolvedPrice != null
+      ? safePrice.toLocaleString('fr-FR') + " FCFA"
+      : "Prix indisponible";
     const totalLabel = currentItems[index].total.toLocaleString('fr-FR') + " FCFA";
     const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client non défini' });
     const itemLocationLabel = formatStockLocationLabel(item.stockDestination);
@@ -23556,11 +23559,14 @@ function onChangeCartQuantity(e) {
   }
 
   const resolvedPrice = resolveCartUnitPrice(currentItems[idx].produit, currentItems[idx].prix, currentItems[idx]);
-  currentItems[idx].prix  = resolvedPrice;
+  const safePrice = resolvedPrice != null ? resolvedPrice : Number(currentItems[idx].prix) || 0;
+  currentItems[idx].prix  = safePrice;
   currentItems[idx].total = currentItems[idx].quantite * currentItems[idx].prix;
   const priceNode = wrap.querySelector('.lignePrix');
   if (priceNode) {
-    priceNode.textContent = resolvedPrice.toLocaleString('fr-FR') + " FCFA";
+    priceNode.textContent = resolvedPrice != null
+      ? safePrice.toLocaleString('fr-FR') + " FCFA"
+      : "Prix indisponible";
   }
   wrap.querySelector('.ligneTotal').textContent =
         currentItems[idx].total.toLocaleString('fr-FR') + " FCFA";
@@ -26262,6 +26268,9 @@ async function majCartesTresorerie(options = {}) {
             card.className = "product-card";
             const displayedPrice = resolveCartUnitPrice(prod.name, prod.price, prod);
             const clientLabel = describeClientType(getActiveClientType(), { fallback: "Type client à préciser" });
+            const priceText = displayedPrice != null
+              ? `${displayedPrice.toLocaleString('fr-FR')} FCFA`
+              : "Indisponible";
             card.innerHTML = `
               <div class="product-icon">${prod.icon}</div>
               <div class="product-details">
