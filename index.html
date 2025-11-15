@@ -23117,7 +23117,9 @@ function selectionnerTypeVente(mode) {
   appliquerTypeVenteAuFormulaire();
   setClientType('');
   fermerModalTypeVente();
-  window.location.hash = 'panier';
+  window.location.hash = 'vendre';
+  currentStep = 0;
+  showStep(currentStep);
   updatePanierPage();
   updateCartFooter();
 }
