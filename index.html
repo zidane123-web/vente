@@ -2929,18 +2929,6 @@ body.drawer-open {
               <div id="clientSelectedSummary" class="selection-summary">
                 <p id="clientSelectedText">Aucun client sélectionné.</p>
               </div>
-              <div class="client-type-group" role="group" aria-labelledby="clientTypeLabel">
-                <span id="clientTypeLabel" class="client-type-group-title">Type de client</span>
-                <div class="client-type-options">
-                  <button type="button" class="client-search-chip client-type-chip" data-type="ordinaire" onclick="setClientType('ordinaire')">
-                    Client ordinaire
-                  </button>
-                  <button type="button" class="client-search-chip client-type-chip" data-type="revendeur" onclick="setClientType('revendeur')">
-                    Revendeur
-                  </button>
-                </div>
-                <span class="client-type-hint">Choisissez le profil du client pour cette vente.</span>
-              </div>
               <div class="selection-actions">
                 <button type="button" class="btn-modern" onclick="openClientSelection()">
                   <i data-lucide="users"></i> Choisir client
@@ -17776,7 +17764,7 @@ let cartStateReadyForPricing = false;
         return true;
       }
       if (!options.silent) {
-        const msg = options.message || "Sélectionnez d'abord le type du client (ordinaire ou revendeur).";
+        const msg = options.message || "Sélectionnez d'abord un client (son profil sera appliqué automatiquement).";
         if (typeof showToast === 'function') {
           showToast(msg);
         } else {
@@ -19103,7 +19091,7 @@ function updateAccueilSummary() {
       return;
     }
     if (!typeSelection) {
-      showToast("Choisissez le type de client avant de continuer.");
+      showToast("Le client choisi doit avoir un type défini (ordinaire ou revendeur).");
       return;
     }
   }
@@ -23328,7 +23316,7 @@ document.getElementById('searchCartIcon').addEventListener('click', () => {
 
 document.querySelectorAll('.btn-search').forEach(btn => {
   btn.addEventListener('click', function(e) {
-    if (!ensureClientProfileSelected({ message: "Choisissez le type de client avant d'ouvrir le catalogue." })) {
+    if (!ensureClientProfileSelected({ message: "Sélectionnez un client avant d'ouvrir le catalogue." })) {
       e.preventDefault();
       return;
     }
@@ -23433,7 +23421,7 @@ refreshCartPricingForClientType();
 
 /* Ajoute un produit ou incrémente sa quantité ------------------ */
 function addOrIncrementItem(prod) {
-  if (!ensureClientProfileSelected({ message: "Sélectionnez d'abord le type du client pour appliquer le bon prix." })) {
+  if (!ensureClientProfileSelected({ message: "Sélectionnez d'abord un client pour appliquer le bon prix." })) {
     return;
   }
   const idx = currentItems.findIndex(it => it.produit === prod.name);
@@ -23678,7 +23666,7 @@ function continuerDepuisPanier() {
         return;
       }
       if(!clientTypeValue) {
-        alert("Sélectionnez le type de client.");
+        alert("Le client sélectionné n'a pas de type défini.");
         return;
       }
       const vendeur = document.getElementById("vendeurSelect").value;
