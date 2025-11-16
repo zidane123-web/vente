@@ -1304,6 +1304,25 @@ body.role-employe #screen-accueil .ako-quick-grid {
     header.menu-header > .btn-refresh {
       margin-left: auto;
     }
+    header.sale-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-align: left;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .sale-header .sale-header-text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+    .sale-header-title {
+      margin: 0;
+      font-size: 26px;
+      color: var(--primary-color);
+    }
     .back-btn {
       position: absolute;
       left: 10px;
@@ -2899,10 +2918,14 @@ body.drawer-open {
   </div>
 </section>
 <section id="screen-vendre" class="screen">
-      <header>
-        <!-- Entête retiré selon la demande -->
+      <header class="sale-header">
+        <button class="ako-icon-btn" type="button" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+          <i data-lucide="menu"></i>
+        </button>
+        <div class="sale-header-text">
+          <h1 class="sale-header-title">Nouvelle vente</h1>
+        </div>
       </header>
-      
 
       <div id="saleSteps">
         <div class="progress-container">
