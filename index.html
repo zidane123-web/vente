@@ -23549,16 +23549,19 @@ function refreshCartPricingForClientType() {
   let updated = false;
   currentItems.forEach((item, index) => {
     const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item, { notifyOnMissing: true });
-    if (resolvedPrice === null) {
-      return;
-    }
-    if (resolvedPrice !== item.prix) {
-      item.prix = resolvedPrice;
+    const priceMissing = resolvedPrice === null;
+    const effectivePrice = priceMissing ? 0 : resolvedPrice;
+    if (effectivePrice !== item.prix) {
+      item.prix = effectivePrice;
       updated = true;
     }
     const recalculatedTotal = (Number(item.quantite) || 0) * item.prix;
     if (recalculatedTotal !== item.total) {
       item.total = recalculatedTotal;
+      updated = true;
+    }
+    if (item.priceMissingForType !== priceMissing) {
+      item.priceMissingForType = priceMissing;
       updated = true;
     }
   });
@@ -23583,8 +23586,7 @@ function addOrIncrementItem(prod) {
   const idx = currentItems.findIndex(it => it.produit === prod.name);
   const resolvedPrice = resolveCartUnitPrice(prod.name, prod.price, prod, { notifyOnMissing: true });
   const priceMissing = resolvedPrice === null;
-  const fallbackUnitPrice = Number(prod.price) || 0;
-  const unitPrice = priceMissing ? fallbackUnitPrice : resolvedPrice;
+  const unitPrice = priceMissing ? 0 : resolvedPrice;
 
   if (idx > -1) {
     if (currentItems[idx].quantite >= prod.stock) {
@@ -23651,20 +23653,22 @@ function updatePanierPage() {
     const row = document.createElement("div");
     row.className = "panier-item";
     const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item);
-    const safePrice = resolvedPrice != null ? resolvedPrice : Number(item.prix) || 0;
+    const safePrice = resolvedPrice != null ? resolvedPrice : 0;
     const priceMissing = resolvedPrice === null;
     currentItems[index].prix = safePrice;
     currentItems[index].priceMissingForType = priceMissing;
     currentItems[index].total = currentItems[index].quantite * safePrice;
-    const priceLabel = safePrice > 0
-      ? `${safePrice.toLocaleString('fr-FR')} FCFA${priceMissing ? " (tarif catalogue)" : ""}`
+    const priceLabel = !priceMissing
+      ? `${safePrice.toLocaleString('fr-FR')} FCFA`
       : "Prix indisponible";
-    const totalLabel = currentItems[index].total.toLocaleString('fr-FR') + " FCFA";
+    const totalLabel = !priceMissing
+      ? currentItems[index].total.toLocaleString('fr-FR') + " FCFA"
+      : "Indisponible";
     const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client non défini' });
     const normalizedClientLabel = clientTypeLabel ? clientTypeLabel.toLowerCase() : 'client';
     const itemLocationLabel = formatStockLocationLabel(item.stockDestination);
     const priceWarningHtml = priceMissing
-      ? `<div class="panier-price-warning">Prix ${normalizedClientLabel} indisponible pour cet article. Tarif catalogue appliqué (${safePrice.toLocaleString('fr-FR')} FCFA). Contactez un administrateur pour définir le tarif.</div>`
+      ? `<div class="panier-price-warning">Prix ${normalizedClientLabel} indisponible pour cet article. Contactez un administrateur pour définir le tarif.</div>`
       : '';
     row.innerHTML = `
       <strong>${item.produit}</strong><br>
@@ -23713,24 +23717,28 @@ function onChangeCartQuantity(e) {
   }
 
   const resolvedPrice = resolveCartUnitPrice(currentItems[idx].produit, currentItems[idx].prix, currentItems[idx]);
-  const safePrice = resolvedPrice != null ? resolvedPrice : Number(currentItems[idx].prix) || 0;
+  const safePrice = resolvedPrice != null ? resolvedPrice : 0;
   const priceMissing = resolvedPrice === null;
   currentItems[idx].prix  = safePrice;
   currentItems[idx].priceMissingForType = priceMissing;
   currentItems[idx].total = currentItems[idx].quantite * currentItems[idx].prix;
   const priceNode = wrap.querySelector('.lignePrix');
   if (priceNode) {
-    priceNode.textContent = safePrice > 0
-      ? `${safePrice.toLocaleString('fr-FR')} FCFA${priceMissing ? " (tarif catalogue)" : ""}`
+    priceNode.textContent = !priceMissing
+      ? `${safePrice.toLocaleString('fr-FR')} FCFA`
       : "Prix indisponible";
   }
-  wrap.querySelector('.ligneTotal').textContent =
-        currentItems[idx].total.toLocaleString('fr-FR') + " FCFA";
+  const totalNode = wrap.querySelector('.ligneTotal');
+  if (totalNode) {
+    totalNode.textContent = !priceMissing
+      ? currentItems[idx].total.toLocaleString('fr-FR') + " FCFA"
+      : "Indisponible";
+  }
   const warningNode = wrap.querySelector('.panier-price-warning');
   if (priceMissing) {
     const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client' });
     const normalizedLabel = clientTypeLabel ? clientTypeLabel.toLowerCase() : 'client';
-    const message = `Prix ${normalizedLabel} indisponible pour cet article. Tarif catalogue appliqué (${safePrice.toLocaleString('fr-FR')} FCFA). Contactez un administrateur pour définir le tarif.`;
+    const message = `Prix ${normalizedLabel} indisponible pour cet article. Contactez un administrateur pour définir le tarif.`;
     if (warningNode) {
       warningNode.textContent = message;
     } else {
@@ -26454,7 +26462,7 @@ async function majCartesTresorerie(options = {}) {
             const clientLabel = describeClientType(getActiveClientType(), { fallback: "Type client à préciser" });
             const priceText = displayedPrice != null
               ? `${displayedPrice.toLocaleString('fr-FR')} FCFA`
-              : "Tarif indisponible";
+              : "Prix indisponible";
             card.innerHTML = `
               <div class="product-icon">${prod.icon}</div>
               <div class="product-details">
