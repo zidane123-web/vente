@@ -5551,11 +5551,14 @@ function generateInvoicePDF(sale) {
           <div class="product-details">
             <h1 id="detail-product-title" class="product-title">Chargement...</h1>
             
-            <span class="product-price-label">Prix de vente</span>
-            <span id="detail-selling-price" class="product-price-value">...</span>
+            <span class="product-price-label">Prix CUMP</span>
+            <span id="detail-retail-price" class="product-price-value">...</span>
 
-            <span class="product-price-label">Coût d'achat</span>
-            <span id="detail-purchase-cost" class="product-price-value">...</span>
+            <span class="product-price-label">Prix Client</span>
+            <span id="detail-client-price" class="product-price-value">...</span>
+
+            <span class="product-price-label">Prix Revendeur</span>
+            <span id="detail-revendeur-price" class="product-price-value">...</span>
 
             <div class="product-actions">
               <button type="button" class="btn-modern adjust-stock-btn" onclick="ouvrirModalAjustementStock()">
@@ -26325,11 +26328,16 @@ function loadArticleDetail() {
         // Remplissage des champs de la page de détail
         document.getElementById('detail-product-title').textContent = data.name || 'Nom indisponible';
 
-        const sellingPrice = (data.price * 1.25) || 0; // Exemple: Marge de 25%
-        document.getElementById('detail-selling-price').textContent = `XOF ${sellingPrice.toLocaleString()}`;
-
-        const purchaseCost = data.price || 0;
-        document.getElementById('detail-purchase-cost').textContent = `XOF ${purchaseCost.toLocaleString()}`;
+        const formatPriceValue = (raw) => {
+          const value = Number(raw);
+          if (!Number.isFinite(value)) {
+            return 'N/A';
+          }
+          return `XOF ${Math.round(value).toLocaleString('fr-FR')}`;
+        };
+        document.getElementById('detail-retail-price').textContent = formatPriceValue(data.price);
+        document.getElementById('detail-client-price').textContent = formatPriceValue(data.prixClient);
+        document.getElementById('detail-revendeur-price').textContent = formatPriceValue(data.prixRevendeur);
 
         const stockOnHand = data.stock || 0;
         document.getElementById('detail-stock-on-hand').textContent = stockOnHand;
