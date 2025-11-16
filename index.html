@@ -1793,13 +1793,23 @@ body.role-employe #screen-accueil .ako-quick-grid {
     .echouee {
       border: 2px solid red;
     }
-    .panier-item {
+.panier-item {
       background: #fafafa;
       border: 1px solid #eee;
       border-radius: var(--border-radius);
       padding: 12px;
       margin-bottom: 8px;
       font-size: 16px;
+    }
+.panier-price-warning {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(248, 113, 113, 0.4);
+      background: rgba(248, 113, 113, 0.15);
+      color: #b91c1c;
+      font-size: 14px;
+      line-height: 1.4;
     }
 /* =============================== Drawer Menu =============================== */
 #screen-menu {
@@ -5583,6 +5593,50 @@ function generateInvoicePDF(sale) {
             <span class="product-price-label">Prix Revendeur</span>
             <span id="detail-revendeur-price" class="product-price-value">...</span>
 
+            <div class="price-editor-card" id="detail-price-editor">
+              <h2>Gestion des prix</h2>
+              <p class="price-editor-note">
+                Vous pouvez mettre à jour les tarifs Client et Revendeur. Le prix CUMP reste verrouillé.
+              </p>
+              <div class="price-editor-grid">
+                <div class="price-editor-field">
+                  <label for="detail-client-price-input">Prix Client (FCFA)</label>
+                  <div class="price-editor-input-wrapper">
+                    <input
+                      type="number"
+                      id="detail-client-price-input"
+                      min="0"
+                      step="100"
+                      placeholder="0"
+                      inputmode="decimal"
+                      autocomplete="off"
+                    />
+                    <span class="price-input-suffix">FCFA</span>
+                  </div>
+                </div>
+                <div class="price-editor-field">
+                  <label for="detail-revendeur-price-input">Prix Revendeur (FCFA)</label>
+                  <div class="price-editor-input-wrapper">
+                    <input
+                      type="number"
+                      id="detail-revendeur-price-input"
+                      min="0"
+                      step="100"
+                      placeholder="0"
+                      inputmode="decimal"
+                      autocomplete="off"
+                    />
+                    <span class="price-input-suffix">FCFA</span>
+                  </div>
+                </div>
+              </div>
+              <div class="price-editor-actions">
+                <button type="button" class="btn-modern" id="detail-price-update-btn" onclick="updateArticleSellingPrices()">
+                  Mettre à jour les prix
+                </button>
+              </div>
+            </div>
+
             <div class="product-actions">
               <button type="button" class="btn-modern adjust-stock-btn" onclick="ouvrirModalAjustementStock()">
                 <i data-lucide="sliders"></i>
@@ -5718,6 +5772,68 @@ function generateInvoicePDF(sale) {
     font-weight: 600;
     color: var(--ion-text-color);
     margin-bottom: 12px;
+}
+#screen-article-detail .price-editor-card {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #fbfdff 0%, #f4f6fb 100%);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+#screen-article-detail .price-editor-card h2 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    color: #0f172a;
+}
+#screen-article-detail .price-editor-note {
+    margin: 0 0 16px;
+    font-size: 13px;
+    color: #475569;
+}
+#screen-article-detail .price-editor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+#screen-article-detail .price-editor-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 6px;
+}
+#screen-article-detail .price-editor-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+#screen-article-detail .price-editor-input-wrapper input {
+    flex: 1;
+    border: 1px solid #d7dce6;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 16px;
+    font-weight: 500;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: inset 0 2px 4px rgba(15, 23, 42, 0.06);
+}
+#screen-article-detail .price-editor-input-wrapper .price-input-suffix {
+    font-size: 13px;
+    font-weight: 600;
+    color: #475569;
+}
+#screen-article-detail .price-editor-actions {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+#screen-article-detail .price-editor-card button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 #screen-article-detail .product-actions {
     margin-top: 12px;
@@ -21469,10 +21585,13 @@ if (!navigator.onLine) {
 }
 
 
- /* ==========================================================
-   PANIER – gestion centrale
-   ========================================================== */
+/* ==========================================================
+  PANIER - gestion centrale
+  ========================================================== */
 let currentArticleId = null; // Variable pour garder l'ID de l'article sélectionné
+let currentArticleClientPrice = null;
+let currentArticleResellerPrice = null;
+let isArticlePriceUpdateRunning = false;
 let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
 const STOCK_LOCATION_VALUES = ['boutique', 'magasin'];
@@ -23417,7 +23536,7 @@ function resolveCartUnitPrice(productName, fallbackPrice = 0, contextData = null
   if (options.notifyOnMissing && typeof showToast === 'function') {
     const typeLabel = describeClientType(activeType, { fallback: 'Type client' });
     const productLabel = productName || 'cet article';
-    showToast(`Prix ${typeLabel.toLowerCase()} non défini pour ${productLabel}. Ajoutez-le dans la base.`);
+    showToast(`Prix ${typeLabel.toLowerCase()} indisponible pour ${productLabel}. Contactez l'admin pour le définir.`, "error");
   }
   return null;
 }
@@ -23462,10 +23581,10 @@ function addOrIncrementItem(prod) {
     return;
   }
   const idx = currentItems.findIndex(it => it.produit === prod.name);
-  const unitPrice = resolveCartUnitPrice(prod.name, prod.price, prod, { notifyOnMissing: true });
-  if (unitPrice === null) {
-    return;
-  }
+  const resolvedPrice = resolveCartUnitPrice(prod.name, prod.price, prod, { notifyOnMissing: true });
+  const priceMissing = resolvedPrice === null;
+  const fallbackUnitPrice = Number(prod.price) || 0;
+  const unitPrice = priceMissing ? fallbackUnitPrice : resolvedPrice;
 
   if (idx > -1) {
     if (currentItems[idx].quantite >= prod.stock) {
@@ -23474,6 +23593,7 @@ function addOrIncrementItem(prod) {
     }
     currentItems[idx].quantite += 1;
     currentItems[idx].prix = unitPrice;
+    currentItems[idx].priceMissingForType = priceMissing;
     currentItems[idx].total     = currentItems[idx].quantite * currentItems[idx].prix;
     currentItems[idx].category  = prod.category;
     currentItems[idx].stockDestination = resolveStockDestination({
@@ -23492,7 +23612,8 @@ function addOrIncrementItem(prod) {
       quantite : 1,
       total    : unitPrice,
       category : prod.category,
-      stockDestination: currentSalePickupLocation
+      stockDestination: currentSalePickupLocation,
+      priceMissingForType: priceMissing
     });
   }
 
@@ -23531,14 +23652,20 @@ function updatePanierPage() {
     row.className = "panier-item";
     const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item);
     const safePrice = resolvedPrice != null ? resolvedPrice : Number(item.prix) || 0;
+    const priceMissing = resolvedPrice === null;
     currentItems[index].prix = safePrice;
+    currentItems[index].priceMissingForType = priceMissing;
     currentItems[index].total = currentItems[index].quantite * safePrice;
-    const priceLabel = resolvedPrice != null
+    const priceLabel = !priceMissing
       ? safePrice.toLocaleString('fr-FR') + " FCFA"
       : "Prix indisponible";
     const totalLabel = currentItems[index].total.toLocaleString('fr-FR') + " FCFA";
     const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client non défini' });
+    const normalizedClientLabel = clientTypeLabel ? clientTypeLabel.toLowerCase() : 'client';
     const itemLocationLabel = formatStockLocationLabel(item.stockDestination);
+    const priceWarningHtml = priceMissing
+      ? `<div class="panier-price-warning">Prix ${normalizedClientLabel} indisponible pour cet article. Contactez un administrateur pour définir le tarif.</div>`
+      : '';
     row.innerHTML = `
       <strong>${item.produit}</strong><br>
       Qté :
@@ -23550,6 +23677,7 @@ function updatePanierPage() {
         <span class="ligneTotal">${totalLabel}</span>
       <span class="remove-item" onclick="retirerArticle(${index})">×</span>
       <div class="panier-item-location">Lieu : <strong>${itemLocationLabel}</strong></div>
+      ${priceWarningHtml}
     `;
     container.appendChild(row);
   });
@@ -23586,16 +23714,34 @@ function onChangeCartQuantity(e) {
 
   const resolvedPrice = resolveCartUnitPrice(currentItems[idx].produit, currentItems[idx].prix, currentItems[idx]);
   const safePrice = resolvedPrice != null ? resolvedPrice : Number(currentItems[idx].prix) || 0;
+  const priceMissing = resolvedPrice === null;
   currentItems[idx].prix  = safePrice;
+  currentItems[idx].priceMissingForType = priceMissing;
   currentItems[idx].total = currentItems[idx].quantite * currentItems[idx].prix;
   const priceNode = wrap.querySelector('.lignePrix');
   if (priceNode) {
-    priceNode.textContent = resolvedPrice != null
+    priceNode.textContent = !priceMissing
       ? safePrice.toLocaleString('fr-FR') + " FCFA"
       : "Prix indisponible";
   }
   wrap.querySelector('.ligneTotal').textContent =
         currentItems[idx].total.toLocaleString('fr-FR') + " FCFA";
+  const warningNode = wrap.querySelector('.panier-price-warning');
+  if (priceMissing) {
+    const clientTypeLabel = describeClientType(getActiveClientType(), { fallback: 'Type client' });
+    const normalizedLabel = clientTypeLabel ? clientTypeLabel.toLowerCase() : 'client';
+    const message = `Prix ${normalizedLabel} indisponible pour cet article. Contactez un administrateur pour définir le tarif.`;
+    if (warningNode) {
+      warningNode.textContent = message;
+    } else {
+      const warning = document.createElement('div');
+      warning.className = 'panier-price-warning';
+      warning.textContent = message;
+      wrap.appendChild(warning);
+    }
+  } else if (warningNode) {
+    warningNode.remove();
+  }
 
   updateCartFooter();            // ← NOUVEL appel
 }
@@ -24771,6 +24917,16 @@ function confirmerAjoutFournisseur(fournisseurName) {
         filtered.forEach(prod => {
             const card = document.createElement("div");
             card.className = "product-card";
+            const formatPriceLabel = (value) => {
+              const numeric = Number(value);
+              if (!Number.isFinite(numeric) || numeric <= 0) {
+                return 'N/A';
+              }
+              return `${numeric.toLocaleString('fr-FR')} FCFA`;
+            };
+            const retailPriceLabel = formatPriceLabel(prod.price);
+            const clientPriceLabel = formatPriceLabel(prod.prixClient);
+            const resellerPriceLabel = formatPriceLabel(prod.prixRevendeur);
             card.innerHTML = `
                 <button class="history-btn"
                         onclick="voirHistoriqueStock('${prod.id}', event)"
@@ -24781,7 +24937,9 @@ function confirmerAjoutFournisseur(fournisseurName) {
                 <div class="product-details">
                   <h3>${prod.name}</h3>
                   <p>🔹 Stock : ${prod.stock} unités</p>
-                  <p class="price-label">💰 Prix : ${prod.price.toLocaleString()} FCFA</p>
+                  <p class="price-label">💰 Prix CUMP : ${retailPriceLabel}</p>
+                  <p class="price-label">👤 Prix Client : ${clientPriceLabel}</p>
+                  <p class="price-label">🤝 Prix Revendeur : ${resellerPriceLabel}</p>
                 </div>
               `;
 
@@ -26296,13 +26454,13 @@ async function majCartesTresorerie(options = {}) {
             const clientLabel = describeClientType(getActiveClientType(), { fallback: "Type client à préciser" });
             const priceText = displayedPrice != null
               ? `${displayedPrice.toLocaleString('fr-FR')} FCFA`
-              : "Indisponible";
+              : "Tarif indisponible";
             card.innerHTML = `
               <div class="product-icon">${prod.icon}</div>
               <div class="product-details">
                 <h3>${prod.name}</h3>
                 <p>🔹 Stock : ${prod.stock} unités</p>
-                <p class="price-label">💰 ${clientLabel} : ${displayedPrice.toLocaleString('fr-FR')} FCFA</p>
+                <p class="price-label">💰 ${clientLabel} : ${priceText}</p>
               </div>`;
 
             // === LA CORRECTION EST ICI ===
@@ -26342,6 +26500,7 @@ function loadArticleDetail() {
     window.location.hash = 'stock'; // Retourne au stock si pas d'ID
     return;
   }
+  resetArticlePriceEditorFields();
 
   dbFirestore.collection("stock").doc(currentArticleId).get()
     .then(doc => {
@@ -26361,6 +26520,7 @@ function loadArticleDetail() {
         document.getElementById('detail-retail-price').textContent = formatPriceValue(data.price);
         document.getElementById('detail-client-price').textContent = formatPriceValue(data.prixClient);
         document.getElementById('detail-revendeur-price').textContent = formatPriceValue(data.prixRevendeur);
+        populateArticlePriceEditor(data);
 
         const stockOnHand = data.stock || 0;
         document.getElementById('detail-stock-on-hand').textContent = stockOnHand;
@@ -26376,6 +26536,146 @@ function loadArticleDetail() {
       console.error("Erreur lors de la récupération de l'article: ", error);
       showToast("Erreur de chargement.", "error");
     });
+}
+function normalizeArticlePriceValue(rawValue) {
+  const numeric = Number(rawValue);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function resetArticlePriceEditorFields() {
+  currentArticleClientPrice = null;
+  currentArticleResellerPrice = null;
+  const clientInput = document.getElementById('detail-client-price-input');
+  const resellerInput = document.getElementById('detail-revendeur-price-input');
+  if (clientInput) {
+    clientInput.value = "";
+  }
+  if (resellerInput) {
+    resellerInput.value = "";
+  }
+  refreshArticlePriceUpdateButtonState();
+}
+
+function populateArticlePriceEditor(stockData = {}) {
+  const clientInput = document.getElementById('detail-client-price-input');
+  const resellerInput = document.getElementById('detail-revendeur-price-input');
+
+  currentArticleClientPrice = normalizeArticlePriceValue(stockData.prixClient);
+  currentArticleResellerPrice = normalizeArticlePriceValue(stockData.prixRevendeur);
+
+  if (clientInput) {
+    clientInput.value = currentArticleClientPrice != null ? currentArticleClientPrice : "";
+  }
+  if (resellerInput) {
+    resellerInput.value = currentArticleResellerPrice != null ? currentArticleResellerPrice : "";
+  }
+  refreshArticlePriceUpdateButtonState();
+}
+
+function parseArticlePriceInput(rawValue) {
+  const trimmed = (rawValue ?? '').toString().trim();
+  if (trimmed === '') {
+    return { provided: false, valid: false, numeric: null };
+  }
+  const numeric = Number(trimmed);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return { provided: true, valid: false, numeric: null };
+  }
+  return { provided: true, valid: true, numeric };
+}
+
+function areArticlePricesEqual(a, b) {
+  const hasA = Number.isFinite(a);
+  const hasB = Number.isFinite(b);
+  if (!hasA && !hasB) {
+    return true;
+  }
+  if (!hasA || !hasB) {
+    return false;
+  }
+  return Math.abs(a - b) < 0.5;
+}
+
+function readArticlePriceFormState() {
+  const clientInput = document.getElementById('detail-client-price-input');
+  const resellerInput = document.getElementById('detail-revendeur-price-input');
+  const clientState = parseArticlePriceInput(clientInput ? clientInput.value : '');
+  const resellerState = parseArticlePriceInput(resellerInput ? resellerInput.value : '');
+  const changes = {};
+
+  if (clientState.valid && !areArticlePricesEqual(clientState.numeric, currentArticleClientPrice)) {
+    changes.prixClient = clientState.numeric;
+  }
+  if (resellerState.valid && !areArticlePricesEqual(resellerState.numeric, currentArticleResellerPrice)) {
+    changes.prixRevendeur = resellerState.numeric;
+  }
+
+  return {
+    clientState,
+    resellerState,
+    changes,
+    hasInvalidValues: (clientState.provided && !clientState.valid) || (resellerState.provided && !resellerState.valid)
+  };
+}
+
+function refreshArticlePriceUpdateButtonState() {
+  const button = document.getElementById('detail-price-update-btn');
+  if (!button) {
+    return;
+  }
+  if (!button.dataset.defaultLabel) {
+    button.dataset.defaultLabel = (button.textContent || 'Mettre à jour les prix').trim();
+  }
+
+  if (isArticlePriceUpdateRunning) {
+    button.disabled = true;
+    button.textContent = 'Enregistrement...';
+    return;
+  }
+
+  const state = readArticlePriceFormState();
+  const hasChanges = Object.keys(state.changes).length > 0;
+  button.textContent = button.dataset.defaultLabel;
+  button.disabled = !hasChanges || state.hasInvalidValues;
+}
+
+async function updateArticleSellingPrices() {
+  if (isArticlePriceUpdateRunning) {
+    return;
+  }
+  const state = readArticlePriceFormState();
+  if (state.hasInvalidValues) {
+    showToast("Veuillez saisir des montants valides (supérieurs à 0).", "error");
+    return;
+  }
+  if (!currentArticleId) {
+    showToast("Aucun article sélectionné pour la mise à jour.", "error");
+    return;
+  }
+  if (Object.keys(state.changes).length === 0) {
+    showToast("Aucun changement détecté.", "info");
+    return;
+  }
+
+  isArticlePriceUpdateRunning = true;
+  refreshArticlePriceUpdateButtonState();
+  try {
+    await dbFirestore.collection("stock").doc(currentArticleId).update(state.changes);
+    if (state.changes.prixClient != null) {
+      currentArticleClientPrice = state.changes.prixClient;
+    }
+    if (state.changes.prixRevendeur != null) {
+      currentArticleResellerPrice = state.changes.prixRevendeur;
+    }
+    showToast("Les prix ont été mis à jour.", "success");
+    loadArticleDetail();
+  } catch (error) {
+    console.error("Erreur lors de la mise à jour des prix :", error);
+    showToast("Impossible de mettre à jour les prix.", "error");
+  } finally {
+    isArticlePriceUpdateRunning = false;
+    refreshArticlePriceUpdateButtonState();
+  }
 }
     function loadProductsList() {
       loadProducts();
@@ -26395,6 +26695,12 @@ function selectProduct(prod){
     document.addEventListener("input", function(e) {
       if(e.target.id === "searchProduitInput") {
         loadProducts();
+      }
+    });
+    document.addEventListener("input", function(e) {
+      if (!e || !e.target) return;
+      if (e.target.id === "detail-client-price-input" || e.target.id === "detail-revendeur-price-input") {
+        refreshArticlePriceUpdateButtonState();
       }
     });
     // **********************************************************************************
