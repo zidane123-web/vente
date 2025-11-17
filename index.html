@@ -20187,8 +20187,26 @@ function fetchAndCacheStock() {
         cachedStock.push({ id: doc.id, ...normalizeStockLocations(doc.data()) });
       });
       console.log("Stock chargé en cache :", cachedStock);
+      refreshCartPricingAfterStockChange('initial-cache');
     })
     .catch(error => console.error("Erreur lors du chargement du stock :", error));
+}
+
+function refreshCartPricingAfterStockChange(contextLabel = 'stock-update') {
+  if (typeof refreshCartPricingForClientType !== 'function') {
+    return;
+  }
+  if (!cartStateReadyForPricing) {
+    return;
+  }
+  if (typeof currentItems === 'undefined' || !Array.isArray(currentItems) || currentItems.length === 0) {
+    return;
+  }
+  try {
+    refreshCartPricingForClientType();
+  } catch (error) {
+    console.error(`Erreur lors du recalcul automatique du panier (${contextLabel}) :`, error);
+  }
 }
 
 // Appeler la fonction dès le chargement de l'app
@@ -20640,6 +20658,7 @@ function updateBalanceDisplay() {
     });
     // Mettre à jour le cache global
     cachedStock = stocks;
+    refreshCartPricingAfterStockChange('snapshot');
       resolve(stocks);
     }, error => {
       reject(new Error("Erreur lors de la récupération du stock : " + error.message));
