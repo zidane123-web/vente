@@ -26448,42 +26448,66 @@ async function majCartesTresorerie(options = {}) {
       }
     });
     function loadProducts(query = "") {
-    const searchQuery = query.toLowerCase();
-    getAllStockFirestore().then(stocks => {
-        let filtered = stocks.filter(p => p.name.toLowerCase().includes(document.getElementById("searchProduitInput").value.toLowerCase()));
-        const container = document.getElementById("searchResults");
-        container.innerHTML = "";
-        if (filtered.length === 0) {
-            container.innerHTML = "<p>Aucun produit trouvé.</p>";
-            return;
-        }
-        filtered.forEach(prod => {
-            const card = document.createElement("div");
-            card.className = "product-card";
-            const displayedPrice = resolveCartUnitPrice(prod.name, prod.price, prod);
-            const clientLabel = describeClientType(getActiveClientType(), { fallback: "Type client à préciser" });
-            const priceText = displayedPrice != null
-              ? `${displayedPrice.toLocaleString('fr-FR')} FCFA`
-              : "Prix indisponible";
-            card.innerHTML = `
-              <div class="product-icon">${prod.icon}</div>
-              <div class="product-details">
-                <h3>${prod.name}</h3>
-                <p>🔹 <p>🔹 Stock : ${formatQty(totalQty)} unités</p>
-                <p>🔹 <p class="mini-stock-line">• Boutique : ${formatQty(boutiqueQty)} | Magasin : ${formatQty(magasinQty)} </p>
-                <p class="price-label">💰 ${clientLabel} : ${priceText}</p>
-              </div>`;
+    const searchInput = document.getElementById("searchProduitInput");
+    const normalizedQuery = (query || (searchInput ? searchInput.value : "") || "").toLowerCase();
+    const container = document.getElementById("searchResults");
+    if (!container) {
+        console.warn("Zone de résultats introuvable pour la recherche produit.");
+        return;
+    }
+    const formatQty = (value) => {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? numeric.toLocaleString('fr-FR') : "0";
+    };
+    getAllStockFirestore()
+        .then(stocks => {
+            const filtered = stocks.filter(p => {
+                if (!p || !p.name) {
+                    return false;
+                }
+                return p.name.toLowerCase().includes(normalizedQuery);
+            });
+            container.innerHTML = "";
+            if (filtered.length === 0) {
+                container.innerHTML = "<p>Aucun produit trouvé.</p>";
+                return;
+            }
+            filtered.forEach(prod => {
+                const boutiqueQty = Number(prod.stockBoutique) || 0;
+                const magasinQty = Number(prod.stockMagasin) || 0;
+                const totalQty = Number(
+                    prod.stockTotal !== undefined ? prod.stockTotal : prod.stock
+                ) || boutiqueQty + magasinQty;
+                const card = document.createElement("div");
+                card.className = "product-card";
+                const displayedPrice = resolveCartUnitPrice(prod.name, prod.price, prod);
+                const clientLabel = describeClientType(getActiveClientType(), { fallback: "Type client à préciser" });
+                const priceText = displayedPrice != null
+                    ? `${displayedPrice.toLocaleString('fr-FR')} FCFA`
+                    : "Prix indisponible";
+                card.innerHTML = `
+                  <div class="product-icon">${prod.icon || ""}</div>
+                  <div class="product-details">
+                    <h3>${prod.name}</h3>
+                    <p>Stock : ${formatQty(totalQty)} unités</p>
+                    <p class="mini-stock-line">Boutique : ${formatQty(boutiqueQty)} | Magasin : ${formatQty(magasinQty)}</p>
+                    <p class="price-label">${clientLabel} : ${priceText}</p>
+                  </div>`;
 
-            // === LA CORRECTION EST ICI ===
-            card.onclick = function() {
-                // Au lieu d'afficher les détails, on ajoute le produit au panier
-                selectProduct(prod);
-            };
-            // ===========================
+                // === LA CORRECTION EST ICI ===
+                card.onclick = function() {
+                    // Au lieu d'afficher les détails, on ajoute le produit au panier
+                    selectProduct(prod);
+                };
+                // ===========================
 
-            container.appendChild(card);
+                container.appendChild(card);
+            });
+        })
+        .catch(err => {
+            console.error("loadProducts :", err);
+            container.innerHTML = "<p>Chargement impossible.</p>";
         });
-    });
 }
     function showArticleDetail(articleId) {
   const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
