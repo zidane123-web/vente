@@ -5717,6 +5717,7 @@ function generateInvoicePDF(sale) {
           <div class="transfer-form-group">
             <label for="transferFromSelect">Depuis</label>
             <select id="transferFromSelect" required>
+              <option value="">Sélectionner un site</option>
               <option value="boutique">Boutique</option>
               <option value="magasin">Magasin</option>
             </select>
@@ -5727,6 +5728,7 @@ function generateInvoicePDF(sale) {
           <div class="transfer-form-group">
             <label for="transferToSelect">Vers</label>
             <select id="transferToSelect" required>
+              <option value="">Sélectionner un site</option>
               <option value="magasin">Magasin</option>
               <option value="boutique">Boutique</option>
             </select>
@@ -23864,8 +23866,8 @@ function resetTransferForm(options = {}) {
   }
 
   if (!keepLocations) {
-    if (fromSelect) fromSelect.value = 'boutique';
-    if (toSelect) toSelect.value = 'magasin';
+    if (fromSelect) fromSelect.value = '';
+    if (toSelect) toSelect.value = '';
   }
 
   if (qtyInput) qtyInput.value = '';
@@ -23879,9 +23881,9 @@ function swapTransferLocations() {
   if (!fromSelect || !toSelect) {
     return;
   }
-  const currentFrom = fromSelect.value;
-  fromSelect.value = toSelect.value || 'boutique';
-  toSelect.value = currentFrom || 'magasin';
+  const currentFrom = fromSelect.value || '';
+  fromSelect.value = toSelect.value || '';
+  toSelect.value = currentFrom;
 }
 
 async function initTransfertStockScreen(options = {}) {
@@ -24134,8 +24136,18 @@ async function handleTransferStockSubmit(event) {
     return;
   }
 
-  const fromLocation = fromSelect ? fromSelect.value : DEFAULT_STOCK_LOCATION;
-  const toLocation = toSelect ? toSelect.value : DEFAULT_STOCK_LOCATION;
+  const fromLocation = fromSelect ? fromSelect.value : '';
+  if (!fromLocation) {
+    showTransferScreenError("Choisissez le site de départ.");
+    if (fromSelect) fromSelect.focus();
+    return;
+  }
+  const toLocation = toSelect ? toSelect.value : '';
+  if (!toLocation) {
+    showTransferScreenError("Choisissez le site d'arrivée.");
+    if (toSelect) toSelect.focus();
+    return;
+  }
   if (resolveStockDestination({ location: fromLocation }) === resolveStockDestination({ location: toLocation })) {
     showTransferScreenError("Les sites de départ et d'arrivée doivent être différents.");
     return;
