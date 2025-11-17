@@ -220,6 +220,210 @@ body.role-employe #screen-accueil .ako-quick-grid {
       color: #0f172a;
     }
 
+    #screen-transfert-stock .transfer-stock-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      padding: 4px 16px 24px;
+    }
+
+    .transfer-card {
+      background: var(--white, #ffffff);
+      border-radius: 16px;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      border: 1px solid rgba(15, 23, 42, 0.05);
+    }
+
+    .transfer-card h2 {
+      margin: 0;
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    .transfer-card p {
+      margin: 0;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .transfer-form-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .transfer-form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .transfer-select-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .transfer-select-row button {
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #0f172a;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .transfer-form-group label {
+      font-weight: 600;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    .transfer-form-group select,
+    .transfer-form-group input,
+    .transfer-form-group textarea {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #dfe3eb;
+      padding: 10px 12px;
+      font-size: 15px;
+      background: #fdfdfd;
+    }
+
+    .transfer-form-group textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .transfer-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      align-items: end;
+    }
+
+    .transfer-swap-btn {
+      align-self: center;
+      border: none;
+      background: #f1f5f9;
+      color: #0f172a;
+      border-radius: 999px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .transfer-stock-preview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .transfer-stock-preview .preview-pill {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .preview-pill small {
+      display: block;
+      color: #64748b;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .preview-pill strong {
+      display: block;
+      font-size: 22px;
+      color: #0f172a;
+    }
+
+    .transfer-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .transfer-history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .transfer-history-header button {
+      border: none;
+      background: #f8fafc;
+      border-radius: 999px;
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      color: #0f172a;
+    }
+
+    .transfer-history-item {
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: #ffffff;
+    }
+
+    .transfer-history-item .history-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .transfer-history-item strong {
+      font-size: 16px;
+      color: #0f172a;
+    }
+
+    .transfer-history-empty {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14px;
+      padding: 20px 10px;
+      border-radius: 12px;
+      border: 1px dashed #cbd5f5;
+      background: #f8fafc;
+    }
+
+    .transfer-form-error {
+      color: #b91c1c;
+      font-size: 13px;
+      border-radius: 8px;
+      background: rgba(248, 113, 113, 0.1);
+      padding: 8px 10px;
+      display: none;
+    }
+
+    .transfer-form-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     body.role-employe #screen-menu .menu-list-item[onclick*=\'tresorerie\'],
     body.role-employe #screen-menu .menu-list-item[onclick*=\'approvisionnement\'] {
       display: none !important;
@@ -5410,6 +5614,112 @@ function generateInvoicePDF(sale) {
   </div>
 </section>
 
+<section id="screen-transfert-stock" class="screen">
+  <header class="menu-header">
+    <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+      <i data-lucide="menu"></i>
+    </button>
+    <h1>Transfert de stock</h1>
+    <div class="menu-header-meta">
+      <div class="timestamp">
+        <span>Mouvements internes</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="transfer-stock-grid">
+    <div class="transfer-card">
+      <div>
+        <h2>Nouvelle instruction</h2>
+        <p>Choisissez l’article, précisez le site de départ et d’arrivée puis validez le mouvement pour que les équipes partagent la même réalité terrain.</p>
+      </div>
+
+      <form id="transferStockScreenForm" class="transfer-form-grid" onsubmit="handleTransferStockSubmit(event)">
+        <div class="transfer-form-group">
+          <label for="transferProductSelect">Article</label>
+          <div class="transfer-select-row">
+            <select id="transferProductSelect" required>
+              <option value="">Sélectionner un article</option>
+            </select>
+            <button type="button" id="transferProductsRefresh" onclick="initTransfertStockScreen({ forceRefresh: true })">
+              <i data-lucide="refresh-ccw"></i> Rafraîchir
+            </button>
+          </div>
+        </div>
+
+        <div class="transfer-stock-preview" id="transferStockPreview">
+          <div class="preview-pill" data-location="boutique">
+            <small>Boutique</small>
+            <strong>--</strong>
+          </div>
+          <div class="preview-pill" data-location="magasin">
+            <small>Magasin</small>
+            <strong>--</strong>
+          </div>
+        </div>
+
+        <div class="transfer-row">
+          <div class="transfer-form-group">
+            <label for="transferFromSelect">Depuis</label>
+            <select id="transferFromSelect" required>
+              <option value="boutique">Boutique</option>
+              <option value="magasin">Magasin</option>
+            </select>
+          </div>
+          <button type="button" class="transfer-swap-btn" aria-label="Inverser les sites" onclick="swapTransferLocations()">
+            <i data-lucide="arrow-up-down"></i>
+          </button>
+          <div class="transfer-form-group">
+            <label for="transferToSelect">Vers</label>
+            <select id="transferToSelect" required>
+              <option value="magasin">Magasin</option>
+              <option value="boutique">Boutique</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="transfer-form-group">
+          <label for="transferQuantityInput">Quantité à déplacer</label>
+          <input type="number" id="transferQuantityInput" min="1" step="1" placeholder="Ex. 5" required>
+        </div>
+
+        <div class="transfer-form-group">
+          <label for="transferReasonInput">Motif</label>
+          <textarea id="transferReasonInput" placeholder="Informer la boutique ou la réserve de la raison du transfert."></textarea>
+        </div>
+
+        <p id="transferScreenError" class="transfer-form-error"></p>
+
+        <div class="transfer-form-actions">
+          <button type="submit" class="btn-modern">
+            <i data-lucide="send"></i> Valider le transfert
+          </button>
+          <button type="button" class="btn-modern secondary" onclick="resetTransferForm()">
+            <i data-lucide="rotate-ccw"></i> Réinitialiser
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="transfer-card">
+      <div class="transfer-history-header">
+        <div>
+          <h2>Derniers mouvements</h2>
+          <p>Les 10 derniers transferts pour l’article sélectionné.</p>
+        </div>
+        <button type="button" aria-label="Actualiser" onclick="refreshTransferHistory()">
+          <i data-lucide="refresh-ccw"></i>
+        </button>
+      </div>
+      <div id="transferHistoryList" class="transfer-history-list">
+        <div class="transfer-history-empty">
+          Sélectionnez un article pour voir l’activité récente.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 
 
     <!-- Screen 5: Entrée de Stock -->
@@ -8315,6 +8625,10 @@ async function generateSupplierCreditPDF() {
           <button class="drawer-item menu-list-item" type="button" data-hash="stock" onclick="window.location.hash='stock'">
             <span class="drawer-icon"><i data-lucide="package"></i></span>
             <span>Stock</span>
+          </button>
+          <button class="drawer-item menu-list-item" type="button" data-hash="transfert-stock" onclick="window.location.hash='transfert-stock'">
+            <span class="drawer-icon"><i data-lucide="arrow-left-right"></i></span>
+            <span>Transfert de stock</span>
           </button>
           <button class="drawer-item menu-list-item" type="button" data-hash="approvisionnement-historique" onclick="window.location.hash='approvisionnement-historique'">
             <span class="drawer-icon"><i data-lucide="archive"></i></span>
@@ -21150,7 +21464,8 @@ function isSameMonth(a, b) {
         'rapports',
         'profit',
         'parametres',
-        'livraisons'
+        'livraisons',
+        'transfert-stock'
       ]);
       if (blockedForEmployees.has(hash)) {
         if (hash !== 'accueil') {
@@ -21455,6 +21770,9 @@ function voirHistoriqueStock(stockId, e) {
       updateStockSummary();
       renderInventoryPreview();
       break;
+    case 'transfert-stock':
+      initTransfertStockScreen();
+      break;
     case 'livraisons':
       afficherLivraisons();
       break;
@@ -21597,6 +21915,13 @@ let cachedStock  = [];              // stock en mémoire (déjà chargé)
 const STOCK_LOCATION_VALUES = ['boutique', 'magasin'];
 const DEFAULT_STOCK_LOCATION = STOCK_LOCATION_VALUES[0];
 let currentSalePickupLocation = DEFAULT_STOCK_LOCATION;
+const transferStockScreenState = {
+  products: [],
+  selectedProductId: '',
+  historyCache: {},
+  isLoadingProducts: false
+};
+const TRANSFER_HISTORY_LIMIT = 20;
 
 function toSafeNumber(value, fallback = 0) {
   const parsed = parseFloat(value);
@@ -23079,6 +23404,97 @@ async function soumettreAjustementStock() {
   }
 }
 
+async function executeInternalStockTransfer(options = {}) {
+  const { productId, quantity, fromLocation, toLocation, reason } = options || {};
+  const normalizedFrom = resolveStockDestination({
+    location: fromLocation,
+    fallbackLocation: DEFAULT_STOCK_LOCATION
+  });
+  const normalizedTo = resolveStockDestination({
+    location: toLocation,
+    fallbackLocation: DEFAULT_STOCK_LOCATION
+  });
+  const qty = Math.trunc(Math.abs(parseFloat(quantity)));
+
+  if (!productId) {
+    throw new Error("Sélectionnez un article avant le transfert.");
+  }
+  if (!Number.isFinite(qty) || qty <= 0) {
+    throw new Error("Quantité de transfert invalide.");
+  }
+  if (normalizedFrom === normalizedTo) {
+    throw new Error("Choisissez des sites de départ et d'arrivée différents.");
+  }
+
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    throw new Error("Session expirée. Veuillez vous reconnecter.");
+  }
+  const adjustedBy = user.displayName || user.email || user.uid || 'Utilisateur';
+
+  const result = await dbFirestore.runTransaction(async tx => {
+    const docRef = dbFirestore.collection("stock").doc(productId);
+    const snapshot = await tx.get(docRef);
+    if (!snapshot.exists) {
+      throw new Error("Article introuvable en base.");
+    }
+    const data = snapshot.data() || {};
+    const normalized = normalizeStockLocations(data);
+    const afterDebitState = applyStockDelta(normalized, -qty, {
+      location: normalizedFrom,
+      enforceNonNegative: true
+    });
+    const afterDebitPayload = getStockWritePayload(afterDebitState);
+    const afterCreditState = applyStockDelta(afterDebitState, qty, {
+      location: normalizedTo
+    });
+    const afterCreditPayload = getStockWritePayload(afterCreditState);
+    tx.update(docRef, afterCreditPayload);
+
+    const historyCollection = docRef.collection("history");
+    const transferGroupId = docRef.id + '-' + Date.now();
+    const serverTs = firebase.firestore.FieldValue.serverTimestamp();
+    const trimmedReason = reason && reason.trim() ? reason.trim() : null;
+
+    const baseHistory = {
+      timestamp: serverTs,
+      type: 'transfert_stock',
+      transferGroupId,
+      transferFrom: normalizedFrom,
+      transferTo: normalizedTo,
+      reason: trimmedReason,
+      adjustedBy,
+      adjustedByUid: user.uid || null
+    };
+
+    tx.set(historyCollection.doc(), {
+      ...baseHistory,
+      change: -qty,
+      newStock: afterDebitPayload.stockTotal,
+      location: normalizedFrom,
+      transferDirection: 'out'
+    });
+
+    tx.set(historyCollection.doc(), {
+      ...baseHistory,
+      change: qty,
+      newStock: afterCreditPayload.stockTotal,
+      location: normalizedTo,
+      transferDirection: 'in'
+    });
+
+    return {
+      productId,
+      quantity: qty,
+      fromLocation: normalizedFrom,
+      toLocation: normalizedTo,
+      stockSnapshot: afterCreditPayload
+    };
+  });
+
+  return result;
+}
+
 function ouvrirModalTransfertStock() {
   const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
     (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
@@ -23184,60 +23600,12 @@ async function soumettreTransfertStock() {
   if (submitBtn) submitBtn.disabled = true;
 
   try {
-    await dbFirestore.runTransaction(async tx => {
-      const docRef = dbFirestore.collection("stock").doc(currentArticleId);
-      const snapshot = await tx.get(docRef);
-      if (!snapshot.exists) {
-        throw new Error("Article introuvable en base.");
-      }
-      const data = snapshot.data() || {};
-      const normalized = normalizeStockLocations(data);
-      const afterDebitState = applyStockDelta(normalized, -qty, {
-        location: fromLocation,
-        enforceNonNegative: true
-      });
-      const afterDebitPayload = getStockWritePayload(afterDebitState);
-      const afterCreditState = applyStockDelta(afterDebitState, qty, {
-        location: toLocation
-      });
-      const afterCreditPayload = getStockWritePayload(afterCreditState);
-      tx.update(docRef, afterCreditPayload);
-
-      const historyCollection = docRef.collection("history");
-      const transferGroupId = docRef.id + '-' + Date.now();
-      const serverTs = firebase.firestore.FieldValue.serverTimestamp();
-
-      const historyRefOut = historyCollection.doc();
-      tx.set(historyRefOut, {
-        timestamp: serverTs,
-        change: -qty,
-        newStock: afterDebitPayload.stockTotal,
-        type: 'transfert_stock',
-        location: fromLocation,
-        transferDirection: 'out',
-        transferFrom: fromLocation,
-        transferTo: toLocation,
-        transferGroupId,
-        reason: reason || null,
-        adjustedBy: user.displayName || user.email || user.uid || 'Utilisateur',
-        adjustedByUid: user.uid || null
-      });
-
-      const historyRefIn = historyCollection.doc();
-      tx.set(historyRefIn, {
-        timestamp: serverTs,
-        change: qty,
-        newStock: afterCreditPayload.stockTotal,
-        type: 'transfert_stock',
-        location: toLocation,
-        transferDirection: 'in',
-        transferFrom: fromLocation,
-        transferTo: toLocation,
-        transferGroupId,
-        reason: reason || null,
-        adjustedBy: user.displayName || user.email || user.uid || 'Utilisateur',
-        adjustedByUid: user.uid || null
-      });
+    await executeInternalStockTransfer({
+      productId: currentArticleId,
+      quantity: qty,
+      fromLocation,
+      toLocation,
+      reason
     });
 
     fermerModalTransfertStock();
@@ -23252,6 +23620,394 @@ async function soumettreTransfertStock() {
   } catch (error) {
     console.error("Erreur transfert stock:", error);
     displayError(error.message || "Erreur lors du transfert de stock.");
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+function showTransferScreenError(message = '') {
+  const errorEl = document.getElementById('transferScreenError');
+  if (!errorEl) return;
+  if (message) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  } else {
+    errorEl.textContent = '';
+    errorEl.style.display = 'none';
+  }
+}
+
+function populateTransferProductSelect() {
+  const select = document.getElementById('transferProductSelect');
+  if (!select) {
+    return;
+  }
+  const previousValue = transferStockScreenState.selectedProductId || select.value;
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = 'Sélectionner un article';
+  select.appendChild(placeholder);
+
+  const products = transferStockScreenState.products.slice().sort((a, b) => {
+    return (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' });
+  });
+
+  products.forEach(product => {
+    const option = document.createElement('option');
+    option.value = product.id;
+    const total = Number(product.stockTotal);
+    const stockLabel = Number.isFinite(total) ? `${total.toLocaleString('fr-FR')} u.` : '';
+    option.textContent = stockLabel ? `${product.name} • ${stockLabel}` : (product.name || 'Article');
+    select.appendChild(option);
+  });
+
+  if (previousValue && products.some(prod => prod.id === previousValue)) {
+    select.value = previousValue;
+  } else if (products.length) {
+    select.value = products[0].id;
+  } else {
+    select.value = '';
+  }
+
+  transferStockScreenState.selectedProductId = select.value || '';
+}
+
+function updateTransferStockPreview(productId) {
+  const preview = document.getElementById('transferStockPreview');
+  if (!preview) {
+    return;
+  }
+  const product = transferStockScreenState.products.find(item => item.id === productId);
+  const boutiqueValue = Number(product ? product.stockBoutique : NaN);
+  const magasinValue = Number(product ? product.stockMagasin : NaN);
+
+  preview.querySelectorAll('.preview-pill').forEach(pill => {
+    const location = pill.dataset.location === 'magasin' ? 'magasin' : 'boutique';
+    const targetValue = location === 'magasin' ? magasinValue : boutiqueValue;
+    const label = Number.isFinite(targetValue) ? targetValue.toLocaleString('fr-FR') : '--';
+    const strong = pill.querySelector('strong');
+    if (strong) {
+      strong.textContent = label;
+    }
+  });
+}
+
+function resetTransferForm(options = {}) {
+  const { keepProduct = false, keepLocations = false } = options || {};
+  const qtyInput = document.getElementById('transferQuantityInput');
+  const reasonInput = document.getElementById('transferReasonInput');
+  const select = document.getElementById('transferProductSelect');
+  const fromSelect = document.getElementById('transferFromSelect');
+  const toSelect = document.getElementById('transferToSelect');
+
+  if (!keepProduct) {
+    transferStockScreenState.selectedProductId = '';
+    if (select) {
+      select.value = '';
+    }
+    updateTransferStockPreview(null);
+    renderTransferHistoryList([]);
+  }
+
+  if (!keepLocations) {
+    if (fromSelect) fromSelect.value = 'boutique';
+    if (toSelect) toSelect.value = 'magasin';
+  }
+
+  if (qtyInput) qtyInput.value = '';
+  if (reasonInput) reasonInput.value = '';
+  showTransferScreenError('');
+}
+
+function swapTransferLocations() {
+  const fromSelect = document.getElementById('transferFromSelect');
+  const toSelect = document.getElementById('transferToSelect');
+  if (!fromSelect || !toSelect) {
+    return;
+  }
+  const currentFrom = fromSelect.value;
+  fromSelect.value = toSelect.value || 'boutique';
+  toSelect.value = currentFrom || 'magasin';
+}
+
+async function initTransfertStockScreen(options = {}) {
+  const select = document.getElementById('transferProductSelect');
+  if (!select) {
+    return;
+  }
+  if (!select.dataset.listenerAttached) {
+    select.addEventListener('change', handleTransferProductChange);
+    select.dataset.listenerAttached = 'true';
+  }
+  showTransferScreenError('');
+
+  const shouldReload = options.forceRefresh || !transferStockScreenState.products.length;
+  if (shouldReload) {
+    select.disabled = true;
+    select.innerHTML = '';
+    const loaderOption = document.createElement('option');
+    loaderOption.value = '';
+    loaderOption.textContent = 'Chargement...';
+    select.appendChild(loaderOption);
+    try {
+      transferStockScreenState.isLoadingProducts = true;
+      const useCache = !options.forceRefresh && Array.isArray(cachedStock) && cachedStock.length;
+      const source = useCache ? cachedStock : await getAllStockFirestore();
+      transferStockScreenState.products = (source || []).slice().sort((a, b) => {
+        return (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' });
+      });
+    } catch (error) {
+      console.error("Erreur chargement stock transfert :", error);
+      showTransferScreenError(error.message || "Impossible de charger le stock.");
+    } finally {
+      transferStockScreenState.isLoadingProducts = false;
+      select.disabled = false;
+    }
+  }
+
+  populateTransferProductSelect();
+  const effectiveId = select.value || transferStockScreenState.selectedProductId;
+  if (effectiveId) {
+    transferStockScreenState.selectedProductId = effectiveId;
+    select.value = effectiveId;
+    updateTransferStockPreview(effectiveId);
+    await loadTransferHistory(effectiveId, { force: options.forceRefresh });
+  } else {
+    updateTransferStockPreview(null);
+    renderTransferHistoryList([]);
+  }
+
+  if (typeof refreshLucideIcons === 'function') {
+    setTimeout(() => refreshLucideIcons(), 0);
+  }
+}
+
+function handleTransferProductChange() {
+  const select = document.getElementById('transferProductSelect');
+  if (!select) {
+    return;
+  }
+  const productId = select.value;
+  transferStockScreenState.selectedProductId = productId;
+  updateTransferStockPreview(productId);
+  loadTransferHistory(productId);
+}
+
+async function refreshTransferHistory() {
+  const select = document.getElementById('transferProductSelect');
+  if (!select || !select.value) {
+    showTransferScreenError("Sélectionnez un article pour consulter l'historique.");
+    return;
+  }
+  transferStockScreenState.selectedProductId = select.value;
+  await loadTransferHistory(select.value, { force: true });
+}
+
+async function loadTransferHistory(productId, options = {}) {
+  const historyList = document.getElementById('transferHistoryList');
+  if (!historyList) {
+    return;
+  }
+  if (!productId) {
+    renderTransferHistoryList([]);
+    return;
+  }
+
+  if (!options.force && transferStockScreenState.historyCache[productId]) {
+    renderTransferHistoryList(transferStockScreenState.historyCache[productId]);
+    return;
+  }
+
+  historyList.innerHTML = '<div class="transfer-history-empty">Chargement des mouvements...</div>';
+  try {
+    const snapshot = await dbFirestore
+      .collection('stock')
+      .doc(productId)
+      .collection('history')
+      .orderBy('timestamp', 'desc')
+      .limit(TRANSFER_HISTORY_LIMIT)
+      .get();
+    const rawEntries = [];
+    snapshot.forEach(doc => rawEntries.push({ id: doc.id, ...doc.data() }));
+    const normalized = normalizeTransferHistoryEntries(rawEntries);
+    transferStockScreenState.historyCache[productId] = normalized;
+    renderTransferHistoryList(normalized);
+  } catch (error) {
+    console.error("Erreur chargement historique transfert :", error);
+    historyList.innerHTML = '<div class="transfer-history-empty">Historique indisponible.</div>';
+  }
+}
+
+function normalizeTransferHistoryEntries(entries = []) {
+  const grouped = [];
+  const indexById = new Map();
+  entries.forEach(entry => {
+    if (entry.type !== 'transfert_stock') {
+      return;
+    }
+    const groupId = entry.transferGroupId || entry.id;
+    if (!indexById.has(groupId)) {
+      const bucket = { id: groupId, items: [] };
+      indexById.set(groupId, bucket);
+      grouped.push(bucket);
+    }
+    indexById.get(groupId).items.push(entry);
+  });
+
+  return grouped.slice(0, 10).map(group => {
+    const outbound = group.items.find(item => item.transferDirection === 'out');
+    const inbound = group.items.find(item => item.transferDirection === 'in');
+    const base = outbound || inbound || group.items[0];
+    const rawQty = outbound?.change ?? inbound?.change ?? base?.change ?? 0;
+    const quantity = Math.abs(Number(rawQty));
+    return {
+      id: group.id,
+      quantity: Number.isFinite(quantity) ? quantity : 0,
+      from: outbound?.transferFrom || base?.transferFrom,
+      to: inbound?.transferTo || base?.transferTo,
+      timestamp: outbound?.timestamp || inbound?.timestamp || base?.timestamp || null,
+      reason: outbound?.reason || inbound?.reason || '',
+      adjustedBy: outbound?.adjustedBy || inbound?.adjustedBy || '',
+      newStock: inbound?.newStock || outbound?.newStock || base?.newStock || null
+    };
+  });
+}
+
+function formatTransferHistoryDate(value) {
+  if (value && typeof value.toDate === 'function') {
+    const date = value.toDate();
+    return date.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return value.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+  return 'Date inconnue';
+}
+
+function renderTransferHistoryList(entries = []) {
+  const historyList = document.getElementById('transferHistoryList');
+  if (!historyList) {
+    return;
+  }
+  historyList.innerHTML = '';
+  if (!entries.length) {
+    historyList.innerHTML = '<div class="transfer-history-empty">Aucun transfert enregistré pour cet article.</div>';
+    return;
+  }
+  entries.forEach(entry => {
+    const item = document.createElement('div');
+    item.className = 'transfer-history-item';
+    const meta = document.createElement('div');
+    meta.className = 'history-meta';
+    meta.innerHTML = `<span>${formatTransferHistoryDate(entry.timestamp)}</span><span>${entry.adjustedBy || ''}</span>`;
+    const strong = document.createElement('strong');
+    const qtyLabel = Number(entry.quantity || 0).toLocaleString('fr-FR');
+    const dirLabel = `${formatStockLocationLabel(entry.from || 'boutique')} -> ${formatStockLocationLabel(entry.to || 'magasin')}`;
+    strong.textContent = `${qtyLabel} unités • ${dirLabel}`;
+    const note = document.createElement('p');
+    note.style.margin = '0';
+    note.style.color = '#475569';
+    note.style.fontSize = '13px';
+    note.textContent = entry.reason || 'Aucun motif renseigné.';
+
+    item.appendChild(meta);
+    item.appendChild(strong);
+    item.appendChild(note);
+    historyList.appendChild(item);
+  });
+}
+
+function applyTransferSnapshotToState(productId, snapshot = {}) {
+  if (!productId || !snapshot) {
+    return;
+  }
+  const index = transferStockScreenState.products.findIndex(item => item.id === productId);
+  if (index !== -1) {
+    transferStockScreenState.products[index] = {
+      ...transferStockScreenState.products[index],
+      ...snapshot
+    };
+  }
+  if (Array.isArray(cachedStock)) {
+    const cachedIndex = cachedStock.findIndex(item => item.id === productId);
+    if (cachedIndex !== -1) {
+      cachedStock[cachedIndex] = {
+        ...cachedStock[cachedIndex],
+        ...snapshot
+      };
+    }
+  }
+}
+
+async function handleTransferStockSubmit(event) {
+  if (event && typeof event.preventDefault === 'function') {
+    event.preventDefault();
+  }
+  const select = document.getElementById('transferProductSelect');
+  const qtyInput = document.getElementById('transferQuantityInput');
+  const fromSelect = document.getElementById('transferFromSelect');
+  const toSelect = document.getElementById('transferToSelect');
+  const reasonInput = document.getElementById('transferReasonInput');
+  const form = document.getElementById('transferStockScreenForm');
+  const submitBtn = form ? form.querySelector('button[type="submit"]') : null;
+
+  const productId = select ? select.value : '';
+  if (!productId) {
+    showTransferScreenError("Sélectionnez un article pour lancer le transfert.");
+    if (select) select.focus();
+    return;
+  }
+
+  const qty = Math.trunc(Math.abs(parseFloat(qtyInput ? qtyInput.value : '')));
+  if (!Number.isFinite(qty) || qty <= 0) {
+    showTransferScreenError("Indiquez une quantité positive à déplacer.");
+    if (qtyInput) qtyInput.focus();
+    return;
+  }
+
+  const fromLocation = fromSelect ? fromSelect.value : DEFAULT_STOCK_LOCATION;
+  const toLocation = toSelect ? toSelect.value : DEFAULT_STOCK_LOCATION;
+  if (resolveStockDestination({ location: fromLocation }) === resolveStockDestination({ location: toLocation })) {
+    showTransferScreenError("Les sites de départ et d'arrivée doivent être différents.");
+    return;
+  }
+
+  showTransferScreenError('');
+  if (submitBtn) submitBtn.disabled = true;
+  try {
+    const result = await executeInternalStockTransfer({
+      productId,
+      quantity: qty,
+      fromLocation,
+      toLocation,
+      reason: reasonInput ? reasonInput.value : ''
+    });
+    if (result && result.stockSnapshot) {
+      applyTransferSnapshotToState(productId, result.stockSnapshot);
+    }
+    populateTransferProductSelect();
+    updateTransferStockPreview(productId);
+    await loadTransferHistory(productId, { force: true });
+    resetTransferForm({ keepProduct: true, keepLocations: true });
+    if (typeof showToast === 'function') {
+      showToast("Transfert interne enregistré.", "success");
+    }
+  } catch (error) {
+    console.error("Erreur transfert stock (page):", error);
+    showTransferScreenError(error.message || "Impossible de finaliser le transfert.");
   } finally {
     if (submitBtn) submitBtn.disabled = false;
   }
