@@ -24871,14 +24871,6 @@ function confirmerAjoutFournisseur(fournisseurName) {
   .catch(err=>console.error("filterStockItems :",err.message));
 }
     let currentStockCategory = "";
-    function updateStockSummary() {
-      getAllStockFirestore().then(stocks => {
-        const totalTelephones = stocks.filter(s => s.category === 'telephones').reduce((sum, s) => sum + s.stock, 0);
-        const totalAccessoires = stocks.filter(s => s.category === 'accessoires').reduce((sum, s) => sum + s.stock, 0);
-        document.getElementById("total-telephones").innerText = totalTelephones;
-        document.getElementById("total-accessoires").innerText = totalAccessoires;
-      }).catch(err => console.error("Erreur dans updateStockSummary : " + err.message));
-    }
     function showStockCategory(category) {
       currentStockCategory = category;
       document.getElementById("stock-home").style.display = "none";
