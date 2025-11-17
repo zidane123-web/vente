@@ -19549,9 +19549,16 @@ function updateAccueilSummary() {
     updateCartFooter();
     mettreAJourBadgeTypeVente();
   }
-    function nextStep() {
+function nextStep() {
   const activeStep = steps[currentStep];
   const activeStepId = activeStep ? activeStep.id : null;
+  if (cartHasMissingClientPrices()) {
+    notifyMissingClientPrices();
+    window.location.hash = 'panier';
+    updatePanierPage();
+    updateCartFooter();
+    return;
+  }
   if (activeStepId === 'step2') {
     const nom = document.getElementById('clientNom')?.value.trim() || '';
     const numero = document.getElementById('clientNumero')?.value.trim() || '';
@@ -24212,6 +24219,44 @@ function updateCartFooter () {
   }
 }
 
+function cartHasMissingClientPrices() {
+  if (!Array.isArray(currentItems) || currentItems.length === 0) {
+    return false;
+  }
+  let hasMissing = false;
+  currentItems.forEach(item => {
+    if (!item || !item.produit) {
+      return;
+    }
+    if (item.priceMissingForType === true) {
+      hasMissing = true;
+      return;
+    }
+    const resolvedPrice = resolveCartUnitPrice(item.produit, item.prix, item, { notifyOnMissing: false });
+    const priceMissing = resolvedPrice === null;
+    item.priceMissingForType = priceMissing;
+    if (!priceMissing && resolvedPrice !== item.prix) {
+      item.prix = resolvedPrice;
+      item.total = (Number(item.quantite) || 0) * resolvedPrice;
+    }
+    if (priceMissing) {
+      hasMissing = true;
+    }
+  });
+  return hasMissing;
+}
+
+function notifyMissingClientPrices() {
+  const clientLabel = describeClientType(getActiveClientType(), { fallback: 'ce client' }) || 'ce client';
+  const normalized = clientLabel.toLowerCase();
+  const message = `Prix ${normalized} indisponible pour un article du panier. Contactez un administrateur pour le définir avant de continuer.`;
+  if (typeof showToast === 'function') {
+    showToast(message, "error");
+  } else {
+    alert(message);
+  }
+}
+
 
 
 function updateSearchCartBadge() {
@@ -24541,6 +24586,11 @@ function retourAccueilDepuisPanier() {
 /* Bouton "Suivant" depuis l'écran Panier --------------------- */
 function continuerDepuisPanier() {
   if (currentItems.length === 0) return;
+  if (cartHasMissingClientPrices()) {
+    notifyMissingClientPrices();
+    updatePanierPage();
+    return;
+  }
   appliquerTypeVenteAuFormulaire();
   window.location.hash = 'vendre';   // retour au wizard
   currentStep = 1;                   // Étape 2 : Canal de vente
