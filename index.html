@@ -24924,9 +24924,18 @@ function confirmerAjoutFournisseur(fournisseurName) {
               }
               return `${numeric.toLocaleString('fr-FR')} FCFA`;
             };
+            const formatQty = (value) => {
+              const numeric = Number(value);
+              return Number.isFinite(numeric) ? numeric.toLocaleString('fr-FR') : '0';
+            };
             const retailPriceLabel = formatPriceLabel(prod.price);
             const clientPriceLabel = formatPriceLabel(prod.prixClient);
             const resellerPriceLabel = formatPriceLabel(prod.prixRevendeur);
+            const boutiqueQty = Number(prod.stockBoutique) || 0;
+            const magasinQty = Number(prod.stockMagasin) || 0;
+            const totalQty = Number(
+              prod.stockTotal !== undefined ? prod.stockTotal : prod.stock
+            ) || boutiqueQty + magasinQty;
             card.innerHTML = `
                 <button class="history-btn"
                         onclick="voirHistoriqueStock('${prod.id}', event)"
@@ -24936,9 +24945,10 @@ function confirmerAjoutFournisseur(fournisseurName) {
                 <div class="product-icon">${prod.icon}</div>
                 <div class="product-details">
                   <h3>${prod.name}</h3>
-                  <p>🔹 Stock : ${prod.stock} unités</p>
-                  <p class="price-label">💰 Prix CUMP : ${retailPriceLabel}</p>
-                  <p class="price-label">👤 Prix Client : ${clientPriceLabel}</p>
+                  <p>🔹 Stock : ${formatQty(totalQty)} unités</p>
+                  <p class="mini-stock-line">• Boutique : ${formatQty(boutiqueQty)} | Magasin : ${formatQty(magasinQty)}</p>
+                  <p class="price-label">🪙 Prix CUMP : ${retailPriceLabel}</p>
+                  <p class="price-label">🧑‍🤝 Prix Client : ${clientPriceLabel}</p>
                   <p class="price-label">🤝 Prix Revendeur : ${resellerPriceLabel}</p>
                 </div>
               `;
@@ -26459,7 +26469,8 @@ async function majCartesTresorerie(options = {}) {
               <div class="product-icon">${prod.icon}</div>
               <div class="product-details">
                 <h3>${prod.name}</h3>
-                <p>🔹 Stock : ${prod.stock} unités</p>
+                <p>🔹 <p>🔹 Stock : ${formatQty(totalQty)} unités</p>
+                <p>🔹 <p class="mini-stock-line">• Boutique : ${formatQty(boutiqueQty)} | Magasin : ${formatQty(magasinQty)} </p>
                 <p class="price-label">💰 ${clientLabel} : ${priceText}</p>
               </div>`;
 
