@@ -115,7 +115,7 @@ function describeChange(label, before, after) {
   if (before === after) {
     return '';
   }
-  return `${label}: ${before} → ${after}`;
+  return `${label}: ${before} -> ${after}`;
 }
 
 async function main() {
