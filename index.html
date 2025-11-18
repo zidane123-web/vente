@@ -537,6 +537,25 @@ body.role-employe #screen-accueil .ako-quick-grid {
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
     }
 
+    .inventory-session-card.selected {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    .inventory-session-select {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #475569;
+      font-weight: 600;
+    }
+
+    .inventory-session-select input {
+      width: 16px;
+      height: 16px;
+    }
+
     .inventory-session-card strong {
       color: #0f172a;
     }
@@ -563,6 +582,69 @@ body.role-employe #screen-accueil .ako-quick-grid {
     .inventory-sessions-error {
       color: #b91c1c;
       background: #fff5f5;
+    }
+
+    .inventory-session-consolidation {
+      border: 1px solid #cbd5f5;
+      border-radius: 16px;
+      padding: 16px;
+      background: #f8fbff;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inventory-session-consolidation h3 {
+      margin: 0;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .inventory-session-consolidation table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .inventory-session-consolidation th,
+    .inventory-session-consolidation td {
+      border: 1px solid #dbeafe;
+      padding: 8px;
+      text-align: left;
+    }
+
+    .inventory-session-consolidation th {
+      background: #eff6ff;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: #1e3a8a;
+    }
+
+    .inventory-session-consolidation .empty {
+      text-align: center;
+      padding: 12px;
+      border-radius: 12px;
+      background: rgba(14, 165, 233, 0.08);
+      color: #0369a1;
+      font-size: 14px;
+    }
+
+    .inventory-session-consolidation .warning {
+      color: #b91c1c;
+    }
+
+    .inventory-session-consolidation-body {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inventory-session-consolidation footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
     }
 
     .inventory-session-status {
@@ -6366,6 +6448,7 @@ function generateInvoicePDF(sale) {
       </button>
     </div>
     <div id="inventorySessionsList" class="inventory-sessions-list"></div>
+    <div id="inventorySessionConsolidation" class="inventory-session-consolidation"></div>
   </div>
 </section>
 
@@ -21641,6 +21724,13 @@ function updateStockAfterSaleFirestore(items) {
       sessionsMap: new Map()
     };
 
+    const inventorySessionSelectionState = {
+      selectedIds: [],
+      suggestions: [],
+      error: '',
+      isProcessing: false
+    };
+
     function openInventoryCountingScreen() {
       window.location.hash = 'inventaire';
     }
@@ -21680,6 +21770,32 @@ function updateStockAfterSaleFirestore(items) {
     function initInventorySessionsScreen() {
       ensureInventoryCampaignHistorySubscription();
       renderInventorySessionsScreen();
+      renderInventorySessionConsolidation();
+    }
+
+    function toggleInventorySessionSelection(sessionId, checked, event) {
+      if (event && typeof event.stopPropagation === 'function') {
+        event.stopPropagation();
+      }
+      if (!sessionId) {
+        return;
+      }
+      const existing = inventorySessionSelectionState.selectedIds.slice();
+      const index = existing.indexOf(sessionId);
+      if (checked) {
+        if (index === -1) {
+          existing.push(sessionId);
+          if (existing.length > 2) {
+            existing.shift();
+          }
+        }
+      } else if (index !== -1) {
+        existing.splice(index, 1);
+      }
+      inventorySessionSelectionState.selectedIds = existing;
+      computeInventorySessionSuggestions();
+      renderInventorySessionsScreen();
+      renderInventorySessionConsolidation();
     }
 
     function ensureInventoryCountSearchListener() {
@@ -22208,8 +22324,10 @@ function updateStockAfterSaleFirestore(items) {
         inventoryCampaignState.sessionsMap = new Map(sessions.map(session => [session.id, session]));
         inventoryCampaignState.isLoading = false;
         inventoryCampaignState.error = '';
+        computeInventorySessionSuggestions();
         renderInventoryCampaignHistory();
         renderInventorySessionsScreen();
+        renderInventorySessionConsolidation();
       }, error => {
         console.error('Erreur chargement historique inventaire :', error);
         inventoryCampaignState.error = error && error.message
@@ -22217,8 +22335,12 @@ function updateStockAfterSaleFirestore(items) {
           : 'Historique indisponible.';
         inventoryCampaignState.isLoading = false;
         inventoryCampaignState.sessionsMap = new Map();
+        inventorySessionSelectionState.selectedIds = [];
+        inventorySessionSelectionState.suggestions = [];
+        computeInventorySessionSuggestions();
         renderInventoryCampaignHistory();
         renderInventorySessionsScreen();
+        renderInventorySessionConsolidation();
       });
     }
 
@@ -22265,6 +22387,69 @@ function updateStockAfterSaleFirestore(items) {
       container.innerHTML = inventoryCampaignState.sessions
         .map(session => buildInventorySessionCard(session))
         .join('');
+    }
+
+    function renderInventorySessionConsolidation() {
+      const panel = document.getElementById('inventorySessionConsolidation');
+      if (!panel) {
+        return;
+      }
+      const selected = inventorySessionSelectionState.selectedIds;
+      const suggestions = inventorySessionSelectionState.suggestions;
+      const error = inventorySessionSelectionState.error;
+      const isProcessing = inventorySessionSelectionState.isProcessing;
+      if (!selected.length) {
+        panel.innerHTML = `
+          <h3>Consolidation rapide</h3>
+          <div class="empty">Sélectionnez deux sessions pour comparer les écarts.</div>
+        `;
+        return;
+      }
+      const summary = selected.map(id => {
+        const session = inventoryCampaignState.sessionsMap.get(id);
+        if (!session) {
+          return '';
+        }
+        const startedAt = toInventoryDate(session.startedAt);
+        return `${formatStockLocationLabel(session.location)} (${startedAt ? startedAt.toLocaleDateString('fr-FR') : '--'})`;
+      }).filter(Boolean).join(' ↔ ');
+      let content = `<h3>Consolidation rapide</h3><p style="margin:0; color:#475569;">${escapeInventoryText(summary || '')}</p>`;
+      if (error) {
+        content += `<div class="warning">${escapeInventoryText(error)}</div>`;
+      } else if (!suggestions.length) {
+        content += '<div class="empty">Aucun transfert suggéré pour ce duo.</div>';
+      } else {
+        const rows = suggestions.map(suggestion => `
+          <tr>
+            <td>${escapeInventoryText(suggestion.productName || '')}</td>
+            <td>${escapeInventoryText(formatStockLocationLabel(suggestion.fromLocation))}</td>
+            <td>${escapeInventoryText(formatStockLocationLabel(suggestion.toLocation))}</td>
+            <td>${suggestion.quantity}</td>
+          </tr>
+        `).join('');
+        content += `
+          <div class="inventory-session-consolidation-body">
+            <table>
+              <thead>
+                <tr>
+                  <th>Article</th>
+                  <th>Depuis</th>
+                  <th>Vers</th>
+                  <th>Quantité</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <footer>
+              <small>${suggestions.length} transfert(s) suggéré(s)</small>
+              <button type="button" class="btn-modern" ${isProcessing ? 'disabled' : ''} onclick="applyInventorySessionConsolidation()">
+                ${isProcessing ? 'Traitement...' : 'Valider les transferts'}
+              </button>
+            </footer>
+          </div>
+        `;
+      }
+      panel.innerHTML = content;
     }
 
     function buildInventoryCampaignHistoryItem(session) {
@@ -22320,15 +22505,22 @@ function updateStockAfterSaleFirestore(items) {
         : summary.mismatchCount > 0
           ? `${summary.mismatchCount} écart(s)`
           : 'Session enregistrée';
+      const selected = inventorySessionSelectionState.selectedIds.includes(session.id);
       return `
-        <div class="inventory-session-card" role="button" tabindex="0" onclick="openInventorySessionDetail('${session.id}')" onkeypress="if(event.key==='Enter'){openInventorySessionDetail('${session.id}')}">
-          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="inventory-session-card ${selected ? 'selected' : ''}" role="button" tabindex="0" onclick="openInventorySessionDetail('${session.id}')" onkeypress="if(event.key==='Enter'){openInventorySessionDetail('${session.id}')}">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center;">
             <div>
               <strong>${escapeInventoryText(locationLabel)}</strong>
               <div style="font-size:13px; color:#475569;">${escapeInventoryText(operatorLabel)}</div>
             </div>
-            <div style="font-size:13px; color:#475569;">
-              Durée : <strong>${escapeInventoryText(durationLabel)}</strong>
+            <div style="display:flex; gap:16px; align-items:center;">
+              <div style="font-size:13px; color:#475569;">
+                Durée : <strong>${escapeInventoryText(durationLabel)}</strong>
+              </div>
+              <label class="inventory-session-select" onclick="event.stopPropagation();">
+                <input type="checkbox" ${selected ? 'checked' : ''} onchange="toggleInventorySessionSelection('${session.id}', this.checked, event)">
+                <span>Choisir</span>
+              </label>
             </div>
           </div>
           <div class="inventory-session-meta">
@@ -22434,6 +22626,54 @@ function updateStockAfterSaleFirestore(items) {
         closeInventorySessionDetailModal();
       }
     });
+
+    async function applyInventorySessionConsolidation() {
+      if (inventorySessionSelectionState.isProcessing) {
+        return;
+      }
+      const [firstId, secondId] = inventorySessionSelectionState.selectedIds;
+      if (!firstId || !secondId) {
+        return;
+      }
+      const suggestions = inventorySessionSelectionState.suggestions;
+      if (!suggestions.length) {
+        return;
+      }
+      const first = inventoryCampaignState.sessionsMap.get(firstId);
+      const second = inventoryCampaignState.sessionsMap.get(secondId);
+      if (!first || !second) {
+        return;
+      }
+      inventorySessionSelectionState.isProcessing = true;
+      renderInventorySessionConsolidation();
+      const reasonBase = `Consolidation inventaire ${formatStockLocationLabel(first.location)} vs ${formatStockLocationLabel(second.location)} (${new Date().toLocaleString('fr-FR')})`;
+      try {
+        for (const suggestion of suggestions) {
+          await executeInternalStockTransfer({
+            productId: suggestion.productId,
+            quantity: suggestion.quantity,
+            fromLocation: suggestion.fromLocation,
+            toLocation: suggestion.toLocation,
+            reason: `${reasonBase} – ${suggestion.productName}`
+          });
+        }
+        if (typeof showToast === 'function') {
+          showToast("Transferts de consolidation effectués.", "success");
+        }
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.selectedIds = [];
+        inventorySessionSelectionState.error = '';
+      } catch (error) {
+        console.error('Erreur consolidation inventaire :', error);
+        inventorySessionSelectionState.error = error && error.message
+          ? error.message
+          : "Impossible de finaliser les transferts.";
+      } finally {
+        inventorySessionSelectionState.isProcessing = false;
+        renderInventorySessionsScreen();
+        renderInventorySessionConsolidation();
+      }
+    }
 
     function updateInventoryCampaignPanel() {
       const panel = document.getElementById('inventoryCampaignPanel');
@@ -31910,3 +32150,72 @@ async function finaliserLivraisonReussie() {
 </script>
 </body>
 </html>
+    function computeInventorySessionSuggestions() {
+      const validIds = inventorySessionSelectionState.selectedIds.filter(id => inventoryCampaignState.sessionsMap.has(id));
+      if (validIds.length !== inventorySessionSelectionState.selectedIds.length) {
+        inventorySessionSelectionState.selectedIds = validIds;
+      }
+      const [firstId, secondId] = validIds;
+      if (!firstId || !secondId) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = validIds.length ? 'Sélectionnez encore une session pour comparer.' : '';
+        return;
+      }
+      const first = inventoryCampaignState.sessionsMap.get(firstId);
+      const second = inventoryCampaignState.sessionsMap.get(secondId);
+      if (!first || !second) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = 'Impossible de charger les sessions sélectionnées.';
+        return;
+      }
+      if (first.location === second.location) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = "Choisissez deux sites différents.";
+        return;
+      }
+      const detailsA = Array.isArray(first.details) ? first.details : [];
+      const detailsB = Array.isArray(second.details) ? second.details : [];
+      if (!detailsA.length || !detailsB.length) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = "Détails d'inventaire insuffisants pour l'une des sessions.";
+        return;
+      }
+
+      const mapB = new Map(detailsB.map(detail => [detail.stockId, detail]));
+      const suggestions = [];
+      detailsA.forEach(detailA => {
+        const detailB = mapB.get(detailA.stockId);
+        if (!detailB) return;
+        const diffA = Number(detailA.difference) || 0;
+        const diffB = Number(detailB.difference) || 0;
+        if (diffA === 0 || diffB === 0) {
+          return;
+        }
+        if (diffA > 0 && diffB < 0) {
+          const quantity = Math.min(diffA, Math.abs(diffB));
+          if (quantity > 0) {
+            suggestions.push({
+              productId: detailA.stockId,
+              productName: detailA.name || detailB.name || 'Article',
+              quantity,
+              fromLocation: second.location,
+              toLocation: first.location
+            });
+          }
+        } else if (diffA < 0 && diffB > 0) {
+          const quantity = Math.min(Math.abs(diffA), diffB);
+          if (quantity > 0) {
+            suggestions.push({
+              productId: detailA.stockId,
+              productName: detailA.name || detailB.name || 'Article',
+              quantity,
+              fromLocation: first.location,
+              toLocation: second.location
+            });
+          }
+        }
+      });
+
+      inventorySessionSelectionState.suggestions = suggestions;
+      inventorySessionSelectionState.error = '';
+    }
