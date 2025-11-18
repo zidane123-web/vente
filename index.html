@@ -180,6 +180,285 @@ body.role-employe #screen-accueil .ako-quick-grid {
       margin-top: 16px;
     }
 
+    .inventory-count-layout {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 16px;
+    }
+
+    .inventory-count-container {
+      background: var(--white);
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .inventory-location-selector h2 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .inventory-location-selector p {
+      margin: 0;
+      color: #475569;
+      font-size: 13px;
+    }
+
+    .inventory-location-buttons {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .inventory-location-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 1px solid #cbd5f5;
+      border-radius: 12px;
+      padding: 10px;
+      background: #f8fbff;
+      color: #1d3a8a;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .inventory-location-button.active {
+      border-color: #1d4ed8;
+      background: #e0edff;
+      color: #0f172a;
+      box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.2);
+    }
+
+    .inventory-count-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .inventory-count-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .inventory-count-summary-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .inventory-count-summary-card span {
+      display: block;
+      font-size: 12px;
+      color: #64748b;
+      text-transform: uppercase;
+    }
+
+    .inventory-count-summary-card strong {
+      font-size: 20px;
+      color: #0f172a;
+    }
+
+    .inventory-count-search {
+      width: 100%;
+      border: 1px solid #d4dbe5;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 15px;
+    }
+
+    .inventory-count-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .inventory-count-work {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .inventory-count-work.hidden {
+      display: none;
+    }
+
+    .inventory-count-row {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: #fff;
+    }
+
+    .inventory-count-row.recorded {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+
+    .inventory-count-main {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .inventory-count-name {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .inventory-count-system {
+      margin: 0;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .inventory-count-input label {
+      display: block;
+      font-size: 13px;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+
+    .inventory-count-input input {
+      width: 100%;
+      border: 1px solid #cbd5f5;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 16px;
+    }
+
+    .inventory-count-gap {
+      font-size: 13px;
+      font-weight: 600;
+      color: #64748b;
+    }
+
+    .inventory-count-gap.positive {
+      color: #15803d;
+    }
+
+    .inventory-count-gap.negative {
+      color: #b91c1c;
+    }
+
+    .inventory-count-empty,
+    .inventory-count-loader {
+      text-align: center;
+      color: #475569;
+      font-size: 14px;
+      padding: 30px 0;
+    }
+
+    .inventory-campaign-panel {
+      border: 1px solid #cbd5f5;
+      border-radius: 14px;
+      padding: 14px;
+      background: #f8fbff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .inventory-campaign-panel.hidden {
+      display: none;
+    }
+
+    .inventory-campaign-panel header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .inventory-campaign-panel h3 {
+      margin: 0;
+      font-size: 16px;
+      color: #0f172a;
+    }
+
+    .inventory-campaign-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .inventory-campaign-meta strong {
+      color: #0f172a;
+    }
+
+    .inventory-campaign-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .inventory-campaign-history {
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 14px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .inventory-campaign-history h3 {
+      margin: 0;
+      font-size: 15px;
+      color: #0f172a;
+    }
+
+    .inventory-campaign-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .inventory-campaign-history-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .inventory-campaign-history-item strong {
+      color: #0f172a;
+    }
+
+    .inventory-campaign-history-empty,
+    .inventory-campaign-history-error {
+      font-size: 13px;
+      color: #64748b;
+    }
+
+    .inventory-campaign-history-error {
+      color: #b91c1c;
+    }
+
     .stock-summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -5624,6 +5903,9 @@ function generateInvoicePDF(sale) {
   <button class="btn-modern" onclick="showStockCategory('accessoires')">
     <i data-lucide="headphones"></i> Accessoires
   </button>
+  <button class="btn-modern" onclick="openInventoryCountingScreen()">
+    <i data-lucide="clipboard-check"></i> Faire l'inventaire
+  </button>
   <button id="exportStockBtn" class="btn-modern secondary">
     <i data-lucide="download"></i> Exporter Stock Téléphones (PDF)
   </button>
@@ -5771,6 +6053,66 @@ function generateInvoicePDF(sale) {
       <div id="transferHistoryList" class="transfer-history-list">
         <div class="transfer-history-empty">
           Sélectionnez un article pour voir l’activité récente.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="screen-inventaire" class="screen">
+  <header class="menu-header">
+    <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+      <i data-lucide="menu"></i>
+    </button>
+    <h1>Inventaire</h1>
+    <div class="menu-header-meta">
+      <button type="button" class="btn-modern secondary" onclick="window.location.hash='stock'">
+        ← Retour au stock
+      </button>
+    </div>
+  </header>
+  <div class="inventory-count-layout">
+    <div class="inventory-count-container">
+      <div class="inventory-location-selector">
+        <h2>Où veux-tu compter ?</h2>
+        <p>Choisis le site avant de noter les quantités réelles.</p>
+        <div class="inventory-location-buttons">
+          <button type="button" class="inventory-location-button" data-inventory-location="boutique" onclick="selectInventoryCountingLocation('boutique')">
+            <i data-lucide="home"></i>
+            Boutique
+          </button>
+          <button type="button" class="inventory-location-button" data-inventory-location="magasin" onclick="selectInventoryCountingLocation('magasin')">
+            <i data-lucide="building-2"></i>
+            Magasin
+          </button>
+        </div>
+      </div>
+      <div class="inventory-count-meta">
+        <div><strong>Lieu sélectionné :</strong> <span id="inventorySelectedLocation">Aucun</span></div>
+        <div>Dernier chargement : <span id="inventoryCountLastSync">-</span></div>
+      </div>
+      <div id="inventoryCountingWorkArea" class="inventory-count-work hidden">
+        <div id="inventoryCampaignPanel" class="inventory-campaign-panel hidden">
+          <header>
+            <div>
+              <p style="margin:0; font-size:13px; color:#475569;">Campagne en cours</p>
+              <h3 id="inventoryCampaignStatus">Aucune campagne active</h3>
+            </div>
+            <span id="inventoryCampaignTimer" style="font-weight:600; color:#1d3a8a;"></span>
+          </header>
+          <div class="inventory-campaign-meta" id="inventoryCampaignMeta"></div>
+          <div class="inventory-campaign-actions">
+            <button type="button" class="btn-modern danger" onclick="finishInventoryCampaignSession()">
+              Terminer ce comptage
+            </button>
+          </div>
+        </div>
+        <div class="inventory-count-summary" id="inventoryCountingSummary"></div>
+        <input type="text" id="inventoryCountSearch" class="inventory-count-search" placeholder="Rechercher un article (nom ou marque)" disabled>
+        <div id="inventoryCountingList" class="inventory-count-list"></div>
+        <div class="inventory-campaign-history">
+          <h3>Campagnes récentes</h3>
+          <div id="inventoryCampaignHistoryList" class="inventory-campaign-history-list"></div>
         </div>
       </div>
     </div>
@@ -20848,6 +21190,46 @@ function updateStockAfterSaleFirestore(items) {
       }).catch(err => console.error("Erreur dans updateStockSummary : " + err.message));
     }
 
+    const INVENTORY_BRAND_ORDER = {
+      'tecno': 1,
+      'infinix': 2,
+      'itel': 3,
+      'redmi': 4,
+      'samsung': 5
+    };
+
+    function getInventoryBrand(value) {
+      return (value || '').toString().trim().split(' ')[0].toLowerCase();
+    }
+
+    function sortInventoryByName(items = []) {
+      return items.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' }));
+    }
+
+    function sortInventoryTelephones(items = []) {
+      return items.slice().sort((a, b) => {
+        const brandA = getInventoryBrand(a.name);
+        const brandB = getInventoryBrand(b.name);
+        const orderA = INVENTORY_BRAND_ORDER[brandA] || 999;
+        const orderB = INVENTORY_BRAND_ORDER[brandB] || 999;
+        if (orderA !== orderB) {
+          return orderA - orderB;
+        }
+        if (brandA !== brandB) {
+          return brandA.localeCompare(brandB, 'fr', { sensitivity: 'base' });
+        }
+        return (a.name || '').localeCompare(b.name || '', 'fr', { sensitivity: 'base' });
+      });
+    }
+
+    function sortInventoryAccessories(items = []) {
+      return sortInventoryByName(items);
+    }
+
+    function sortInventoryOtherCategories(items = []) {
+      return sortInventoryByName(items);
+    }
+
     function renderInventoryPreview(stocksData = null) {
       const preview = document.getElementById('inventoryPreview');
       const content = document.getElementById('inventoryPreviewContent');
@@ -20896,24 +21278,13 @@ function updateStockAfterSaleFirestore(items) {
           .replace(/"/g, '&quot;')
           .replace(/'/g, '&#39;');
 
-        const brandOrder = { 'tecno': 1, 'infinix': 2, 'itel': 3, 'redmi': 4, 'samsung': 5 };
-        const getBrand = (name) => (name ? name.split(' ')[0].toLowerCase() : '');
+        const telephones = sortInventoryTelephones(
+          stocks.filter(item => item.category === 'telephones')
+        );
 
-        const telephones = stocks
-          .filter(item => item.category === 'telephones')
-          .sort((a, b) => {
-            const orderA = brandOrder[getBrand(a.name)] || 999;
-            const orderB = brandOrder[getBrand(b.name)] || 999;
-            if (orderA !== orderB) return orderA - orderB;
-            const brandA = getBrand(a.name);
-            const brandB = getBrand(b.name);
-            if (brandA !== brandB) return brandA.localeCompare(brandB);
-            return (a.name || '').localeCompare(b.name || '');
-          });
-
-        const accessories = stocks
-          .filter(item => item.category === 'accessoires')
-          .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        const accessories = sortInventoryAccessories(
+          stocks.filter(item => item.category === 'accessoires')
+        );
 
         const buildSection = (title, items) => {
           if (!items.length) return '';
@@ -20979,6 +21350,648 @@ function updateStockAfterSaleFirestore(items) {
         console.error('Erreur lors du rendu de l\'inventaire :', err);
         content.innerHTML = '<p class="inventory-error">Impossible de charger l\'inventaire. Veuillez réessayer plus tard.</p>';
       });
+    }
+
+    const inventoryCountingState = {
+      items: [],
+      itemMap: new Map(),
+      counts: {
+        boutique: {},
+        magasin: {}
+      },
+      location: '',
+      search: '',
+      isLoading: false,
+      error: '',
+      lastSync: null
+    };
+
+    const inventoryCampaignState = {
+      activeSession: null,
+      timerId: null,
+      sessions: [],
+      isLoading: false,
+      error: '',
+      isSaving: false,
+      unsubscribe: null
+    };
+
+    function openInventoryCountingScreen() {
+      window.location.hash = 'inventaire';
+    }
+
+    function initInventoryCountingScreen() {
+      ensureInventoryCountSearchListener();
+      updateInventoryLocationButtons();
+      updateInventoryCountMeta();
+      updateInventoryCountingWorkAreaVisibility();
+      updateInventoryCampaignPanel();
+      renderInventoryCampaignHistory();
+      ensureInventoryCampaignHistorySubscription();
+      renderInventoryCountingSummary();
+      renderInventoryCountingList();
+      if (!inventoryCountingState.items.length) {
+        loadInventoryCountingItems();
+      }
+    }
+
+    function ensureInventoryCountSearchListener() {
+      const searchInput = document.getElementById('inventoryCountSearch');
+      if (searchInput && !searchInput.dataset.listenerAttached) {
+        searchInput.addEventListener('input', event => {
+          inventoryCountingState.search = event.target.value.toLowerCase();
+          renderInventoryCountingList();
+        });
+        searchInput.dataset.listenerAttached = 'true';
+      }
+    }
+
+    function selectInventoryCountingLocation(location) {
+      const normalized = location === 'magasin' ? 'magasin' : 'boutique';
+      const previousLocation = inventoryCountingState.location;
+      const sameLocation = previousLocation === normalized;
+      const hasActiveSameCampaign = inventoryCampaignState.activeSession &&
+        inventoryCampaignState.activeSession.location === normalized;
+
+      if (!sameLocation && inventoryCampaignState.activeSession) {
+        finishInventoryCampaignSession({ reason: 'location-switch', silent: true });
+      }
+
+      inventoryCountingState.location = normalized;
+      if (!inventoryCountingState.counts[normalized]) {
+        inventoryCountingState.counts[normalized] = {};
+      }
+      updateInventoryLocationButtons();
+      updateInventoryCountMeta();
+      updateInventoryCountingWorkAreaVisibility();
+      if (!hasActiveSameCampaign) {
+        startInventoryCampaignSession(normalized);
+      } else {
+        updateInventoryCampaignPanel();
+      }
+      renderInventoryCountingSummary();
+      renderInventoryCountingList();
+      const searchInput = document.getElementById('inventoryCountSearch');
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }
+
+    function updateInventoryLocationButtons() {
+      const buttons = document.querySelectorAll('[data-inventory-location]');
+      buttons.forEach(button => {
+        const loc = button.getAttribute('data-inventory-location');
+        button.classList.toggle('active', loc === inventoryCountingState.location);
+      });
+    }
+
+    function updateInventoryCountingWorkAreaVisibility() {
+      const hasLocation = Boolean(inventoryCountingState.location);
+      const workArea = document.getElementById('inventoryCountingWorkArea');
+      if (workArea) {
+        workArea.classList.toggle('hidden', !hasLocation);
+      }
+      const searchInput = document.getElementById('inventoryCountSearch');
+      if (searchInput) {
+        searchInput.disabled = !hasLocation;
+        if (!hasLocation && searchInput.value) {
+          searchInput.value = '';
+        }
+        if (!hasLocation) {
+          inventoryCountingState.search = '';
+        }
+      }
+    }
+
+    function getInventoryLocationLabel(location) {
+      if (location === 'magasin') {
+        return 'Magasin';
+      }
+      if (location === 'boutique') {
+        return 'Boutique';
+      }
+      return 'Aucun';
+    }
+
+    function updateInventoryCountMeta() {
+      const locationEl = document.getElementById('inventorySelectedLocation');
+      if (locationEl) {
+        locationEl.textContent = getInventoryLocationLabel(inventoryCountingState.location);
+      }
+      const lastSyncEl = document.getElementById('inventoryCountLastSync');
+      if (lastSyncEl) {
+        lastSyncEl.textContent = inventoryCountingState.lastSync
+          ? inventoryCountingState.lastSync.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+          : '-';
+      }
+    }
+
+    function loadInventoryCountingItems(options = {}) {
+      if (inventoryCountingState.isLoading) {
+        return;
+      }
+      inventoryCountingState.isLoading = true;
+      inventoryCountingState.error = '';
+      renderInventoryCountingList();
+
+      const useCache = !options.forceRefresh && Array.isArray(cachedStock) && cachedStock.length;
+      const source = useCache ? Promise.resolve(cachedStock) : getAllStockFirestore();
+
+      source.then(stocks => {
+        if (!Array.isArray(stocks)) {
+          inventoryCountingState.error = "Stock indisponible pour l'instant.";
+          return;
+        }
+        const telephones = sortInventoryTelephones(
+          stocks.filter(item => item.category === 'telephones')
+        );
+        const accessories = sortInventoryAccessories(
+          stocks.filter(item => item.category === 'accessoires')
+        );
+        const others = sortInventoryOtherCategories(
+          stocks.filter(item => item.category !== 'telephones' && item.category !== 'accessoires')
+        );
+        const orderedItems = [].concat(telephones, accessories, others);
+        inventoryCountingState.items = orderedItems;
+        inventoryCountingState.itemMap = new Map(orderedItems.map(item => [item.id, item]));
+        inventoryCountingState.lastSync = new Date();
+      }).catch(error => {
+        inventoryCountingState.error = error && error.message
+          ? error.message
+          : "Impossible de charger le stock.";
+        console.error("Erreur inventaire :", error);
+      }).finally(() => {
+        inventoryCountingState.isLoading = false;
+        updateInventoryCountMeta();
+        renderInventoryCountingSummary();
+        renderInventoryCountingList();
+      });
+    }
+
+    function renderInventoryCountingSummary() {
+      const summaryEl = document.getElementById('inventoryCountingSummary');
+      if (!summaryEl) {
+        return;
+      }
+      if (!inventoryCountingState.location || !inventoryCountingState.items.length) {
+        summaryEl.innerHTML = '';
+        return;
+      }
+      const bucket = getInventoryCountsBucket();
+      const entries = bucket ? Object.entries(bucket) : [];
+      const countedEntries = entries.filter(([, value]) => Number.isFinite(value));
+      const totalItems = inventoryCountingState.items.length;
+      const counted = countedEntries.length;
+      const remaining = Math.max(0, totalItems - counted);
+      let diffTotal = 0;
+      countedEntries.forEach(([stockId, value]) => {
+        const item = inventoryCountingState.itemMap.get(stockId);
+        if (!item) {
+          return;
+        }
+        const expected = getInventoryExpectedValue(item, inventoryCountingState.location);
+        diffTotal += value - expected;
+      });
+
+      summaryEl.innerHTML = `
+        <div class="inventory-count-summary-card">
+          <span>Articles</span>
+          <strong>${totalItems}</strong>
+        </div>
+        <div class="inventory-count-summary-card">
+          <span>Déjà comptés</span>
+          <strong>${counted}</strong>
+        </div>
+        <div class="inventory-count-summary-card">
+          <span>Restants</span>
+          <strong>${remaining}</strong>
+        </div>
+        <div class="inventory-count-summary-card">
+          <span>Écart cumulé</span>
+          <strong>${diffTotal > 0 ? '+' : ''}${diffTotal}</strong>
+        </div>
+      `;
+    }
+
+    function renderInventoryCountingList() {
+      const container = document.getElementById('inventoryCountingList');
+      if (!container) {
+        return;
+      }
+      if (inventoryCountingState.isLoading && !inventoryCountingState.items.length) {
+        container.innerHTML = '<p class="inventory-count-loader">Chargement des articles...</p>';
+        return;
+      }
+      if (inventoryCountingState.error && !inventoryCountingState.items.length) {
+        container.innerHTML = `<p class="inventory-count-empty">${escapeInventoryText(inventoryCountingState.error)}</p>`;
+        return;
+      }
+      if (!inventoryCountingState.items.length) {
+        container.innerHTML = '<p class="inventory-count-empty">Aucun article disponible pour le moment.</p>';
+        return;
+      }
+      if (!inventoryCountingState.location) {
+        container.innerHTML = '<p class="inventory-count-empty">Choisis Boutique ou Magasin pour commencer le comptage.</p>';
+        return;
+      }
+      const searchTerm = (inventoryCountingState.search || '').trim().toLowerCase();
+      const filteredItems = inventoryCountingState.items.filter(item => matchesInventorySearch(item, searchTerm));
+      if (!filteredItems.length) {
+        container.innerHTML = '<p class="inventory-count-empty">Aucun article ne correspond à ta recherche.</p>';
+        return;
+      }
+      const prefix = inventoryCountingState.isLoading
+        ? '<p class="inventory-count-loader">Actualisation en cours...</p>'
+        : '';
+      const bucket = getInventoryCountsBucket();
+      const rows = filteredItems.map(item => buildInventoryCountingRow(item, bucket)).join('');
+      container.innerHTML = prefix + rows;
+      attachInventoryCountInputListeners();
+    }
+
+    function matchesInventorySearch(item, term) {
+      if (!term) {
+        return true;
+      }
+      const haystack = [
+        item.name || '',
+        item.category || '',
+        item.reference || '',
+        item.marque || ''
+      ].join(' ').toLowerCase();
+      return haystack.includes(term);
+    }
+
+    function escapeInventoryText(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function buildInventoryCountingRow(item, countsBucket = {}) {
+      const expected = getInventoryExpectedValue(item, inventoryCountingState.location);
+      const recorded = countsBucket ? countsBucket[item.id] : undefined;
+      const hasValue = Number.isFinite(recorded);
+      const diff = hasValue ? recorded - expected : null;
+      const diffClass = diff === null ? '' : diff > 0 ? 'positive' : diff < 0 ? 'negative' : '';
+      const diffLabel = diff === null ? 'Écart : -' : `Écart : ${diff > 0 ? '+' : ''}${diff}`;
+      const safeName = escapeInventoryText(item.name);
+      const inputValue = hasValue ? recorded : '';
+      return `
+        <div class="inventory-count-row${hasValue ? ' recorded' : ''}" data-stock-row="${item.id}">
+          <div class="inventory-count-main">
+            <p class="inventory-count-name">${safeName}</p>
+            <p class="inventory-count-system">Système (${getInventoryLocationLabel(inventoryCountingState.location)}) :
+              <strong>${expected.toLocaleString('fr-FR')}</strong>
+            </p>
+          </div>
+          <div class="inventory-count-input">
+            <label>Quantité comptée</label>
+            <input type="number" min="0" inputmode="numeric" placeholder="Nombre réellement présent" data-stock-input="${item.id}" value="${inputValue}">
+          </div>
+          <div class="inventory-count-gap ${diffClass}" data-stock-gap="${item.id}">${diffLabel}</div>
+        </div>
+      `;
+    }
+
+    function attachInventoryCountInputListeners() {
+      const list = document.getElementById('inventoryCountingList');
+      if (!list) {
+        return;
+      }
+      list.querySelectorAll('[data-stock-input]').forEach(input => {
+        const stockId = input.getAttribute('data-stock-input');
+        input.addEventListener('input', event => handleInventoryCountInput(stockId, event.target));
+      });
+    }
+
+    function getInventoryCountsBucket() {
+      if (!inventoryCountingState.location) {
+        return null;
+      }
+      if (!inventoryCountingState.counts[inventoryCountingState.location]) {
+        inventoryCountingState.counts[inventoryCountingState.location] = {};
+      }
+      return inventoryCountingState.counts[inventoryCountingState.location];
+    }
+
+    function handleInventoryCountInput(stockId, inputEl) {
+      if (!inventoryCountingState.location) {
+        return;
+      }
+      const bucket = getInventoryCountsBucket();
+      if (!bucket) {
+        return;
+      }
+      const numericValue = sanitizeInventoryCountValue(inputEl.value);
+      if (numericValue === null) {
+        delete bucket[stockId];
+      } else {
+        bucket[stockId] = numericValue;
+      }
+      if (inputEl.value && numericValue === null) {
+        inputEl.value = '';
+      } else if (numericValue !== null) {
+        inputEl.value = numericValue;
+      }
+      updateInventoryRowGap(stockId);
+      renderInventoryCountingSummary();
+    }
+
+    function sanitizeInventoryCountValue(value) {
+      if (value === null || value === undefined) {
+        return null;
+      }
+      const digitsOnly = String(value).replace(/[^\d]/g, '');
+      if (!digitsOnly.length) {
+        return null;
+      }
+      return parseInt(digitsOnly, 10);
+    }
+
+    function updateInventoryRowGap(stockId) {
+      const item = inventoryCountingState.itemMap.get(stockId);
+      if (!item || !inventoryCountingState.location) {
+        return;
+      }
+      const bucket = getInventoryCountsBucket();
+      const counted = bucket && bucket[stockId];
+      const expected = getInventoryExpectedValue(item, inventoryCountingState.location);
+      const diff = Number.isFinite(counted) ? counted - expected : null;
+      const gapEl = document.querySelector(`[data-stock-gap="${stockId}"]`);
+      const rowEl = document.querySelector(`[data-stock-row="${stockId}"]`);
+      if (gapEl) {
+        gapEl.textContent = diff === null ? 'Écart : -' : `Écart : ${diff > 0 ? '+' : ''}${diff}`;
+        gapEl.classList.toggle('positive', diff > 0);
+        gapEl.classList.toggle('negative', diff < 0);
+        if (diff === null) {
+          gapEl.classList.remove('positive', 'negative');
+        }
+      }
+      if (rowEl) {
+        rowEl.classList.toggle('recorded', Number.isFinite(counted));
+      }
+    }
+
+    function getInventoryExpectedValue(item, location) {
+      if (!item) {
+        return 0;
+      }
+      if (location === 'magasin') {
+        return Number(item.stockMagasin) || 0;
+      }
+      return Number(item.stockBoutique) || 0;
+    }
+
+    function getInventoryOperatorInfo() {
+      const auth = typeof firebase !== 'undefined' && typeof firebase.auth === 'function'
+        ? firebase.auth()
+        : null;
+      const user = auth && auth.currentUser ? auth.currentUser : null;
+      const displayName = user && user.displayName ? user.displayName.trim() : '';
+      const email = user && user.email ? user.email.trim() : '';
+      const fallback = displayName || (email ? email.split('@')[0] : 'Utilisateur');
+      return {
+        uid: user && user.uid ? user.uid : null,
+        name: displayName || fallback,
+        email
+      };
+    }
+
+    function startInventoryCampaignSession(location) {
+      if (!location) {
+        return;
+      }
+      const current = inventoryCampaignState.activeSession;
+      if (current && current.location === location) {
+        updateInventoryCampaignPanel();
+        return;
+      }
+      const operator = getInventoryOperatorInfo();
+      const session = {
+        location,
+        startedAt: new Date(),
+        operatorName: operator.name,
+        operatorEmail: operator.email || '',
+        operatorUid: operator.uid || null
+      };
+      if (inventoryCampaignState.timerId) {
+        clearInterval(inventoryCampaignState.timerId);
+        inventoryCampaignState.timerId = null;
+      }
+      inventoryCampaignState.activeSession = session;
+      inventoryCampaignState.isSaving = false;
+      inventoryCampaignState.timerId = setInterval(() => updateInventoryCampaignPanel(), 1000);
+      updateInventoryCampaignPanel();
+    }
+
+    function finishInventoryCampaignSession(options = {}) {
+      const session = inventoryCampaignState.activeSession;
+      if (!session) {
+        updateInventoryCampaignPanel();
+        return Promise.resolve(false);
+      }
+      if (inventoryCampaignState.timerId) {
+        clearInterval(inventoryCampaignState.timerId);
+        inventoryCampaignState.timerId = null;
+      }
+      inventoryCampaignState.activeSession = null;
+      inventoryCampaignState.isSaving = true;
+      updateInventoryCampaignPanel();
+      const endTime = new Date();
+      const durationSeconds = Math.max(
+        1,
+        Math.round((endTime.getTime() - session.startedAt.getTime()) / 1000)
+      );
+      const payload = {
+        location: session.location,
+        startedAt: firebase.firestore.Timestamp.fromDate(session.startedAt),
+        endedAt: firebase.firestore.Timestamp.fromDate(endTime),
+        durationSeconds,
+        operatorName: session.operatorName || '',
+        operatorEmail: session.operatorEmail || '',
+        operatorUid: session.operatorUid || null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      return dbFirestore.collection('inventoryCampaigns')
+        .add(payload)
+        .then(() => {
+          if (!options.silent && typeof showToast === 'function') {
+            showToast("Campagne d'inventaire enregistrée.", 'success');
+          }
+        })
+        .catch(error => {
+          console.error('Erreur enregistrement campagne inventaire :', error);
+          if (!options.silent) {
+            const message = error && error.message
+              ? error.message
+              : "Impossible d'enregistrer la campagne.";
+            if (typeof showToast === 'function') {
+              showToast(message, 'error');
+            } else {
+              alert(message);
+            }
+          }
+        })
+        .finally(() => {
+          inventoryCampaignState.isSaving = false;
+          updateInventoryCampaignPanel();
+        });
+    }
+
+    function ensureInventoryCampaignHistorySubscription() {
+      if (inventoryCampaignState.unsubscribe || !dbFirestore || typeof dbFirestore.collection !== 'function') {
+        return;
+      }
+      inventoryCampaignState.isLoading = true;
+      renderInventoryCampaignHistory();
+      const query = dbFirestore
+        .collection('inventoryCampaigns')
+        .orderBy('startedAt', 'desc')
+        .limit(10);
+      inventoryCampaignState.unsubscribe = query.onSnapshot(snapshot => {
+        const sessions = [];
+        snapshot.forEach(doc => {
+          sessions.push({ id: doc.id, ...(doc.data() || {}) });
+        });
+        inventoryCampaignState.sessions = sessions;
+        inventoryCampaignState.isLoading = false;
+        inventoryCampaignState.error = '';
+        renderInventoryCampaignHistory();
+      }, error => {
+        console.error('Erreur chargement historique inventaire :', error);
+        inventoryCampaignState.error = error && error.message
+          ? error.message
+          : 'Historique indisponible.';
+        inventoryCampaignState.isLoading = false;
+        renderInventoryCampaignHistory();
+      });
+    }
+
+    function renderInventoryCampaignHistory() {
+      const listEl = document.getElementById('inventoryCampaignHistoryList');
+      if (!listEl) {
+        return;
+      }
+      if (inventoryCampaignState.isLoading) {
+        listEl.innerHTML = '<p class="inventory-campaign-history-empty">Chargement des campagnes...</p>';
+        return;
+      }
+      if (inventoryCampaignState.error) {
+        listEl.innerHTML = `<p class="inventory-campaign-history-error">${escapeInventoryText(inventoryCampaignState.error)}</p>`;
+        return;
+      }
+      if (!inventoryCampaignState.sessions.length) {
+        listEl.innerHTML = '<p class="inventory-campaign-history-empty">Aucune campagne enregistrée pour le moment.</p>';
+        return;
+      }
+      const items = inventoryCampaignState.sessions
+        .map(session => buildInventoryCampaignHistoryItem(session))
+        .join('');
+      listEl.innerHTML = items;
+    }
+
+    function buildInventoryCampaignHistoryItem(session) {
+      const startedAt = toInventoryDate(session.startedAt);
+      const endedAt = toInventoryDate(session.endedAt);
+      const durationSeconds = Number(session.durationSeconds) ||
+        (startedAt && endedAt ? Math.round((endedAt.getTime() - startedAt.getTime()) / 1000) : 0);
+      const locationLabel = formatStockLocationLabel(session.location);
+      const operatorLabel = session.operatorName || session.operatorEmail || 'Utilisateur';
+      const startedLabel = startedAt
+        ? startedAt.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+        : 'Date inconnue';
+      const durationLabel = formatInventoryDuration(durationSeconds);
+      return `
+        <div class="inventory-campaign-history-item">
+          <strong>${escapeInventoryText(locationLabel)}</strong>
+          <span>${escapeInventoryText(startedLabel)}</span>
+          <span>Durée : <strong>${escapeInventoryText(durationLabel)}</strong></span>
+          <span>Opérateur : <strong>${escapeInventoryText(operatorLabel)}</strong></span>
+        </div>
+      `;
+    }
+
+    function updateInventoryCampaignPanel() {
+      const panel = document.getElementById('inventoryCampaignPanel');
+      const statusEl = document.getElementById('inventoryCampaignStatus');
+      const metaEl = document.getElementById('inventoryCampaignMeta');
+      const timerEl = document.getElementById('inventoryCampaignTimer');
+      const workArea = document.getElementById('inventoryCountingWorkArea');
+      const button = panel ? panel.querySelector('button') : null;
+      const session = inventoryCampaignState.activeSession;
+      if (!panel || !statusEl || !metaEl || !timerEl) {
+        return;
+      }
+      if (!workArea || workArea.classList.contains('hidden')) {
+        panel.classList.add('hidden');
+        return;
+      }
+      if (!session) {
+        panel.classList.add('hidden');
+        statusEl.textContent = 'Aucune campagne active';
+        timerEl.textContent = '';
+        metaEl.innerHTML = '<span>Lancez un comptage pour démarrer le suivi.</span>';
+        if (button) {
+          button.disabled = true;
+        }
+        return;
+      }
+      panel.classList.remove('hidden');
+      statusEl.textContent = `Inventaire ${formatStockLocationLabel(session.location)}`;
+      if (button) {
+        button.disabled = Boolean(inventoryCampaignState.isSaving);
+      }
+      const startedAt = session.startedAt instanceof Date
+        ? session.startedAt
+        : new Date(session.startedAt);
+      timerEl.textContent = formatInventoryTimer(Math.round((Date.now() - startedAt.getTime()) / 1000));
+      metaEl.innerHTML = `
+        <span>Début : <strong>${startedAt.toLocaleTimeString('fr-FR')}</strong></span>
+        <span>Opérateur : <strong>${escapeInventoryText(session.operatorName || 'Utilisateur')}</strong></span>
+      `;
+    }
+
+    function formatInventoryDuration(seconds) {
+      const total = Math.max(0, Number(seconds) || 0);
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const secs = Math.max(0, total % 60);
+      const parts = [];
+      if (hours) parts.push(`${hours} h`);
+      if (minutes || hours) parts.push(`${minutes} min`);
+      if (!hours && secs) parts.push(`${secs} s`);
+      if (!parts.length) {
+        parts.push('0 s');
+      }
+      return parts.join(' ');
+    }
+
+    function formatInventoryTimer(seconds) {
+      const total = Math.max(0, Number(seconds) || 0);
+      const hours = Math.floor(total / 3600).toString().padStart(2, '0');
+      const minutes = Math.floor((total % 3600) / 60).toString().padStart(2, '0');
+      const secs = Math.floor(total % 60).toString().padStart(2, '0');
+      return `${hours}:${minutes}:${secs}`;
+    }
+
+    function toInventoryDate(value) {
+      if (!value) {
+        return null;
+      }
+      if (value instanceof Date) {
+        return value;
+      }
+      if (typeof value.toDate === 'function') {
+        return value.toDate();
+      }
+      if (typeof value.seconds === 'number') {
+        return new Date(value.seconds * 1000);
+      }
+      return new Date(value);
     }
 
     // NOUVELLE VERSION CORRIGÉE
@@ -21857,6 +22870,9 @@ function voirHistoriqueStock(stockId, e) {
     case 'stock':
       updateStockSummary();
       renderInventoryPreview();
+      break;
+    case 'inventaire':
+      initInventoryCountingScreen();
       break;
     case 'transfert-stock':
       initTransfertStockScreen();
@@ -27348,6 +28364,12 @@ async function majCartesTresorerie(options = {}) {
       // 2. Handle the initial screen display and attach the router listener
       handleHashChange(); 
       window.addEventListener('hashchange', handleHashChange);
+      window.addEventListener('hashchange', () => {
+        const currentHash = window.location.hash.replace('#', '');
+        if (currentHash !== 'inventaire' && inventoryCampaignState.activeSession) {
+          finishInventoryCampaignSession({ reason: 'navigation', silent: true });
+        }
+      });
 
       // 3. Perform initial UI updates
       updateDepensePapaBalance();
