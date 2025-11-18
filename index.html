@@ -491,6 +491,71 @@ body.role-employe #screen-accueil .ako-quick-grid {
       color: #b91c1c;
     }
 
+    .inventory-sessions-layout {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .inventory-sessions-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .inventory-sessions-header h2 {
+      margin: 0;
+      font-size: 22px;
+      color: #0f172a;
+    }
+
+    .inventory-sessions-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inventory-session-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .inventory-session-card strong {
+      color: #0f172a;
+    }
+
+    .inventory-session-meta {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 8px;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .inventory-sessions-empty,
+    .inventory-sessions-error {
+      padding: 20px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      text-align: center;
+      font-size: 14px;
+      color: #64748b;
+      background: #f8fafc;
+    }
+
+    .inventory-sessions-error {
+      color: #b91c1c;
+      background: #fff5f5;
+    }
+
     .stock-summary-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -5935,7 +6000,7 @@ function generateInvoicePDF(sale) {
   <button class="btn-modern" onclick="showStockCategory('accessoires')">
     <i data-lucide="headphones"></i> Accessoires
   </button>
-  <button class="btn-modern" onclick="openInventoryCountingScreen()">
+  <button class="btn-modern" onclick="startInventorySessionFromStock()">
     <i data-lucide="clipboard-check"></i> Faire l'inventaire
   </button>
   <button id="exportStockBtn" class="btn-modern secondary">
@@ -5943,6 +6008,9 @@ function generateInvoicePDF(sale) {
   </button>
   <button id="exportInventoryBtn" class="btn-modern secondary">
     <i data-lucide="clipboard-list"></i> Exporter Fiche d'Inventaire
+  </button>
+  <button type="button" class="btn-modern secondary" onclick="openInventorySessionsScreen()">
+    <i data-lucide="list"></i> Sessions d'inventaire
   </button>
 </div>
         <div id="inventoryPreview" class="inventory-preview">
@@ -6161,6 +6229,32 @@ function generateInvoicePDF(sale) {
         </div>
       </div>
     </div>
+  </div>
+</section>
+
+<section id="screen-inventory-sessions" class="screen">
+  <header class="menu-header">
+    <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+      <i data-lucide="menu"></i>
+    </button>
+    <h1>Sessions d'inventaire</h1>
+    <div class="menu-header-meta">
+      <button type="button" class="btn-modern secondary" onclick="window.location.hash='stock'">
+        ← Retour au stock
+      </button>
+    </div>
+  </header>
+  <div class="inventory-sessions-layout">
+    <div class="inventory-sessions-header">
+      <div>
+        <h2>Historique des campagnes</h2>
+        <p style="margin:4px 0 0; color:#475569;">Toutes les sessions récentes (max 10) avec durée et opérateur.</p>
+      </div>
+      <button type="button" class="btn-modern" onclick="startInventorySessionFromList()">
+        <i data-lucide="clipboard-check"></i> Faire l'inventaire
+      </button>
+    </div>
+    <div id="inventorySessionsList" class="inventory-sessions-list"></div>
   </div>
 </section>
 
@@ -21425,6 +21519,23 @@ function updateStockAfterSaleFirestore(items) {
       window.location.hash = 'inventaire';
     }
 
+    function openInventorySessionsScreen() {
+      window.location.hash = 'inventory-sessions';
+    }
+
+    function triggerInventorySessionStart() {
+      restartInventoryLocationSelection();
+      window.location.hash = 'inventaire';
+    }
+
+    function startInventorySessionFromList() {
+      triggerInventorySessionStart();
+    }
+
+    function startInventorySessionFromStock() {
+      triggerInventorySessionStart();
+    }
+
     function initInventoryCountingScreen() {
       ensureInventoryCountSearchListener();
       updateInventoryLocationButtons();
@@ -21438,6 +21549,11 @@ function updateStockAfterSaleFirestore(items) {
       if (!inventoryCountingState.items.length) {
         loadInventoryCountingItems();
       }
+    }
+
+    function initInventorySessionsScreen() {
+      ensureInventoryCampaignHistorySubscription();
+      renderInventorySessionsScreen();
     }
 
     function ensureInventoryCountSearchListener() {
@@ -21891,6 +22007,9 @@ function updateStockAfterSaleFirestore(items) {
           if (!options.silent && typeof showToast === 'function') {
             showToast("Campagne d'inventaire enregistrée.", 'success');
           }
+          if (!options.silent) {
+            window.location.hash = 'inventory-sessions';
+          }
         })
         .catch(error => {
           console.error('Erreur enregistrement campagne inventaire :', error);
@@ -21917,6 +22036,7 @@ function updateStockAfterSaleFirestore(items) {
       }
       inventoryCampaignState.isLoading = true;
       renderInventoryCampaignHistory();
+      renderInventorySessionsScreen();
       const query = dbFirestore
         .collection('inventoryCampaigns')
         .orderBy('startedAt', 'desc')
@@ -21930,6 +22050,7 @@ function updateStockAfterSaleFirestore(items) {
         inventoryCampaignState.isLoading = false;
         inventoryCampaignState.error = '';
         renderInventoryCampaignHistory();
+        renderInventorySessionsScreen();
       }, error => {
         console.error('Erreur chargement historique inventaire :', error);
         inventoryCampaignState.error = error && error.message
@@ -21937,6 +22058,7 @@ function updateStockAfterSaleFirestore(items) {
           : 'Historique indisponible.';
         inventoryCampaignState.isLoading = false;
         renderInventoryCampaignHistory();
+        renderInventorySessionsScreen();
       });
     }
 
@@ -21963,6 +22085,28 @@ function updateStockAfterSaleFirestore(items) {
       listEl.innerHTML = items;
     }
 
+    function renderInventorySessionsScreen() {
+      const container = document.getElementById('inventorySessionsList');
+      if (!container) {
+        return;
+      }
+      if (inventoryCampaignState.isLoading) {
+        container.innerHTML = '<div class="inventory-sessions-empty">Chargement des sessions...</div>';
+        return;
+      }
+      if (inventoryCampaignState.error) {
+        container.innerHTML = `<div class="inventory-sessions-error">${escapeInventoryText(inventoryCampaignState.error)}</div>`;
+        return;
+      }
+      if (!inventoryCampaignState.sessions.length) {
+        container.innerHTML = '<div class="inventory-sessions-empty">Aucune session enregistrée pour le moment.</div>';
+        return;
+      }
+      container.innerHTML = inventoryCampaignState.sessions
+        .map(session => buildInventorySessionCard(session))
+        .join('');
+    }
+
     function buildInventoryCampaignHistoryItem(session) {
       const startedAt = toInventoryDate(session.startedAt);
       const endedAt = toInventoryDate(session.endedAt);
@@ -21980,6 +22124,39 @@ function updateStockAfterSaleFirestore(items) {
           <span>${escapeInventoryText(startedLabel)}</span>
           <span>Durée : <strong>${escapeInventoryText(durationLabel)}</strong></span>
           <span>Opérateur : <strong>${escapeInventoryText(operatorLabel)}</strong></span>
+        </div>
+      `;
+    }
+
+    function buildInventorySessionCard(session) {
+      const startedAt = toInventoryDate(session.startedAt);
+      const endedAt = toInventoryDate(session.endedAt);
+      const durationSeconds = Number(session.durationSeconds) ||
+        (startedAt && endedAt ? Math.round((endedAt.getTime() - startedAt.getTime()) / 1000) : 0);
+      const locationLabel = formatStockLocationLabel(session.location);
+      const operatorLabel = session.operatorName || session.operatorEmail || 'Utilisateur';
+      const startedLabel = startedAt
+        ? startedAt.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
+        : 'Date inconnue';
+      const endedLabel = endedAt
+        ? endedAt.toLocaleString('fr-FR', { timeStyle: 'short' })
+        : '--';
+      const durationLabel = formatInventoryDuration(durationSeconds);
+      return `
+        <div class="inventory-session-card">
+          <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div>
+              <strong>${escapeInventoryText(locationLabel)}</strong>
+              <div style="font-size:13px; color:#475569;">${escapeInventoryText(operatorLabel)}</div>
+            </div>
+            <div style="font-size:13px; color:#475569;">
+              Durée : <strong>${escapeInventoryText(durationLabel)}</strong>
+            </div>
+          </div>
+          <div class="inventory-session-meta">
+            <span>Début : <strong>${escapeInventoryText(startedLabel)}</strong></span>
+            <span>Fin : <strong>${escapeInventoryText(endedLabel)}</strong></span>
+          </div>
         </div>
       `;
     }
@@ -22939,6 +23116,9 @@ function voirHistoriqueStock(stockId, e) {
     case 'stock':
       updateStockSummary();
       renderInventoryPreview();
+      break;
+    case 'inventory-sessions':
+      initInventorySessionsScreen();
       break;
     case 'inventaire':
       initInventoryCountingScreen();

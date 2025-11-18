@@ -98,6 +98,19 @@ async function fetchPaymentDocs(approRef) {
   return snapshot.docs;
 }
 
+function summarizeAppro(doc) {
+  const data = doc.data();
+  return {
+    approId: doc.id,
+    balanceAfter: parseNumeric(data.remainingAmount ?? (data.receivedTotalCost - data.paymentsTotalPaid)),
+    paymentsTotalPaid: parseNumeric(data.paymentsTotalPaid),
+    remainingAmount: parseNumeric(data.remainingAmount),
+    receivedTotalCost: parseNumeric(data.receivedTotalCost ?? data.totalCost ?? 0),
+    ref: doc.ref,
+    data
+  };
+}
+
 function formatAmount(value) {
   return `${Math.round(value).toLocaleString('fr-FR')} FCFA`;
 }
@@ -150,6 +163,24 @@ async function findTargetPayment() {
   }
 
   if (!matches.length) {
+    if (argv.doc) {
+      const docSnap = await db.collection('approvisionnement').doc(argv.doc).get();
+      if (docSnap.exists) {
+        const summary = summarizeAppro(docSnap);
+        if (Math.abs(summary.balanceAfter - argv.previous) <= BALANCE_TOLERANCE) {
+          return {
+            approId: summary.approId,
+            paymentId: null,
+            balanceAfter: summary.balanceAfter,
+            amount: summary.paymentsTotalPaid,
+            appliedAmount: summary.paymentsTotalPaid,
+            data: summary.data,
+            ref: summary.ref,
+            isFallback: true
+          };
+        }
+      }
+    }
     throw new Error("Aucun paiement correspondant n'a été trouvé.");
   }
   if (matches.length > 1 && (!argv.doc || !argv.payment)) {
@@ -186,12 +217,16 @@ async function adjustPaymentBalance() {
   const newAmount = Math.max(0, parseNumeric(match.amount) + paymentDelta);
   const newApplied = Math.max(0, parseNumeric(match.appliedAmount) + paymentDelta);
 
-  await match.ref.update({
-    balanceAfter: targetBalance,
-    amount: newAmount,
-    appliedAmount: newApplied
-  });
-  console.log(`• Paiement ajusté: montant=${formatAmount(newAmount)}, applied=${formatAmount(newApplied)}, balance=${formatAmount(targetBalance)}`);
+  if (!match.isFallback) {
+    await match.ref.update({
+      balanceAfter: targetBalance,
+      amount: newAmount,
+      appliedAmount: newApplied
+    });
+    console.log(`• Paiement ajusté: montant=${formatAmount(newAmount)}, applied=${formatAmount(newApplied)}, balance=${formatAmount(targetBalance)}`);
+  } else {
+    console.log('• Aucun sous-document paiement: mise à jour directe du document approvisionnement.');
+  }
 
   const approRef = match.ref.parent.parent;
   if (approRef) {

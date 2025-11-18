@@ -206,7 +206,7 @@ function assignStars(entries) {
 
     const ratioToStars = (ratio) => {
       if (ratio >= 0.8) return 5;
-      if (ratio >= 0.5) return 4;
+      if (ratio >= 0.35) return 4;
       if (ratio >= 0.2) return 3;
       return 2;
     };
