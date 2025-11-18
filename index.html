@@ -22657,6 +22657,7 @@ async function ensureAideCommandeStock() {
 async function fetchLastPurchasesForProducts(productNames) {
   const results = {};
   const seen = new Set();
+  const uniqueNames = [];
 
   for (const name of productNames) {
     const trimmed = (name || '').trim();
@@ -22664,15 +22665,29 @@ async function fetchLastPurchasesForProducts(productNames) {
       continue;
     }
     seen.add(trimmed);
+    uniqueNames.push(trimmed);
 
     if (aideCommandeLastPurchaseCache.has(trimmed)) {
       results[trimmed] = aideCommandeLastPurchaseCache.get(trimmed);
-      continue;
     }
+  }
 
-    const purchase = await getLastPurchaseForProduct(trimmed);
-    aideCommandeLastPurchaseCache.set(trimmed, purchase);
-    results[trimmed] = purchase;
+  const toFetch = uniqueNames.filter(name => !Object.prototype.hasOwnProperty.call(results, name));
+  const chunkSize = 5;
+
+  for (let i = 0; i < toFetch.length; i += chunkSize) {
+    const slice = toFetch.slice(i, i + chunkSize);
+    await Promise.all(slice.map(async trimmed => {
+      try {
+        const purchase = await getLastPurchaseForProduct(trimmed);
+        aideCommandeLastPurchaseCache.set(trimmed, purchase);
+        results[trimmed] = purchase;
+      } catch (error) {
+        console.error('Erreur lors du chargement du dernier achat pour', trimmed, error);
+        aideCommandeLastPurchaseCache.set(trimmed, null);
+        results[trimmed] = null;
+      }
+    }));
   }
 
   return results;
