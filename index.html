@@ -367,6 +367,38 @@ body.role-employe #screen-accueil .ako-quick-grid {
       padding: 30px 0;
     }
 
+    .inventory-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .inventory-step-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+      background: #fff;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inventory-step-card h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #0f172a;
+    }
+
+    .inventory-step-description {
+      margin: 0;
+      color: #475569;
+      font-size: 14px;
+    }
+
+    .inventory-step-card.hidden {
+      display: none;
+    }
+
     .inventory-campaign-panel {
       border: 1px solid #cbd5f5;
       border-radius: 14px;
@@ -6073,46 +6105,59 @@ function generateInvoicePDF(sale) {
   </header>
   <div class="inventory-count-layout">
     <div class="inventory-count-container">
-      <div class="inventory-location-selector">
-        <h2>Où veux-tu compter ?</h2>
-        <p>Choisis le site avant de noter les quantités réelles.</p>
-        <div class="inventory-location-buttons">
-          <button type="button" class="inventory-location-button" data-inventory-location="boutique" onclick="selectInventoryCountingLocation('boutique')">
-            <i data-lucide="home"></i>
-            Boutique
-          </button>
-          <button type="button" class="inventory-location-button" data-inventory-location="magasin" onclick="selectInventoryCountingLocation('magasin')">
-            <i data-lucide="building-2"></i>
-            Magasin
-          </button>
-        </div>
-      </div>
-      <div class="inventory-count-meta">
-        <div><strong>Lieu sélectionné :</strong> <span id="inventorySelectedLocation">Aucun</span></div>
-        <div>Dernier chargement : <span id="inventoryCountLastSync">-</span></div>
-      </div>
-      <div id="inventoryCountingWorkArea" class="inventory-count-work hidden">
-        <div id="inventoryCampaignPanel" class="inventory-campaign-panel hidden">
-          <header>
-            <div>
-              <p style="margin:0; font-size:13px; color:#475569;">Campagne en cours</p>
-              <h3 id="inventoryCampaignStatus">Aucune campagne active</h3>
-            </div>
-            <span id="inventoryCampaignTimer" style="font-weight:600; color:#1d3a8a;"></span>
-          </header>
-          <div class="inventory-campaign-meta" id="inventoryCampaignMeta"></div>
-          <div class="inventory-campaign-actions">
-            <button type="button" class="btn-modern danger" onclick="finishInventoryCampaignSession()">
-              Terminer ce comptage
+      <div class="inventory-steps">
+        <div class="inventory-step-card" id="inventoryStepIntro">
+          <small style="text-transform:uppercase; color:#64748b; font-weight:600;">Étape 1</small>
+          <h2>Choisir le lieu</h2>
+          <p class="inventory-step-description">Sélectionne l’endroit où tu comptes avant de passer au comptage.</p>
+          <div class="inventory-location-buttons">
+            <button type="button" class="inventory-location-button" data-inventory-location="boutique" onclick="selectInventoryCountingLocation('boutique')">
+              <i data-lucide="home"></i>
+              Boutique
+            </button>
+            <button type="button" class="inventory-location-button" data-inventory-location="magasin" onclick="selectInventoryCountingLocation('magasin')">
+              <i data-lucide="building-2"></i>
+              Magasin
             </button>
           </div>
         </div>
-        <div class="inventory-count-summary" id="inventoryCountingSummary"></div>
-        <input type="text" id="inventoryCountSearch" class="inventory-count-search" placeholder="Rechercher un article (nom ou marque)" disabled>
-        <div id="inventoryCountingList" class="inventory-count-list"></div>
-        <div class="inventory-campaign-history">
-          <h3>Campagnes récentes</h3>
-          <div id="inventoryCampaignHistoryList" class="inventory-campaign-history-list"></div>
+        <div class="inventory-step-card hidden" id="inventoryStepCounting">
+          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
+            <div>
+              <small style="text-transform:uppercase; color:#64748b; font-weight:600;">Étape 2</small>
+              <h2>Comptage sur place</h2>
+              <p class="inventory-step-description">Note les quantités réelles et valide les écarts.</p>
+            </div>
+            <button type="button" class="btn-modern secondary" onclick="restartInventoryLocationSelection()">Changer de lieu</button>
+          </div>
+          <div class="inventory-count-meta">
+            <div><strong>Lieu sélectionné :</strong> <span id="inventorySelectedLocation">Aucun</span></div>
+            <div>Dernier chargement : <span id="inventoryCountLastSync">-</span></div>
+          </div>
+          <div id="inventoryCountingWorkArea" class="inventory-count-work hidden">
+            <div id="inventoryCampaignPanel" class="inventory-campaign-panel hidden">
+              <header>
+                <div>
+                  <p style="margin:0; font-size:13px; color:#475569;">Campagne en cours</p>
+                  <h3 id="inventoryCampaignStatus">Aucune campagne active</h3>
+                </div>
+                <span id="inventoryCampaignTimer" style="font-weight:600; color:#1d3a8a;"></span>
+              </header>
+              <div class="inventory-campaign-meta" id="inventoryCampaignMeta"></div>
+              <div class="inventory-campaign-actions">
+                <button type="button" class="btn-modern danger" onclick="finishInventoryCampaignSession()">
+                  Terminer ce comptage
+                </button>
+              </div>
+            </div>
+            <div class="inventory-count-summary" id="inventoryCountingSummary"></div>
+            <input type="text" id="inventoryCountSearch" class="inventory-count-search" placeholder="Rechercher un article (nom ou marque)" disabled>
+            <div id="inventoryCountingList" class="inventory-count-list"></div>
+            <div class="inventory-campaign-history">
+              <h3>Campagnes récentes</h3>
+              <div id="inventoryCampaignHistoryList" class="inventory-campaign-history-list"></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -21451,6 +21496,14 @@ function updateStockAfterSaleFirestore(items) {
       if (workArea) {
         workArea.classList.toggle('hidden', !hasLocation);
       }
+      const introCard = document.getElementById('inventoryStepIntro');
+      if (introCard) {
+        introCard.classList.toggle('hidden', hasLocation);
+      }
+      const countingCard = document.getElementById('inventoryStepCounting');
+      if (countingCard) {
+        countingCard.classList.toggle('hidden', !hasLocation);
+      }
       const searchInput = document.getElementById('inventoryCountSearch');
       if (searchInput) {
         searchInput.disabled = !hasLocation;
@@ -21744,6 +21797,22 @@ function updateStockAfterSaleFirestore(items) {
         return Number(item.stockMagasin) || 0;
       }
       return Number(item.stockBoutique) || 0;
+    }
+
+    function restartInventoryLocationSelection() {
+      finishInventoryCampaignSession({ reason: 'reset', silent: true });
+      inventoryCountingState.location = '';
+      inventoryCountingState.search = '';
+      const searchInput = document.getElementById('inventoryCountSearch');
+      if (searchInput) {
+        searchInput.value = '';
+      }
+      updateInventoryLocationButtons();
+      updateInventoryCountMeta();
+      updateInventoryCountingWorkAreaVisibility();
+      renderInventoryCountingSummary();
+      renderInventoryCountingList();
+      updateInventoryCampaignPanel();
     }
 
     function getInventoryOperatorInfo() {
