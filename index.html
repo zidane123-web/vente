@@ -5806,6 +5806,12 @@ function generateInvoicePDF(sale) {
           </div>
           <label for="quantiteEntree">Quantité</label>
           <input type="number" id="quantiteEntree" min="1" value="1" oninput="calculerTotalEntree()" />
+          <label for="entreeStockLocation">Site de stockage</label>
+          <select id="entreeStockLocation">
+            <option value="">Sélectionnez un site</option>
+            <option value="boutique">Boutique</option>
+            <option value="magasin">Magasin</option>
+          </select>
           <label for="totalEntree">Montant Total</label>
           <div class="input-with-icon">
             <i data-lucide="calculator"></i>
@@ -26003,6 +26009,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
       const prix = parseFloat(document.getElementById("prixEntree").value);
       const quantite = parseInt(document.getElementById("quantiteEntree").value);
       const categorie = document.getElementById("categorieEntree").value;
+      const location = document.getElementById("entreeStockLocation").value;
       const total = document.getElementById("totalEntree").value;
       if(!produit) {
         alert("Veuillez saisir le nom de l'article.");
@@ -26016,12 +26023,17 @@ function confirmerAjoutFournisseur(fournisseurName) {
         alert("Veuillez entrer une quantité valide.");
         return;
       }
-      ajouterOuMettreAJourStock(produit, quantite, prix, categorie)
+      if(!location) {
+        alert("Choisissez le site où entrer cet article.");
+        return;
+      }
+      ajouterOuMettreAJourStock(produit, quantite, prix, categorie, location)
         .then(() => {
           alert("Entrée de stock ajoutée !");
           document.getElementById("produitEntree").value = "";
           document.getElementById("prixEntree").value = "";
           document.getElementById("quantiteEntree").value = 1;
+          document.getElementById("entreeStockLocation").value = "";
           document.getElementById("totalEntree").value = "";
           updateStockSummary();
         })
@@ -26029,62 +26041,88 @@ function confirmerAjoutFournisseur(fournisseurName) {
           alert("Erreur lors de l'ajout de l'entrée de stock : " + err.message);
         });
     }
-    function ajouterOuMettreAJourStock(produit, quantite, prix, category) {
-  // Cherche si le produit existe déjà 
+    function ajouterOuMettreAJourStock(produit, quantite, prix, category, location) {
+  const locationUsed = resolveStockDestination({
+    location,
+    fallbackLocation: DEFAULT_STOCK_LOCATION
+  });
+  const user = firebase.auth().currentUser;
+  const adjustedBy = (user && (user.displayName || user.email)) || 'Utilisateur';
+  const adjustedByUid = user ? user.uid : null;
+  const serverTimestamp = firebase.firestore.FieldValue.serverTimestamp();
+
   return dbFirestore
     .collection("stock")
     .where("name", "==", produit)
+    .limit(1)
     .get()
     .then(querySnapshot => {
       if (!querySnapshot.empty) {
-        // —— CAS EXISTANT : on met à jour le stock + prix moyen
-        const docRef   = querySnapshot.docs[0].ref;
-        const data     = querySnapshot.docs[0].data();
-        const oldStock = parseFloat(data.stock) || 0;
-        const oldPrice = parseFloat(data.price) || 0;
+        const docRef = querySnapshot.docs[0].ref;
+        const data = querySnapshot.docs[0].data() || {};
+        const normalized = normalizeStockLocations(data);
+        const previousStock = toSafeNumber(normalized.stockTotal);
+        const updatedState = applyStockDelta(normalized, quantite, {
+          location: locationUsed,
+          allowNegative: true
+        });
+        const stockPayload = getStockWritePayload(updatedState);
+        const newStock = stockPayload.stockTotal;
+        const previousPrice = Number(data.price) || 0;
+        const nextPrice = newStock > 0
+          ? ((previousStock * previousPrice) + (quantite * prix)) / newStock
+          : prix;
+        const updatePayload = {
+          ...stockPayload,
+          price: nextPrice,
+          updatedAt: serverTimestamp
+        };
 
-        const newStock = oldStock + quantite;
-        // Prix moyen pondéré
-        const newPrice = ((oldStock * oldPrice) + (quantite * prix)) / newStock;
-
-        return docRef.update({
-          stock: newStock,
-          price: newPrice
-        })
-        .then(() => {
-          // Log de la variation ↑
-          return docRef
-            .collection("history")
-            .add({
-              timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-              change: +quantite,
-              newStock: newStock
-            });
+        return docRef.update(updatePayload).then(() => {
+          return docRef.collection("history").add({
+            timestamp: serverTimestamp,
+            change: +quantite,
+            newStock: newStock,
+            type: 'approvisionnement_manuel',
+            location: locationUsed,
+            reason: 'Entrée depuis écran rapide',
+            adjustedBy,
+            adjustedByUid
+          });
         });
       } else {
-        // —— CAS NOUVEAU : on crée un nouveau document
         const icon = category === "accessoires" ? "🎧" : "📱";
+        const baseState = buildStockStateFromValues();
+        const updatedState = applyStockDelta(baseState, quantite, {
+          location: locationUsed,
+          allowNegative: true
+        });
+        const stockPayload = getStockWritePayload(updatedState);
         const newRecord = {
           name: produit,
           category: category,
-          stock: quantite,
           price: prix,
           icon: icon,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          createdAt: serverTimestamp,
+          updatedAt: serverTimestamp,
+          ...stockPayload,
+          stock: stockPayload.stockTotal
         };
 
         return dbFirestore
           .collection("stock")
           .add(newRecord)
           .then(docRef => {
-            // Log de la variation ↑ (équivalent à "stock = quantite")
-            return docRef
-              .collection("history")
-              .add({
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                change: +quantite,
-                newStock: quantite
-              });
+            return docRef.collection("history").add({
+              timestamp: serverTimestamp,
+              change: +quantite,
+              newStock: stockPayload.stockTotal,
+              type: 'approvisionnement_manuel',
+              location: locationUsed,
+              reason: 'Entrée depuis écran rapide',
+              adjustedBy,
+              adjustedByUid
+            });
           });
       }
     });
