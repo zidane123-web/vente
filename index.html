@@ -17642,26 +17642,26 @@ async function annulerCommandeFournisseur(approId, event) {
 <section id="screen-aide-commande" class="screen">
   <div class="aide-commande-wrapper">
     <div class="aide-commande-header">
-      <div class="aide-commande-header-main">
-        <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
-          <i data-lucide="menu"></i>
-        </button>
-        <div class="aide-commande-title">
-          <h1>Aide commande</h1>
-          <p id="aideCommandeRange">Analyse de la semaine en cours.</p>
+        <div class="aide-commande-header-main">
+          <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+            <i data-lucide="menu"></i>
+          </button>
+          <div class="aide-commande-title">
+            <h1>Aide commande</h1>
+          <p id="aideCommandeRange">Analyse des 30 derniers jours.</p>
+          </div>
         </div>
-      </div>
       <p class="aide-commande-helper">
-        Identifie les articles vendus recemment et hierarchises du plus demande au moins demande.
+        Classe les articles selon la demande des 30 derniers jours et priorise les ruptures critiques.
       </p>
     </div>
     <div class="aide-commande-controls">
       <div class="control-group">
-        <label for="aideCommandeTimeframe">Période analysée</label>
-        <select id="aideCommandeTimeframe" class="aide-commande-select">
-          <option value="semaine">Cette semaine</option>
-          <option value="deux_semaines">Deux dernières semaines</option>
+        <label for="aideCommandeTimeframe">Fenêtre analysée</label>
+        <select id="aideCommandeTimeframe" class="aide-commande-select" disabled>
+          <option value="30">30 derniers jours</option>
         </select>
+        <small>Fenêtre glissante fixe, recalculée chaque jour.</small>
       </div>
     </div>
 
@@ -22193,9 +22193,13 @@ function resetPickupLocationToDefault() {
 }
 let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
 const COMMISSION_PAR_TELEPHONE = 75;
+const AIDE_COMMANDE_DEFAULT_WINDOW_DAYS = 30;
+const AIDE_COMMANDE_RECENT_DAYS = 7;
+const AIDE_COMMANDE_NEW_PRODUCT_DAYS = 14;
+const AIDE_COMMANDE_STALE_DAYS = 45;
 let aideCommandeInitialized = false;
 let aideCommandeState = {
-  timeframe: 'semaine',
+  timeframe: String(AIDE_COMMANDE_DEFAULT_WINDOW_DAYS),
   lastLoadedTimeframe: null,
   articles: [],
   lowStock: [],
@@ -22259,9 +22263,9 @@ function initializeAideCommandePage(forceReload = false) {
 
   if (!aideCommandeInitialized) {
     const timeframeSelect = document.getElementById('aideCommandeTimeframe');
-    if (timeframeSelect) {
+    if (timeframeSelect && !timeframeSelect.disabled) {
       timeframeSelect.addEventListener('change', () => {
-        aideCommandeState.timeframe = timeframeSelect.value || 'semaine';
+        aideCommandeState.timeframe = timeframeSelect.value || String(AIDE_COMMANDE_DEFAULT_WINDOW_DAYS);
         loadAideCommandeData(true);
       });
     }
@@ -22350,16 +22354,14 @@ async function loadAideCommandeData(force = false) {
 async function fetchAideCommandeData(timeframe) {
   const now = new Date();
   const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+  const windowDays = Math.max(7, Math.min(90, Number(timeframe) || AIDE_COMMANDE_DEFAULT_WINDOW_DAYS));
   const startDate = new Date(endDate);
-  const dayOfWeek = endDate.getDay();
-  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-  if (timeframe === 'deux_semaines') {
-    startDate.setDate(startDate.getDate() - (diffToMonday + 7));
-  } else {
-    startDate.setDate(startDate.getDate() - diffToMonday);
-  }
+  startDate.setDate(startDate.getDate() - windowDays);
   startDate.setHours(0, 0, 0, 0);
+
+  const recentThreshold = new Date(endDate);
+  recentThreshold.setDate(recentThreshold.getDate() - AIDE_COMMANDE_RECENT_DAYS);
+  recentThreshold.setHours(0, 0, 0, 0);
 
   const startTimestamp = firebase.firestore.Timestamp.fromDate(startDate);
   const ventesSnapshot = await dbFirestore.collection('ventes')
@@ -22367,7 +22369,7 @@ async function fetchAideCommandeData(timeframe) {
     .orderBy('timestamp', 'desc')
     .get();
 
-  const articleMap = new Map();
+  const demandMap = new Map();
 
   ventesSnapshot.forEach(doc => {
     const data = doc.data() || {};
@@ -22378,6 +22380,13 @@ async function fetchAideCommandeData(timeframe) {
     const saleTimestamp = data.timestamp && typeof data.timestamp.toDate === 'function'
       ? data.timestamp.toDate()
       : (data.timestamp ? new Date(data.timestamp) : null);
+    if (!saleTimestamp || saleTimestamp < startDate || saleTimestamp > endDate) {
+      return;
+    }
+
+    const isRecent = saleTimestamp >= recentThreshold;
+    const weight = isRecent ? 2 : 1;
+    const saleProducts = new Set();
 
     const items = Array.isArray(data.items) ? data.items : [];
     items.forEach(item => {
@@ -22385,103 +22394,197 @@ async function fetchAideCommandeData(timeframe) {
       if (!rawName) {
         return;
       }
-      const key = rawName.toLowerCase();
-      let record = articleMap.get(key);
+      const quantity = Number(item.quantite || item.quantity || item.qty || 0);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        return;
+      }
+      const key = aideCommandeNormalizeName(rawName);
+      if (!key) {
+        return;
+      }
+
+      let record = demandMap.get(key);
       if (!record) {
         record = {
           produit: rawName,
-          queryName: rawName,
-          totalQty: 0,
-          totalRevenue: 0,
-          totalProfit: 0,
-          saleCount: 0,
-          category: item.category || null,
-          lastSaleDate: saleTimestamp || null
+          key,
+          totalUnits: 0,
+          salesCount: 0,
+          volumePoints: 0,
+          recentVolumePoints: 0,
+          historicVolumePoints: 0,
+          frequencyPoints: 0,
+          demandScore: 0,
+          lastSaleDate: null,
+          category: item.category || null
         };
-        articleMap.set(key, record);
+        demandMap.set(key, record);
+      } else if (rawName.length > record.produit.length) {
+        record.produit = rawName;
+      }
+
+      if (!record.category && item.category) {
+        record.category = item.category;
+      }
+      record.totalUnits += quantity;
+      record.volumePoints += quantity * weight;
+      if (isRecent) {
+        record.recentVolumePoints += quantity * weight;
       } else {
-        if (rawName.length > record.queryName.length) {
-          record.produit = rawName;
-          record.queryName = rawName;
-        }
-        if (!record.category && item.category) {
-          record.category = item.category;
-        }
-        if (saleTimestamp && (!record.lastSaleDate || saleTimestamp > record.lastSaleDate)) {
-          record.lastSaleDate = saleTimestamp;
-        }
+        record.historicVolumePoints += quantity * weight;
       }
 
-      const quantity = Number(item.quantite || item.quantity || 0);
-      if (!Number.isNaN(quantity)) {
-        record.totalQty += quantity;
+      if (!saleProducts.has(key)) {
+        record.salesCount += 1;
+        record.frequencyPoints += 1;
+        saleProducts.add(key);
       }
 
-      const revenue = Number(item.total || (quantity * (Number(item.prix) || 0)));
-      if (!Number.isNaN(revenue)) {
-        record.totalRevenue += revenue;
+      if (!record.lastSaleDate || saleTimestamp > record.lastSaleDate) {
+        record.lastSaleDate = saleTimestamp;
       }
-
-      const profit = Number(item.profitTotal || 0);
-      if (!Number.isNaN(profit)) {
-        record.totalProfit += profit;
-      }
-
-      record.saleCount += 1;
     });
   });
 
-  let articles = Array.from(articleMap.values());
-  articles.sort((a, b) => {
-    if (b.totalQty !== a.totalQty) {
-      return b.totalQty - a.totalQty;
+  const stocks = await ensureAideCommandeStock();
+  const nowDate = new Date();
+  const newThreshold = new Date(nowDate);
+  newThreshold.setDate(newThreshold.getDate() - AIDE_COMMANDE_NEW_PRODUCT_DAYS);
+  const staleThreshold = new Date(nowDate);
+  staleThreshold.setDate(staleThreshold.getDate() - AIDE_COMMANDE_STALE_DAYS);
+
+  const convertTimestamp = (value) => {
+    if (!value) {
+      return null;
     }
-    if (b.totalRevenue !== a.totalRevenue) {
-      return b.totalRevenue - a.totalRevenue;
+    if (value instanceof Date) {
+      return Number.isNaN(value.getTime()) ? null : value;
+    }
+    if (typeof value.toDate === 'function') {
+      const converted = value.toDate();
+      return Number.isNaN(converted.getTime()) ? null : converted;
+    }
+    return null;
+  };
+
+  const combined = [];
+  const seenKeys = new Set();
+
+  stocks.forEach(stockItem => {
+    const name = (stockItem.name || '').trim();
+    const key = aideCommandeNormalizeName(name);
+    if (!key) {
+      return;
+    }
+    const saleRecord = demandMap.get(key);
+    const createdAt = convertTimestamp(stockItem.createdAt);
+    const normalizedStock = normalizeStockLocations(stockItem);
+    const stockBoutique = toSafeNumber(normalizedStock.stockBoutique);
+    const stockMagasin = toSafeNumber(normalizedStock.stockMagasin);
+    const stockTotal = toSafeNumber(normalizedStock.stockTotal);
+    let lastSaleDate = saleRecord && saleRecord.lastSaleDate ? saleRecord.lastSaleDate : null;
+    if (!lastSaleDate && stockItem.demandBreakdown && stockItem.demandBreakdown.lastSaleAt) {
+      lastSaleDate = convertTimestamp(stockItem.demandBreakdown.lastSaleAt);
+    }
+
+    const entry = {
+      produit: name || (saleRecord ? saleRecord.produit : ''),
+      key,
+      category: saleRecord && saleRecord.category ? saleRecord.category : (stockItem.category || 'autre'),
+      totalUnits: saleRecord ? saleRecord.totalUnits : 0,
+      salesCount: saleRecord ? saleRecord.salesCount : 0,
+      volumePoints: saleRecord ? saleRecord.volumePoints : 0,
+      recentVolumePoints: saleRecord ? saleRecord.recentVolumePoints : 0,
+      historicVolumePoints: saleRecord ? saleRecord.historicVolumePoints : 0,
+      frequencyPoints: saleRecord ? saleRecord.frequencyPoints : 0,
+      demandScore: 0,
+      lastSaleDate,
+      stockBoutique,
+      stockMagasin,
+      stockTotal,
+      stockStatus: stockTotal <= 0 ? 'rupture' : stockTotal <= 1 ? 'faible' : 'ok',
+      demandStatus: 'normal',
+      demandStars: 1,
+      createdAt,
+      stockId: stockItem.id || null
+    };
+
+    entry.demandScore = entry.volumePoints + entry.frequencyPoints;
+    if (entry.demandScore <= 0) {
+      entry.demandStatus = 'no-sales';
+    } else if (createdAt && createdAt >= newThreshold) {
+      entry.demandStatus = 'new';
+    } else if (!entry.lastSaleDate || entry.lastSaleDate < staleThreshold) {
+      entry.demandStatus = 'stale';
+    }
+
+    combined.push(entry);
+    seenKeys.add(key);
+  });
+
+  demandMap.forEach((record, key) => {
+    if (seenKeys.has(key)) {
+      return;
+    }
+    const entry = {
+      produit: record.produit,
+      key,
+      category: record.category || 'autre',
+      totalUnits: record.totalUnits,
+      salesCount: record.salesCount,
+      volumePoints: record.volumePoints,
+      recentVolumePoints: record.recentVolumePoints,
+      historicVolumePoints: record.historicVolumePoints,
+      frequencyPoints: record.frequencyPoints,
+      demandScore: record.volumePoints + record.frequencyPoints,
+      lastSaleDate: record.lastSaleDate || null,
+      stockBoutique: 0,
+      stockMagasin: 0,
+      stockTotal: 0,
+      stockStatus: 'rupture',
+      demandStatus: record.volumePoints + record.frequencyPoints > 0 ? 'normal' : 'no-sales',
+      demandStars: 1,
+      createdAt: null,
+      stockId: null
+    };
+    combined.push(entry);
+  });
+
+  assignAideCommandeStars(combined);
+
+  const articles = combined.sort((a, b) => {
+    if (b.demandScore !== a.demandScore) {
+      return b.demandScore - a.demandScore;
+    }
+    if (b.totalUnits !== a.totalUnits) {
+      return b.totalUnits - a.totalUnits;
     }
     return a.produit.localeCompare(b.produit, 'fr', { sensitivity: 'base' });
   });
 
-  const stocks = await ensureAideCommandeStock();
-  const stockMap = new Map();
-  stocks.forEach(stockItem => {
-    const name = (stockItem.name || '').trim();
-    if (!name) {
-      return;
-    }
-    const lower = name.toLowerCase();
-    if (!stockMap.has(name)) {
-      stockMap.set(name, stockItem);
-    }
-    if (!stockMap.has(lower)) {
-      stockMap.set(lower, stockItem);
-    }
-  });
+  const lowStockBase = articles
+    .filter(article => article.stockTotal <= 1)
+    .map(article => ({ ...article }));
 
-  articles = articles.map(record => {
-    const stockData = stockMap.get(record.queryName) || stockMap.get(record.queryName.toLowerCase()) || null;
-    const stockQty = stockData ? Number(stockData.stock) || 0 : 0;
-    const status = stockQty <= 0 ? 'rupture' : stockQty <= 1 ? 'faible' : 'ok';
-    const category = stockData && stockData.category ? stockData.category : record.category;
-    return {
-      ...record,
-      stockQuantity: stockQty,
-      stockStatus: status,
-      category,
-      lastPurchase: null
-    };
-  });
+  const lastPurchases = lowStockBase.length
+    ? await fetchLastPurchasesForProducts(lowStockBase.map(article => article.produit))
+    : {};
 
-  const uniqueNames = Array.from(new Set(articles.map(article => article.queryName)));
-  const lastPurchases = await fetchLastPurchasesForProducts(uniqueNames);
+  const lowStock = lowStockBase
+    .map(article => ({
+      ...article,
+      lastPurchase: lastPurchases && lastPurchases[article.produit] ? lastPurchases[article.produit] : null
+    }))
+    .sort((a, b) => {
+      if (b.demandStars !== a.demandStars) {
+        return b.demandStars - a.demandStars;
+      }
+      if (b.demandScore !== a.demandScore) {
+        return b.demandScore - a.demandScore;
+      }
+      return a.produit.localeCompare(b.produit, 'fr', { sensitivity: 'base' });
+    });
 
-  articles.forEach(article => {
-    if (lastPurchases[article.queryName]) {
-      article.lastPurchase = lastPurchases[article.queryName];
-    }
-  });
-
-  const lowStock = articles.filter(article => article.stockStatus !== 'ok');
   const suppliers = Array.from(new Set(
     lowStock
       .map(article => (article.lastPurchase && article.lastPurchase.fournisseur) ? article.lastPurchase.fournisseur : null)
@@ -22490,7 +22593,7 @@ async function fetchAideCommandeData(timeframe) {
 
   const metrics = {
     uniqueArticles: articles.length,
-    totalQuantity: articles.reduce((sum, article) => sum + (Number(article.totalQty) || 0), 0),
+    totalQuantity: articles.reduce((sum, article) => sum + (Number(article.totalUnits) || 0), 0),
     lowStockCount: lowStock.length
   };
 
@@ -22501,6 +22604,41 @@ async function fetchAideCommandeData(timeframe) {
     metrics,
     range: { startDate, endDate }
   };
+}
+
+function assignAideCommandeStars(entries) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return;
+  }
+  const groups = new Map();
+  entries.forEach(entry => {
+    const categoryKey = (entry.category || 'autre').toString().trim().toLowerCase() || 'autre';
+    if (!groups.has(categoryKey)) {
+      groups.set(categoryKey, []);
+    }
+    groups.get(categoryKey).push(entry);
+  });
+
+  groups.forEach(group => {
+    const positives = group.filter(item => item.demandScore > 0);
+    const maxScore = positives.length ? Math.max(...positives.map(item => item.demandScore)) : 0;
+    group.forEach(item => {
+      if (!maxScore || item.demandScore <= 0) {
+        item.demandStars = 1;
+        return;
+      }
+      const ratio = item.demandScore / maxScore;
+      if (ratio >= 0.8) {
+        item.demandStars = 5;
+      } else if (ratio >= 0.35) {
+        item.demandStars = 4;
+      } else if (ratio >= 0.2) {
+        item.demandStars = 3;
+      } else {
+        item.demandStars = 2;
+      }
+    });
+  });
 }
 
 async function ensureAideCommandeStock() {
@@ -22655,36 +22793,38 @@ function renderAideCommandeTopList() {
   const articles = Array.isArray(aideCommandeState.articles) ? aideCommandeState.articles : [];
   if (!articles.length) {
     container.className = 'aide-commande-empty';
-    container.textContent = 'Aucune vente enregistree sur la periode selectionnee.';
+    container.textContent = 'Aucune vente enregistree sur les 30 derniers jours.';
     return;
   }
 
   container.className = '';
 
   const rows = articles.map(article => {
-    const qtyText = Number(article.totalQty || 0).toLocaleString('fr-FR');
-    const revenueText = formatAideCommandeCurrency(article.totalRevenue);
-    const stockText = Number(article.stockQuantity || 0).toLocaleString('fr-FR');
-    const lastSale = article.lastSaleDate ? formatAideCommandeDate(article.lastSaleDate) : 'N/A';
-    const supplierName = article.lastPurchase && article.lastPurchase.fournisseur
-      ? aideCommandeEscapeHtml(article.lastPurchase.fournisseur)
-      : 'Inconnu';
-    const lastPurchaseDate = article.lastPurchase ? formatAideCommandeDate(article.lastPurchase.date) : 'N/A';
-    const lastPurchasePrice = article.lastPurchase && article.lastPurchase.price != null
-      ? formatAideCommandeCurrency(article.lastPurchase.price)
-      : 'Prix non renseigne';
-    const statusBadge = aideCommandeStatusBadge(article.stockStatus);
     const category = article.category ? '<small>' + aideCommandeEscapeHtml(article.category) + '</small>' : '';
+    const stars = aideCommandeRenderStars(article.demandStars);
+    const demandStatus = aideCommandeDemandStatusLabel(article.demandStatus);
+    const scoreText = Number(article.demandScore || 0).toLocaleString('fr-FR');
+    const volumePoints = Number(article.volumePoints || 0).toLocaleString('fr-FR');
+    const recentPoints = Number(article.recentVolumePoints || 0).toLocaleString('fr-FR');
+    const historicPoints = Number(article.historicVolumePoints || 0).toLocaleString('fr-FR');
+    const frequencyPoints = Number(article.frequencyPoints || 0).toLocaleString('fr-FR');
+    const unitsText = Number(article.totalUnits || 0).toLocaleString('fr-FR');
+    const ticketsText = Number(article.salesCount || 0).toLocaleString('fr-FR');
+    const stockTotal = Number(article.stockTotal || 0).toLocaleString('fr-FR');
+    const boutiqueText = Number(article.stockBoutique || 0).toLocaleString('fr-FR');
+    const magasinText = Number(article.stockMagasin || 0).toLocaleString('fr-FR');
+    const lastSale = article.lastSaleDate ? formatAideCommandeDate(article.lastSaleDate) : 'Jamais';
+    const statusBadge = aideCommandeStatusBadge(article.stockStatus);
     const rowClass = article.stockStatus !== 'ok' ? ' class="is-alert"' : '';
 
     return (
       '<tr' + rowClass + '>' +
         '<td class="aide-commande-article"><strong>' + aideCommandeEscapeHtml(article.produit) + '</strong>' + category + '</td>' +
-        '<td><strong>' + qtyText + '</strong></td>' +
-        '<td>' + revenueText + '</td>' +
-        '<td>' + stockText + '<br>' + statusBadge + '</td>' +
+        '<td><span class="aide-commande-stars" title="' + article.demandStars + ' sur 5">' + stars + '</span><br><small>' + demandStatus + '</small></td>' +
+        '<td><strong>' + scoreText + '</strong><br><small>Volume: ' + volumePoints + ' pts (' + recentPoints + ' réc. · ' + historicPoints + ' hist.)</small><br><small>Tickets: ' + frequencyPoints + ' pts</small></td>' +
+        '<td><strong>' + unitsText + '</strong><br><small>' + ticketsText + ' tickets</small></td>' +
+        '<td><strong>' + stockTotal + '</strong><br><small>Boutique: ' + boutiqueText + ' · Magasin: ' + magasinText + '</small><br>' + statusBadge + '</td>' +
         '<td>' + lastSale + '</td>' +
-        '<td><div><strong>' + supplierName + '</strong></div><div>' + lastPurchaseDate + ' · ' + lastPurchasePrice + '</div></td>' +
       '</tr>'
     );
   }).join('');
@@ -22694,11 +22834,11 @@ function renderAideCommandeTopList() {
       '<thead>' +
         '<tr>' +
           '<th>Article</th>' +
-          '<th>Qte vendue</th>' +
-          '<th>CA (FCFA)</th>' +
+          '<th>Popularite</th>' +
+          '<th>Score</th>' +
+          '<th>Volumes</th>' +
           '<th>Stock</th>' +
           '<th>Derniere vente</th>' +
-          '<th>Dernier achat</th>' +
         '</tr>' +
       '</thead>' +
       '<tbody>' + rows + '</tbody>' +
@@ -22717,7 +22857,7 @@ function renderAideCommandeAlerts() {
 
   if (!alerts.length) {
     container.className = 'aide-commande-empty';
-    container.textContent = 'Aucune alerte de stock sur la periode selectionnee.';
+    container.textContent = 'Aucune alerte de stock critique sur cette periode.';
     return;
   }
 
@@ -22746,8 +22886,13 @@ function renderAideCommandeAlerts() {
     const priceText = article.lastPurchase && article.lastPurchase.price != null
       ? formatAideCommandeCurrency(article.lastPurchase.price)
       : 'Prix non renseigne';
-    const lastSale = article.lastSaleDate ? formatAideCommandeDate(article.lastSaleDate) : 'N/A';
-    const stockText = Number(article.stockQuantity || 0).toLocaleString('fr-FR');
+    const lastSale = article.lastSaleDate ? formatAideCommandeDate(article.lastSaleDate) : 'Jamais';
+    const stockTotal = Number(article.stockTotal || 0).toLocaleString('fr-FR');
+    const boutiqueText = Number(article.stockBoutique || 0).toLocaleString('fr-FR');
+    const magasinText = Number(article.stockMagasin || 0).toLocaleString('fr-FR');
+    const stars = aideCommandeRenderStars(article.demandStars);
+    const demandStatus = aideCommandeDemandStatusLabel(article.demandStatus);
+    const scoreText = Number(article.demandScore || 0).toLocaleString('fr-FR');
     const statusBadge = aideCommandeStatusBadge(article.stockStatus);
 
     return (
@@ -22756,7 +22901,9 @@ function renderAideCommandeAlerts() {
           '<h3>' + aideCommandeEscapeHtml(article.produit) + '</h3>' +
           statusBadge +
         '</div>' +
-        '<p class="alert-meta"><strong>Stock actuel :</strong> ' + stockText + '</p>' +
+        '<p class="alert-meta"><strong>Popularite :</strong> <span class="aide-commande-stars" title="' + article.demandStars + ' sur 5">' + stars + '</span> (' + demandStatus + ')</p>' +
+        '<p class="alert-meta"><strong>Score demande :</strong> ' + scoreText + ' pts</p>' +
+        '<p class="alert-meta"><strong>Stock actuel :</strong> ' + stockTotal + ' (B: ' + boutiqueText + ' · M: ' + magasinText + ')</p>' +
         '<p class="alert-meta"><strong>Fournisseur :</strong> ' + supplierName + '</p>' +
         '<p class="alert-meta"><strong>Dernier achat :</strong> ' + lastPurchaseDate + ' · ' + priceText + '</p>' +
         '<p class="alert-meta"><strong>Derniere vente :</strong> ' + lastSale + '</p>' +
@@ -22808,6 +22955,34 @@ function formatAideCommandeCurrency(value) {
     return '0 FCFA';
   }
   return numeric.toLocaleString('fr-FR') + ' FCFA';
+}
+
+function aideCommandeNormalizeName(value) {
+  if (typeof value !== 'string') {
+    value = value ? String(value) : '';
+  }
+  return value
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+}
+
+function aideCommandeRenderStars(value) {
+  const rating = Math.max(1, Math.min(5, Number(value) || 1));
+  const filled = '★'.repeat(rating);
+  const empty = '☆'.repeat(5 - rating);
+  return filled + empty;
+}
+
+function aideCommandeDemandStatusLabel(status) {
+  const labels = {
+    'new': 'Nouveau',
+    'stale': 'Calme',
+    'no-sales': 'Aucune vente',
+    'normal': 'Normal'
+  };
+  return labels[status] || 'Normal';
 }
 
 function aideCommandeEscapeHtml(value) {
