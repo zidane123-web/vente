@@ -154,6 +154,8 @@ function computeDemandScores(stockDocs, sales) {
     const stockDoc = stockByName.get(name);
     const createdAt = stockDoc?.data?.createdAt;
     const createdAtDate = createdAt && typeof createdAt.toDate === 'function' ? createdAt.toDate() : null;
+    const categoryRaw = (stockDoc?.data?.category || '').toString().toLowerCase().trim();
+    const category = categoryRaw || 'autre';
     const demandScore = entry.volumePoints + entry.frequencyPoints;
     const status = {};
     const isNewProduct = createdAtDate ? createdAtDate >= sevenDaysAgo : false;
@@ -164,6 +166,7 @@ function computeDemandScores(stockDocs, sales) {
 
     list.push({
       name,
+      category,
       demandScore,
       ...entry,
       status,
@@ -175,20 +178,67 @@ function computeDemandScores(stockDocs, sales) {
   return list;
 }
 
+function getVolumeThresholdForCategory(category) {
+  if (!category) {
+    return 35;
+  }
+  const normalized = category.toLowerCase();
+  if (normalized === 'accessoires' || normalized === 'accessoire') {
+    return 20;
+  }
+  return 35;
+}
+
 function assignStars(entries) {
-  const sorted = entries.slice().sort((a, b) => a.demandScore - b.demandScore);
-  const n = sorted.length;
-  if (n === 0) {
-    return;
-  }
-  for (let i = 0; i < sorted.length; i += 1) {
-    const stars = Math.min(5, Math.max(1, Math.ceil(((i + 1) * 5) / n)));
-    sorted[i].baseStars = stars;
-  }
-  // Map baseStars back onto entries
-  const starByName = new Map(sorted.map(item => [item.name, item.baseStars]));
+  const byCategory = new Map();
   entries.forEach(entry => {
-    entry.baseStars = starByName.get(entry.name) || 1;
+    const key = entry.category || 'autre';
+    if (!byCategory.has(key)) {
+      byCategory.set(key, []);
+    }
+    byCategory.get(key).push(entry);
+  });
+
+  const TOP_N = 5;
+
+  byCategory.forEach(group => {
+    if (!group.length) {
+      return;
+    }
+    const sorted = group.slice().sort((a, b) => b.demandScore - a.demandScore);
+    const maxScore = sorted[0].demandScore || 0;
+    if (maxScore <= 0) {
+      sorted.forEach(entry => {
+        entry.baseStars = 1;
+      });
+      return;
+    }
+
+    const ratioStars = (score) => {
+      const r = score / maxScore;
+      if (r >= 0.8) return 5;
+      if (r >= 0.6) return 4;
+      if (r >= 0.4) return 3;
+      if (r >= 0.2) return 2;
+      return 1;
+    };
+
+    const volumeThreshold = getVolumeThresholdForCategory(sorted[0].category);
+
+    sorted.forEach((entry, index) => {
+      const rank = index + 1;
+      const ratio = entry.demandScore / maxScore;
+      let stars;
+      if (rank <= TOP_N && ratio >= 0.6) {
+        stars = 5;
+      } else {
+        stars = Math.min(ratioStars(entry.demandScore), 4);
+      }
+      if (stars === 5 && entry.totalUnits < volumeThreshold) {
+        stars = 4;
+      }
+      entry.baseStars = stars;
+    });
   });
 }
 
