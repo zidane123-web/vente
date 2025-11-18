@@ -178,17 +178,6 @@ function computeDemandScores(stockDocs, sales) {
   return list;
 }
 
-function getVolumeThresholdForCategory(category) {
-  if (!category) {
-    return 35;
-  }
-  const normalized = category.toLowerCase();
-  if (normalized === 'accessoires' || normalized === 'accessoire') {
-    return 20;
-  }
-  return 35;
-}
-
 function assignStars(entries) {
   const byCategory = new Map();
   entries.forEach(entry => {
@@ -206,38 +195,29 @@ function assignStars(entries) {
       return;
     }
     const sorted = group.slice().sort((a, b) => b.demandScore - a.demandScore);
-    const maxScore = sorted[0].demandScore || 0;
-    if (maxScore <= 0) {
+    const positives = sorted.filter(entry => entry.demandScore > 0);
+    const maxScore = positives.length ? positives[0].demandScore : 0;
+    if (!positives.length || maxScore <= 0) {
       sorted.forEach(entry => {
         entry.baseStars = 1;
       });
       return;
     }
 
-    const ratioStars = (score) => {
-      const r = score / maxScore;
-      if (r >= 0.8) return 5;
-      if (r >= 0.6) return 4;
-      if (r >= 0.4) return 3;
-      if (r >= 0.2) return 2;
-      return 1;
+    const ratioToStars = (ratio) => {
+      if (ratio >= 0.8) return 5;
+      if (ratio >= 0.5) return 4;
+      if (ratio >= 0.2) return 3;
+      return 2;
     };
 
-    const volumeThreshold = getVolumeThresholdForCategory(sorted[0].category);
-
-    sorted.forEach((entry, index) => {
-      const rank = index + 1;
+    sorted.forEach(entry => {
+      if (entry.demandScore <= 0) {
+        entry.baseStars = 1;
+        return;
+      }
       const ratio = entry.demandScore / maxScore;
-      let stars;
-      if (rank <= TOP_N && ratio >= 0.6) {
-        stars = 5;
-      } else {
-        stars = Math.min(ratioStars(entry.demandScore), 4);
-      }
-      if (stars === 5 && entry.totalUnits < volumeThreshold) {
-        stars = 4;
-      }
-      entry.baseStars = stars;
+      entry.baseStars = ratioToStars(ratio);
     });
   });
 }
@@ -245,11 +225,14 @@ function assignStars(entries) {
 function applyOverrides(entry) {
   let stars = entry.baseStars || 1;
   let demandStatus = 'normal';
-  if (entry.status.isNew) {
-    stars = 3;
+  const hasDemand = (entry.demandScore > 0) && (entry.totalUnits > 0);
+
+  if (!hasDemand) {
+    stars = 1;
+    demandStatus = 'no-sales';
+  } else if (entry.status.isNew) {
     demandStatus = 'new';
   } else if (entry.status.isStale) {
-    stars = 1;
     demandStatus = 'stale';
   }
   entry.demandStars = stars;
