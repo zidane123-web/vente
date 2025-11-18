@@ -21577,6 +21577,57 @@ function updateStockAfterSaleFirestore(items) {
       return sortInventoryByName(items);
     }
 
+    function getInventoryStartOfDayTimestamp(date = new Date()) {
+      if (typeof firebase === 'undefined' || !firebase.firestore) {
+        return null;
+      }
+      const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      return firebase.firestore.Timestamp.fromDate(start);
+    }
+
+    async function shouldIncludeInventoryItemForToday(item, startTimestamp) {
+      if (!item) {
+        return false;
+      }
+      const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || 0;
+      if (total > 0) {
+        return true;
+      }
+      if (!startTimestamp || !dbFirestore || !item.id) {
+        return false;
+      }
+      try {
+        const historySnapshot = await dbFirestore
+          .collection("stock")
+          .doc(item.id)
+          .collection("history")
+          .where("timestamp", ">=", startTimestamp)
+          .limit(1)
+          .get();
+        return !historySnapshot.empty;
+      } catch (error) {
+        console.error("Erreur vérification mouvement inventaire :", error);
+        return false;
+      }
+    }
+
+    async function filterInventoryItemsForToday(items) {
+      if (!Array.isArray(items) || !items.length) {
+        return [];
+      }
+      const startTimestamp = getInventoryStartOfDayTimestamp();
+      if (!startTimestamp) {
+        return items.filter(item => {
+          const total = Number(item.stockTotal !== undefined ? item.stockTotal : item.stock) || 0;
+          return total > 0;
+        });
+      }
+      const inclusionMap = await Promise.all(
+        items.map(item => shouldIncludeInventoryItemForToday(item, startTimestamp))
+      );
+      return items.filter((_, index) => inclusionMap[index]);
+    }
+
     function renderInventoryPreview(stocksData = null) {
       const preview = document.getElementById('inventoryPreview');
       const content = document.getElementById('inventoryPreviewContent');
@@ -21908,7 +21959,7 @@ function updateStockAfterSaleFirestore(items) {
       const useCache = !options.forceRefresh && Array.isArray(cachedStock) && cachedStock.length;
       const source = useCache ? Promise.resolve(cachedStock) : getAllStockFirestore();
 
-      source.then(stocks => {
+      source.then(async stocks => {
         if (!Array.isArray(stocks)) {
           inventoryCountingState.error = "Stock indisponible pour l'instant.";
           return;
@@ -21923,8 +21974,9 @@ function updateStockAfterSaleFirestore(items) {
           stocks.filter(item => item.category !== 'telephones' && item.category !== 'accessoires')
         );
         const orderedItems = [].concat(telephones, accessories, others);
-        inventoryCountingState.items = orderedItems;
-        inventoryCountingState.itemMap = new Map(orderedItems.map(item => [item.id, item]));
+        const filteredItems = await filterInventoryItemsForToday(orderedItems);
+        inventoryCountingState.items = filteredItems;
+        inventoryCountingState.itemMap = new Map(filteredItems.map(item => [item.id, item]));
         inventoryCountingState.lastSync = new Date();
       }).catch(error => {
         inventoryCountingState.error = error && error.message
