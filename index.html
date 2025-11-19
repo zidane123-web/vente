@@ -18214,6 +18214,9 @@ async function annulerCommandeFournisseur(approId, event) {
       </select>
       <small>Fixé à la boutique pour garantir la cohérence du stock.</small>
     </div>
+    <div id="cartStockWarning" class="cart-stock-warning" style="display:none; margin-top:10px; color:#b91c1c; font-weight:500;">
+      Stock boutique insuffisant. Effectuez un transfert avant de continuer.
+    </div>
     <!-- articles injectés par JS -->
     <div id="panierContainer" class="list-container"></div>
 
@@ -24429,6 +24432,88 @@ function resetPickupLocationToDefault() {
   syncPickupLocationSelector();
   mettreAJourBadgeTypeVente();
 }
+
+function buildCachedStockIndexByName() {
+  const index = new Map();
+  if (!Array.isArray(cachedStock)) {
+    return index;
+  }
+  cachedStock.forEach(entry => {
+    const normalized = normaliserNomProduitStock(entry && (entry.name || entry.label || entry.produit));
+    if (!normalized || index.has(normalized)) {
+      return;
+    }
+    index.set(normalized, entry);
+  });
+  return index;
+}
+
+function getCartBoutiqueStockShortages() {
+  if (!Array.isArray(currentItems) || !currentItems.length) {
+    return [];
+  }
+  const demand = new Map();
+  currentItems.forEach(item => {
+    const normalized = normaliserNomProduitStock(item && item.produit);
+    if (!normalized) {
+      return;
+    }
+    const qty = Number(item && item.quantite);
+    if (!Number.isFinite(qty) || qty <= 0) {
+      return;
+    }
+    if (!demand.has(normalized)) {
+      demand.set(normalized, {
+        name: item.produit || normalized,
+        quantity: 0
+      });
+    }
+    demand.get(normalized).quantity += qty;
+  });
+  if (!demand.size) {
+    return [];
+  }
+  const stockIndex = buildCachedStockIndexByName();
+  if (!stockIndex.size) {
+    return [];
+  }
+  const shortages = [];
+  demand.forEach((info, normalizedName) => {
+    const stockEntry = stockIndex.get(normalizedName);
+    if (!stockEntry) {
+      return;
+    }
+    const available = Number(stockEntry.stockBoutique);
+    if (!Number.isFinite(available)) {
+      return;
+    }
+    if (info.quantity > available) {
+      shortages.push({
+        name: stockEntry.name || info.name || normalizedName,
+        required: info.quantity,
+        available
+      });
+    }
+  });
+  return shortages;
+}
+
+function renderCartStockWarning(shortages = []) {
+  const warningEl = document.getElementById('cartStockWarning');
+  if (!warningEl) {
+    return;
+  }
+  if (!shortages.length) {
+    warningEl.style.display = 'none';
+    warningEl.textContent = '';
+    return;
+  }
+  const summary = shortages
+    .map(entry => `${entry.name}: besoin ${entry.required} · dispo ${entry.available}`)
+    .join(' | ');
+  warningEl.textContent = `Stock boutique insuffisant (${summary}). Effectuez un transfert avant de continuer.`;
+  warningEl.style.display = 'block';
+}
 let currentSaleMode = 'direct';     // 'direct' ou 'delivery'
 const COMMISSION_PAR_TELEPHONE = 75;
 const AIDE_COMMANDE_DEFAULT_WINDOW_DAYS = 30;
@@ -26805,10 +26890,13 @@ function updateCartFooter () {
 
   const q  = currentItems.reduce((s, it) => s + it.quantite, 0);
   const tt = currentItems.reduce((s, it) => s + it.total   , 0);
+  const shortages = getCartBoutiqueStockShortages();
+  renderCartStockWarning(shortages);
 
   qtyEl.textContent   = q;
   totalEl.textContent = tt.toLocaleString() + ' FCFA';
-  btn.disabled        = (q === 0);
+  btn.disabled        = (q === 0) || shortages.length > 0;
+  btn.title           = shortages.length ? 'Stock boutique insuffisant – effectuez un transfert.' : '';
   if (typeof rafraichirResumePaiementVente === 'function') {
     rafraichirResumePaiementVente();
   }
@@ -27177,6 +27265,22 @@ function retourAccueilDepuisPanier() {
 /* Bouton "Suivant" depuis l'écran Panier --------------------- */
 function continuerDepuisPanier() {
   if (currentItems.length === 0) return;
+  const shortages = getCartBoutiqueStockShortages();
+  if (shortages.length) {
+    const summary = shortages
+      .map(entry => `${entry.name}: besoin ${entry.required}, dispo ${entry.available}`)
+      .join(' | ');
+    const message = summary
+      ? `Stock boutique insuffisant (${summary}). Veuillez faire un transfert avant de continuer.`
+      : 'Stock boutique insuffisant. Veuillez faire un transfert avant de continuer.';
+    if (typeof showToast === 'function') {
+      showToast(message, 'error');
+    } else {
+      alert(message);
+    }
+    updateCartFooter();
+    return;
+  }
   if (cartHasMissingClientPrices()) {
     notifyMissingClientPrices();
     updatePanierPage();
