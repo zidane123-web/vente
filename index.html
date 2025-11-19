@@ -647,6 +647,55 @@ body.role-employe #screen-accueil .ako-quick-grid {
       gap: 10px;
     }
 
+    .inventory-consolidation-layout {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .inventory-consolidation-card {
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .inventory-consolidation-table table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .inventory-consolidation-table th,
+    .inventory-consolidation-table td {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    .inventory-consolidation-table th {
+      background: #f8fafc;
+      text-transform: uppercase;
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .inventory-consolidation-summary {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .inventory-consolidation-summary span {
+      font-size: 13px;
+      color: #475569;
+    }
+
     .inventory-session-status {
       font-size: 13px;
       font-weight: 600;
@@ -6450,6 +6499,21 @@ function generateInvoicePDF(sale) {
     <div id="inventorySessionsList" class="inventory-sessions-list"></div>
     <div id="inventorySessionConsolidation" class="inventory-session-consolidation"></div>
   </div>
+</section>
+
+<section id="screen-inventory-consolidation" class="screen">
+  <header class="menu-header">
+    <button type="button" class="ako-icon-btn" aria-label="Ouvrir le menu" onclick="openDrawerMenu()">
+      <i data-lucide="menu"></i>
+    </button>
+    <h1>Consolidation d'inventaire</h1>
+    <div class="menu-header-meta">
+      <button type="button" class="btn-modern secondary" onclick="window.location.hash='inventory-sessions'">
+        ← Retour aux sessions
+      </button>
+    </div>
+  </header>
+  <div class="inventory-consolidation-layout" id="inventoryConsolidationContent"></div>
 </section>
 
 
@@ -21803,6 +21867,18 @@ function updateStockAfterSaleFirestore(items) {
       triggerInventorySessionStart();
     }
 
+    function openInventoryConsolidationScreen() {
+      if (inventorySessionSelectionState.selectedIds.length < 2) {
+        if (typeof showToast === 'function') {
+          showToast("Sélectionnez deux sessions pour voir la consolidation.", "warning");
+        } else {
+          alert("Sélectionnez deux sessions pour voir la consolidation.");
+        }
+        return;
+      }
+      window.location.hash = 'inventory-consolidation';
+    }
+
     function initInventoryCountingScreen() {
       ensureInventoryCountSearchListener();
       updateInventoryLocationButtons();
@@ -21847,6 +21923,7 @@ function updateStockAfterSaleFirestore(items) {
       computeInventorySessionSuggestions();
       renderInventorySessionsScreen();
       renderInventorySessionConsolidation();
+      renderInventoryConsolidationScreen();
     }
 
     function ensureInventoryCountSearchListener() {
@@ -22493,7 +22570,12 @@ function updateStockAfterSaleFirestore(items) {
               <tbody>${rows}</tbody>
             </table>
             <footer>
-              <small>${suggestions.length} transfert(s) suggéré(s)</small>
+              <div style="display:flex; flex-direction:column; gap:4px;">
+                <small>${suggestions.length} transfert(s) suggéré(s)</small>
+                <button type="button" class="btn-modern secondary" onclick="openInventoryConsolidationScreen()">
+                  Voir consolidation
+                </button>
+              </div>
               <button type="button" class="btn-modern" ${isProcessing ? 'disabled' : ''} onclick="applyInventorySessionConsolidation()">
                 ${isProcessing ? 'Traitement...' : 'Valider les transferts'}
               </button>
@@ -22502,6 +22584,82 @@ function updateStockAfterSaleFirestore(items) {
         `;
       }
       panel.innerHTML = content;
+    }
+
+    function renderInventoryConsolidationScreen() {
+      const container = document.getElementById('inventoryConsolidationContent');
+      if (!container) {
+        return;
+      }
+      const [firstId, secondId] = inventorySessionSelectionState.selectedIds;
+      if (!firstId || !secondId) {
+        container.innerHTML = `
+          <div class="inventory-consolidation-card">
+            <p>Sélectionnez deux sessions depuis l'écran précédent pour afficher la consolidation.</p>
+            <button type="button" class="btn-modern secondary" onclick="window.location.hash='inventory-sessions'">Retour</button>
+          </div>
+        `;
+        return;
+      }
+      const first = inventoryCampaignState.sessionsMap.get(firstId);
+      const second = inventoryCampaignState.sessionsMap.get(secondId);
+      const suggestions = inventorySessionSelectionState.suggestions;
+      const error = inventorySessionSelectionState.error;
+      const isProcessing = inventorySessionSelectionState.isProcessing;
+      const summaryEntries = [first, second]
+        .filter(Boolean)
+        .map(session => {
+          const started = session.startedAt && session.startedAt.toDate
+            ? session.startedAt.toDate()
+            : (session.startedAt instanceof Date ? session.startedAt : null);
+          return `<div class="inventory-consolidation-card">
+            <strong>${formatStockLocationLabel(session.location)}</strong>
+            <p style="margin:0; color:#475569;">${session.operatorName || session.operatorEmail || 'Utilisateur'}</p>
+            <span>${started ? started.toLocaleString('fr-FR') : ''}</span>
+            <button type="button" class="btn-modern secondary" onclick="openInventorySessionDetail('${session.id}')">Voir les détails</button>
+          </div>`;
+        }).join('');
+      let tableHtml = '';
+      if (error) {
+        tableHtml = `<div class="inventory-consolidation-card"><p style="color:#b91c1c;">${escapeInventoryText(error)}</p></div>`;
+      } else if (!suggestions.length) {
+        tableHtml = `<div class="inventory-consolidation-card"><p>Aucun transfert suggéré pour ce duo.</p></div>`;
+      } else {
+        const rows = suggestions.map(suggestion => `
+          <tr>
+            <td>${escapeInventoryText(suggestion.productName || '')}</td>
+            <td>${escapeInventoryText(formatStockLocationLabel(suggestion.fromLocation))}</td>
+            <td>${escapeInventoryText(formatStockLocationLabel(suggestion.toLocation))}</td>
+            <td>${suggestion.quantity}</td>
+          </tr>
+        `).join('');
+        tableHtml = `
+          <div class="inventory-consolidation-card inventory-consolidation-table">
+            <h2>Transferts suggérés</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>Article</th>
+                  <th>Depuis</th>
+                  <th>Vers</th>
+                  <th>Quantité</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+            <div style="display:flex; justify-content:flex-end; gap:10px;">
+              <button type="button" class="btn-modern secondary" onclick="window.location.hash='inventory-sessions'">Retour</button>
+              <button type="button" class="btn-modern" ${isProcessing ? 'disabled' : ''} onclick="applyInventorySessionConsolidation()">
+                ${isProcessing ? 'Traitement...' : 'Appliquer les transferts'}
+              </button>
+            </div>
+          </div>
+        `;
+      }
+      container.innerHTML = `
+        <div class="inventory-consolidation-summary">${summaryEntries}</div>
+        ${tableHtml}
+      `;
     }
 
     function buildInventoryCampaignHistoryItem(session) {
@@ -23685,6 +23843,9 @@ function voirHistoriqueStock(stockId, e) {
       break;
     case 'inventory-sessions':
       initInventorySessionsScreen();
+      break;
+    case 'inventory-consolidation':
+      renderInventoryConsolidationScreen();
       break;
     case 'inventaire':
       initInventoryCountingScreen();
@@ -32270,4 +32431,6 @@ async function finaliserLivraisonReussie() {
 
       inventorySessionSelectionState.suggestions = suggestions;
       inventorySessionSelectionState.error = '';
+      renderInventorySessionConsolidation();
+      renderInventoryConsolidationScreen();
     }
