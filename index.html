@@ -22831,27 +22831,33 @@ function updateStockAfterSaleFirestore(items) {
       const mapMagasin = new Map(second.details.map(detail => [detail.stockId, detail]));
       const rows = [];
       const allKeys = new Set([...mapBoutique.keys(), ...mapMagasin.keys()]);
+      let totalBoutiqueCounted = 0;
+      let totalMagasinCounted = 0;
       let totalTheorique = 0;
       let totalReel = 0;
-      let totalManquant = 0;
+      let totalDiff = 0;
       allKeys.forEach(stockId => {
         const boutiqueDetail = mapBoutique.get(stockId);
         const magasinDetail = mapMagasin.get(stockId);
         const name = boutiqueDetail?.name || magasinDetail?.name || 'Article';
-        const expected = Number(boutiqueDetail?.expected) || Number(magasinDetail?.expected) || 0;
+        const expectedBoutique = Number(boutiqueDetail?.expected) || 0;
+        const expectedMagasin = Number(magasinDetail?.expected) || 0;
+        const theoretical = expectedBoutique + expectedMagasin;
         const countedBoutique = Number(boutiqueDetail?.counted) || 0;
         const countedMagasin = Number(magasinDetail?.counted) || 0;
         const real = countedBoutique + countedMagasin;
-        const diff = real - expected;
-        totalTheorique += expected;
+        const diff = real - theoretical;
+        totalBoutiqueCounted += countedBoutique;
+        totalMagasinCounted += countedMagasin;
+        totalTheorique += theoretical;
         totalReel += real;
-        totalManquant += diff;
+        totalDiff += diff;
         rows.push(`
           <tr>
             <td>${escapeInventoryText(name)}</td>
             <td>${countedBoutique.toLocaleString('fr-FR')}</td>
             <td>${countedMagasin.toLocaleString('fr-FR')}</td>
-            <td>${expected.toLocaleString('fr-FR')}</td>
+            <td>${theoretical.toLocaleString('fr-FR')}</td>
             <td>${real.toLocaleString('fr-FR')}</td>
             <td>${diff > 0 ? '+' : ''}${diff.toLocaleString('fr-FR')}</td>
           </tr>
@@ -22875,10 +22881,11 @@ function updateStockAfterSaleFirestore(items) {
             <tfoot>
               <tr>
                 <th>Total</th>
-                <th colspan="2">${(totalReel - totalTheorique + totalTheorique).toLocaleString('fr-FR')}</th>
+                <th>${totalBoutiqueCounted.toLocaleString('fr-FR')}</th>
+                <th>${totalMagasinCounted.toLocaleString('fr-FR')}</th>
                 <th>${totalTheorique.toLocaleString('fr-FR')}</th>
                 <th>${totalReel.toLocaleString('fr-FR')}</th>
-                <th>${totalManquant > 0 ? '+' : ''}${totalManquant.toLocaleString('fr-FR')}</th>
+                <th>${totalDiff > 0 ? '+' : ''}${totalDiff.toLocaleString('fr-FR')}</th>
               </tr>
             </tfoot>
           </table>
