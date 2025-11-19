@@ -22662,6 +22662,78 @@ function updateStockAfterSaleFirestore(items) {
       `;
     }
 
+    function computeInventorySessionSuggestions() {
+      const validIds = inventorySessionSelectionState.selectedIds.filter(id => inventoryCampaignState.sessionsMap.has(id));
+      if (validIds.length !== inventorySessionSelectionState.selectedIds.length) {
+        inventorySessionSelectionState.selectedIds = validIds;
+      }
+      const [firstId, secondId] = validIds;
+      if (!firstId || !secondId) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = validIds.length ? 'Sélectionnez encore une session pour comparer.' : '';
+        return;
+      }
+      const first = inventoryCampaignState.sessionsMap.get(firstId);
+      const second = inventoryCampaignState.sessionsMap.get(secondId);
+      if (!first || !second) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = 'Impossible de charger les sessions sélectionnées.';
+        return;
+      }
+      if (first.location === second.location) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = "Choisissez deux sites différents.";
+        return;
+      }
+      const detailsA = Array.isArray(first.details) ? first.details : [];
+      const detailsB = Array.isArray(second.details) ? second.details : [];
+      if (!detailsA.length || !detailsB.length) {
+        inventorySessionSelectionState.suggestions = [];
+        inventorySessionSelectionState.error = "Détails d'inventaire insuffisants pour l'une des sessions.";
+        return;
+      }
+
+      const mapB = new Map(detailsB.map(detail => [detail.stockId, detail]));
+      const suggestions = [];
+      detailsA.forEach(detailA => {
+        const detailB = mapB.get(detailA.stockId);
+        if (!detailB) return;
+        const diffA = Number(detailA.difference) || 0;
+        const diffB = Number(detailB.difference) || 0;
+        if (diffA === 0 || diffB === 0) {
+          return;
+        }
+        if (diffA > 0 && diffB < 0) {
+          const quantity = Math.min(diffA, Math.abs(diffB));
+          if (quantity > 0) {
+            suggestions.push({
+              productId: detailA.stockId,
+              productName: detailA.name || detailB.name || 'Article',
+              quantity,
+              fromLocation: second.location,
+              toLocation: first.location
+            });
+          }
+        } else if (diffA < 0 && diffB > 0) {
+          const quantity = Math.min(Math.abs(diffA), diffB);
+          if (quantity > 0) {
+            suggestions.push({
+              productId: detailA.stockId,
+              productName: detailA.name || detailB.name || 'Article',
+              quantity,
+              fromLocation: first.location,
+              toLocation: second.location
+            });
+          }
+        }
+      });
+
+      inventorySessionSelectionState.suggestions = suggestions;
+      inventorySessionSelectionState.error = '';
+      renderInventorySessionConsolidation();
+      renderInventoryConsolidationScreen();
+    }
+
     function buildInventoryCampaignHistoryItem(session) {
       const startedAt = toInventoryDate(session.startedAt);
       const endedAt = toInventoryDate(session.endedAt);
@@ -32363,74 +32435,3 @@ async function finaliserLivraisonReussie() {
 </script>
 </body>
 </html>
-    function computeInventorySessionSuggestions() {
-      const validIds = inventorySessionSelectionState.selectedIds.filter(id => inventoryCampaignState.sessionsMap.has(id));
-      if (validIds.length !== inventorySessionSelectionState.selectedIds.length) {
-        inventorySessionSelectionState.selectedIds = validIds;
-      }
-      const [firstId, secondId] = validIds;
-      if (!firstId || !secondId) {
-        inventorySessionSelectionState.suggestions = [];
-        inventorySessionSelectionState.error = validIds.length ? 'Sélectionnez encore une session pour comparer.' : '';
-        return;
-      }
-      const first = inventoryCampaignState.sessionsMap.get(firstId);
-      const second = inventoryCampaignState.sessionsMap.get(secondId);
-      if (!first || !second) {
-        inventorySessionSelectionState.suggestions = [];
-        inventorySessionSelectionState.error = 'Impossible de charger les sessions sélectionnées.';
-        return;
-      }
-      if (first.location === second.location) {
-        inventorySessionSelectionState.suggestions = [];
-        inventorySessionSelectionState.error = "Choisissez deux sites différents.";
-        return;
-      }
-      const detailsA = Array.isArray(first.details) ? first.details : [];
-      const detailsB = Array.isArray(second.details) ? second.details : [];
-      if (!detailsA.length || !detailsB.length) {
-        inventorySessionSelectionState.suggestions = [];
-        inventorySessionSelectionState.error = "Détails d'inventaire insuffisants pour l'une des sessions.";
-        return;
-      }
-
-      const mapB = new Map(detailsB.map(detail => [detail.stockId, detail]));
-      const suggestions = [];
-      detailsA.forEach(detailA => {
-        const detailB = mapB.get(detailA.stockId);
-        if (!detailB) return;
-        const diffA = Number(detailA.difference) || 0;
-        const diffB = Number(detailB.difference) || 0;
-        if (diffA === 0 || diffB === 0) {
-          return;
-        }
-        if (diffA > 0 && diffB < 0) {
-          const quantity = Math.min(diffA, Math.abs(diffB));
-          if (quantity > 0) {
-            suggestions.push({
-              productId: detailA.stockId,
-              productName: detailA.name || detailB.name || 'Article',
-              quantity,
-              fromLocation: second.location,
-              toLocation: first.location
-            });
-          }
-        } else if (diffA < 0 && diffB > 0) {
-          const quantity = Math.min(Math.abs(diffA), diffB);
-          if (quantity > 0) {
-            suggestions.push({
-              productId: detailA.stockId,
-              productName: detailA.name || detailB.name || 'Article',
-              quantity,
-              fromLocation: first.location,
-              toLocation: second.location
-            });
-          }
-        }
-      });
-
-      inventorySessionSelectionState.suggestions = suggestions;
-      inventorySessionSelectionState.error = '';
-      renderInventorySessionConsolidation();
-      renderInventoryConsolidationScreen();
-    }
