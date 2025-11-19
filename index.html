@@ -18208,11 +18208,11 @@ async function annulerCommandeFournisseur(approId, event) {
 
     <div class="pickup-location-card">
       <label for="panierPickupLocation">Lieu de retrait</label>
-      <select id="panierPickupLocation">
+      <select id="panierPickupLocation" disabled>
         <option value="boutique" selected>Boutique (point de vente)</option>
         <option value="magasin" disabled>Magasin (réserve)</option>
       </select>
-      <small>Les retraits au magasin seront bientôt disponibles.</small>
+      <small>Fixé à la boutique pour garantir la cohérence du stock.</small>
     </div>
     <!-- articles injectés par JS -->
     <div id="panierContainer" class="list-container"></div>
@@ -24256,7 +24256,8 @@ let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
 const STOCK_LOCATION_VALUES = ['boutique', 'magasin'];
 const DEFAULT_STOCK_LOCATION = STOCK_LOCATION_VALUES[0];
-let currentSalePickupLocation = DEFAULT_STOCK_LOCATION;
+const FIXED_SALE_PICKUP_LOCATION = DEFAULT_STOCK_LOCATION;
+let currentSalePickupLocation = FIXED_SALE_PICKUP_LOCATION;
 const transferStockScreenState = {
   products: [],
   selectedProductId: '',
@@ -24389,14 +24390,8 @@ function getStockWritePayload(state = {}) {
 }
 
 function ensureCartItemsHaveLocation() {
-  const fallback = currentSalePickupLocation || DEFAULT_STOCK_LOCATION;
   currentItems.forEach(item => {
-    const normalized = resolveStockDestination({
-      item,
-      location: item && item.stockDestination,
-      fallbackLocation: fallback
-    });
-    item.stockDestination = normalized;
+    item.stockDestination = FIXED_SALE_PICKUP_LOCATION;
   });
 }
 
@@ -24409,24 +24404,13 @@ function syncPickupLocationSelector() {
   if (!select) {
     return;
   }
-  if (!select.dataset.listenerAttached) {
-    select.addEventListener('change', () => {
-      const selectedValue = resolveStockDestination({
-        location: select.value,
-        fallbackLocation: DEFAULT_STOCK_LOCATION
-      });
-      applyPickupLocationChange(selectedValue);
-    });
-    select.dataset.listenerAttached = 'true';
-  }
-  select.value = currentSalePickupLocation;
+  select.value = FIXED_SALE_PICKUP_LOCATION;
+  select.disabled = true;
+  select.title = 'Le retrait est fixé à la boutique.';
 }
 
 function applyPickupLocationChange(newValue, options = {}) {
-  const normalized = resolveStockDestination({
-    location: newValue,
-    fallbackLocation: DEFAULT_STOCK_LOCATION
-  });
+  const normalized = FIXED_SALE_PICKUP_LOCATION;
   if (currentSalePickupLocation === normalized && !options.force) {
     return;
   }
@@ -24441,7 +24425,7 @@ function applyPickupLocationChange(newValue, options = {}) {
 }
 
 function resetPickupLocationToDefault() {
-  currentSalePickupLocation = DEFAULT_STOCK_LOCATION;
+  currentSalePickupLocation = FIXED_SALE_PICKUP_LOCATION;
   syncPickupLocationSelector();
   mettreAJourBadgeTypeVente();
 }
@@ -27010,11 +26994,7 @@ function addOrIncrementItem(prod) {
     currentItems[idx].priceMissingForType = priceMissing;
     currentItems[idx].total     = currentItems[idx].quantite * currentItems[idx].prix;
     currentItems[idx].category  = prod.category;
-    currentItems[idx].stockDestination = resolveStockDestination({
-      item: currentItems[idx],
-      location: currentItems[idx].stockDestination || currentSalePickupLocation,
-      fallbackLocation: currentSalePickupLocation
-    });
+    currentItems[idx].stockDestination = FIXED_SALE_PICKUP_LOCATION;
   } else {
     if (prod.stock < 1) {
       showToast("Stock épuisé !");
@@ -27026,7 +27006,7 @@ function addOrIncrementItem(prod) {
       quantite : 1,
       total    : unitPrice,
       category : prod.category,
-      stockDestination: currentSalePickupLocation,
+      stockDestination: FIXED_SALE_PICKUP_LOCATION,
       priceMissingForType: priceMissing
     });
   }
@@ -27425,11 +27405,7 @@ async function finaliserVente(clientNom, clientNumero, clientType, vendeur, phot
 
     const saleItemsPayload = currentItems.map(item => ({
         ...item,
-        stockDestination: resolveStockDestination({
-            item,
-            location: item.stockDestination || currentSalePickupLocation,
-            fallbackLocation: currentSalePickupLocation
-        })
+        stockDestination: FIXED_SALE_PICKUP_LOCATION
     }));
 
     const vente = {
