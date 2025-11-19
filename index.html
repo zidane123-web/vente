@@ -22690,6 +22690,8 @@ function updateStockAfterSaleFirestore(items) {
       }
       container.innerHTML = `
         <div class="inventory-consolidation-summary">${summaryEntries}</div>
+        ${first ? buildInventorySessionTable(first) : ''}
+        ${second ? buildInventorySessionTable(second) : ''}
         ${tableHtml}
         ${first && Array.isArray(inventorySessionSelectionState.isolated.firstOnly) && inventorySessionSelectionState.isolated.firstOnly.length
           ? `
@@ -22805,6 +22807,55 @@ function updateStockAfterSaleFirestore(items) {
       inventorySessionSelectionState.error = '';
       renderInventorySessionConsolidation();
       renderInventoryConsolidationScreen();
+    }
+
+    function buildInventorySessionTable(session) {
+      if (!session || !Array.isArray(session.details) || !session.details.length) {
+        return '';
+      }
+      const rows = session.details.map(detail => {
+        const expected = Number(detail.expected) || 0;
+        const counted = Number(detail.counted) || 0;
+        const diff = Number(detail.difference) || 0;
+        return `
+          <tr>
+            <td>${escapeInventoryText(detail.name || '')}</td>
+            <td>${expected.toLocaleString('fr-FR')}</td>
+            <td>${counted.toLocaleString('fr-FR')}</td>
+            <td>${diff > 0 ? '+' : ''}${diff.toLocaleString('fr-FR')}</td>
+          </tr>
+        `;
+      }).join('');
+      const totals = session.details.reduce((acc, detail) => {
+        acc.expected += Number(detail.expected) || 0;
+        acc.counted += Number(detail.counted) || 0;
+        acc.diff += Number(detail.difference) || 0;
+        return acc;
+      }, { expected: 0, counted: 0, diff: 0 });
+      return `
+        <div class="inventory-consolidation-card inventory-consolidation-table">
+          <h2>Résumé ${escapeInventoryText(formatStockLocationLabel(session.location))}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Article</th>
+                <th>Théorique</th>
+                <th>Compté</th>
+                <th>Écart</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            <tfoot>
+              <tr>
+                <th>Total</th>
+                <th>${totals.expected.toLocaleString('fr-FR')}</th>
+                <th>${totals.counted.toLocaleString('fr-FR')}</th>
+                <th>${totals.diff > 0 ? '+' : ''}${totals.diff.toLocaleString('fr-FR')}</th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      `;
     }
 
     function buildInventoryCampaignHistoryItem(session) {
