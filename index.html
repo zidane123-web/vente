@@ -647,6 +647,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
       gap: 10px;
     }
 
+    .inventory-session-fusion {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 10px;
+    }
+
     .inventory-consolidation-layout {
       padding: 16px;
       display: flex;
@@ -22550,6 +22556,15 @@ function updateStockAfterSaleFirestore(items) {
         return `${formatStockLocationLabel(session.location)} (${startedAt ? startedAt.toLocaleDateString('fr-FR') : '--'})`;
       }).filter(Boolean).join(' ↔ ');
       let content = `<h3>Consolidation rapide</h3><p style="margin:0; color:#475569;">${escapeInventoryText(summary || '')}</p>`;
+      if (selected.length === 2) {
+        content += `
+          <div class="inventory-session-fusion">
+            <button type="button" class="btn-modern" onclick="openInventoryConsolidationScreen()">
+              Fusion
+            </button>
+          </div>
+        `;
+      }
       if (error) {
         content += `<div class="warning">${escapeInventoryText(error)}</div>`;
       }
