@@ -21842,6 +21842,10 @@ function updateStockAfterSaleFirestore(items) {
     const inventorySessionSelectionState = {
       selectedIds: [],
       suggestions: [],
+      isolated: {
+        firstOnly: [],
+        secondOnly: []
+      },
       error: '',
       isProcessing: false
     };
@@ -22545,7 +22549,8 @@ function updateStockAfterSaleFirestore(items) {
       let content = `<h3>Consolidation rapide</h3><p style="margin:0; color:#475569;">${escapeInventoryText(summary || '')}</p>`;
       if (error) {
         content += `<div class="warning">${escapeInventoryText(error)}</div>`;
-      } else if (!suggestions.length) {
+      }
+      if (!suggestions.length) {
         content += '<div class="empty">Aucun transfert suggéré pour ce duo.</div>';
       } else {
         const rows = suggestions.map(suggestion => `
@@ -22580,6 +22585,29 @@ function updateStockAfterSaleFirestore(items) {
                 ${isProcessing ? 'Traitement...' : 'Valider les transferts'}
               </button>
             </footer>
+          </div>
+        `;
+      }
+      const isolated = inventorySessionSelectionState.isolated;
+      if (first && Array.isArray(isolated.firstOnly) && isolated.firstOnly.length) {
+        content += `
+          <div class="inventory-session-consolidation">
+            <h4>Écarts isolés (${formatStockLocationLabel(first.location)})</h4>
+            <p style="margin:0; color:#b45309;">Ces écarts n'ont pas de contrepartie et nécessitent un ajustement.</p>
+            <ul class="inventory-session-isolated-list">
+              ${isolated.firstOnly.map(item => `<li>${escapeInventoryText(item.productName || '')} : ${item.difference > 0 ? '+' : ''}${item.difference}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+      if (second && Array.isArray(isolated.secondOnly) && isolated.secondOnly.length) {
+        content += `
+          <div class="inventory-session-consolidation">
+            <h4>Écarts isolés (${formatStockLocationLabel(second.location)})</h4>
+            <p style="margin:0; color:#b45309;">Ces écarts n'ont pas de contrepartie et nécessitent un ajustement.</p>
+            <ul class="inventory-session-isolated-list">
+              ${isolated.secondOnly.map(item => `<li>${escapeInventoryText(item.productName || '')} : ${item.difference > 0 ? '+' : ''}${item.difference}</li>`).join('')}
+            </ul>
           </div>
         `;
       }
@@ -22621,10 +22649,9 @@ function updateStockAfterSaleFirestore(items) {
         }).join('');
       let tableHtml = '';
       if (error) {
-        tableHtml = `<div class="inventory-consolidation-card"><p style="color:#b91c1c;">${escapeInventoryText(error)}</p></div>`;
-      } else if (!suggestions.length) {
-        tableHtml = `<div class="inventory-consolidation-card"><p>Aucun transfert suggéré pour ce duo.</p></div>`;
-      } else {
+        tableHtml += `<div class="inventory-consolidation-card"><p style="color:#b91c1c;">${escapeInventoryText(error)}</p></div>`;
+      }
+      if (suggestions.length) {
         const rows = suggestions.map(suggestion => `
           <tr>
             <td>${escapeInventoryText(suggestion.productName || '')}</td>
@@ -22633,7 +22660,7 @@ function updateStockAfterSaleFirestore(items) {
             <td>${suggestion.quantity}</td>
           </tr>
         `).join('');
-        tableHtml = `
+        tableHtml += `
           <div class="inventory-consolidation-card inventory-consolidation-table">
             <h2>Transferts suggérés</h2>
             <table>
@@ -22655,10 +22682,30 @@ function updateStockAfterSaleFirestore(items) {
             </div>
           </div>
         `;
+      } else {
+        tableHtml += `<div class="inventory-consolidation-card"><p>Aucun transfert suggéré pour ce duo.</p></div>`;
       }
       container.innerHTML = `
         <div class="inventory-consolidation-summary">${summaryEntries}</div>
         ${tableHtml}
+        ${first && Array.isArray(inventorySessionSelectionState.isolated.firstOnly) && inventorySessionSelectionState.isolated.firstOnly.length
+          ? `
+            <div class="inventory-consolidation-card">
+              <h3>Écarts isolés (${formatStockLocationLabel(first.location)})</h3>
+              <p style="margin:0; color:#b45309;">Ces articles n'ont pas de contrepartie dans l'autre session.</p>
+              <ul class="inventory-session-isolated-list">
+                ${inventorySessionSelectionState.isolated.firstOnly.map(item => `<li>${escapeInventoryText(item.productName || '')} : ${item.difference > 0 ? '+' : ''}${item.difference}</li>`).join('')}
+              </ul>
+            </div>` : ''}
+        ${second && Array.isArray(inventorySessionSelectionState.isolated.secondOnly) && inventorySessionSelectionState.isolated.secondOnly.length
+          ? `
+            <div class="inventory-consolidation-card">
+              <h3>Écarts isolés (${formatStockLocationLabel(second.location)})</h3>
+              <p style="margin:0; color:#b45309;">Ces articles n'ont pas de contrepartie dans l'autre session.</p>
+              <ul class="inventory-session-isolated-list">
+                ${inventorySessionSelectionState.isolated.secondOnly.map(item => `<li>${escapeInventoryText(item.productName || '')} : ${item.difference > 0 ? '+' : ''}${item.difference}</li>`).join('')}
+              </ul>
+            </div>` : ''}
       `;
     }
 
@@ -22695,9 +22742,19 @@ function updateStockAfterSaleFirestore(items) {
 
       const mapB = new Map(detailsB.map(detail => [detail.stockId, detail]));
       const suggestions = [];
+      const isolatedFirst = [];
       detailsA.forEach(detailA => {
         const detailB = mapB.get(detailA.stockId);
-        if (!detailB) return;
+        if (!detailB) {
+          if (detailA.difference) {
+            isolatedFirst.push({
+              productId: detailA.stockId,
+              productName: detailA.name || 'Article',
+              difference: Number(detailA.difference) || 0
+            });
+          }
+          return;
+        }
         const diffA = Number(detailA.difference) || 0;
         const diffB = Number(detailB.difference) || 0;
         if (diffA === 0 || diffB === 0) {
@@ -22728,7 +22785,25 @@ function updateStockAfterSaleFirestore(items) {
         }
       });
 
+      const isolatedSecond = [];
+      detailsB.forEach(detailB => {
+        if (mapB.has(detailB.stockId)) {
+          return;
+        }
+        if (detailB.difference) {
+          isolatedSecond.push({
+            productId: detailB.stockId,
+            productName: detailB.name || 'Article',
+            difference: Number(detailB.difference) || 0
+          });
+        }
+      });
+
       inventorySessionSelectionState.suggestions = suggestions;
+      inventorySessionSelectionState.isolated = {
+        firstOnly: isolatedFirst,
+        secondOnly: isolatedSecond
+      };
       inventorySessionSelectionState.error = '';
       renderInventorySessionConsolidation();
       renderInventoryConsolidationScreen();
@@ -32435,3 +32510,13 @@ async function finaliserLivraisonReussie() {
 </script>
 </body>
 </html>
+    .inventory-session-isolated-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #1f2937;
+      font-size: 14px;
+    }
+
+    .inventory-session-isolated-list li {
+      margin-bottom: 6px;
+    }
