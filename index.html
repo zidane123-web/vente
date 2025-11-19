@@ -22528,6 +22528,9 @@ function updateStockAfterSaleFirestore(items) {
         return;
       }
       const selected = inventorySessionSelectionState.selectedIds;
+      const [firstId, secondId] = selected;
+      const first = firstId ? inventoryCampaignState.sessionsMap.get(firstId) : null;
+      const second = secondId ? inventoryCampaignState.sessionsMap.get(secondId) : null;
       const suggestions = inventorySessionSelectionState.suggestions;
       const error = inventorySessionSelectionState.error;
       const isProcessing = inventorySessionSelectionState.isProcessing;
