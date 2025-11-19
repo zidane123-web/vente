@@ -22727,11 +22727,6 @@ function updateStockAfterSaleFirestore(items) {
         inventorySessionSelectionState.error = 'Impossible de charger les sessions sélectionnées.';
         return;
       }
-      if (first.location === second.location) {
-        inventorySessionSelectionState.suggestions = [];
-        inventorySessionSelectionState.error = "Choisissez deux sites différents.";
-        return;
-      }
       const detailsA = Array.isArray(first.details) ? first.details : [];
       const detailsB = Array.isArray(second.details) ? second.details : [];
       if (!detailsA.length || !detailsB.length) {
