@@ -11,6 +11,7 @@ const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 
 const SERVICE_ACCOUNT_FILE = 'africaphone1-accfb-firebase-adminsdk-fbsvc-37efae2abd.json';
+const INVENTORY_HISTORY_SOURCE = 'apply_inventory_stock_counts';
 
 const INVENTORY_ENTRIES = [
   { stockName: 'Tecno Pop 10 128 + 3', boutique: 1, magasin: 7 },
@@ -118,6 +119,45 @@ function describeChange(label, before, after) {
   return `${label}: ${before} -> ${after}`;
 }
 
+function coerceNumber(value, fallback = 0) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function buildInventoryHistoryEntries(before = {}, payload = {}, options = {}) {
+  const safeBefore = {
+    boutique: coerceNumber(before.boutique),
+    magasin: coerceNumber(before.magasin)
+  };
+  const safeAfter = {
+    boutique: coerceNumber(payload.stockBoutique ?? payload.boutique),
+    magasin: coerceNumber(payload.stockMagasin ?? payload.magasin)
+  };
+  const entries = [];
+  ['boutique', 'magasin'].forEach(location => {
+    const prev = safeBefore[location];
+    const next = safeAfter[location];
+    const delta = next - prev;
+    if (!delta) {
+      return;
+    }
+    const locationLabel = location === 'magasin' ? 'Magasin' : 'Boutique';
+    const reason = `Inventaire ${locationLabel}: ${prev} -> ${next}`;
+    entries.push({
+      location,
+      change: delta,
+      reason,
+      before: prev,
+      after: next,
+      meta: {
+        inventorySource: INVENTORY_HISTORY_SOURCE,
+        stockName: options.stockName || ''
+      }
+    });
+  });
+  return entries;
+}
+
 async function main() {
   const argv = yargs(hideBin(process.argv))
     .option('apply', {
@@ -198,6 +238,16 @@ async function main() {
       return;
     }
 
+    const historyEntries = buildInventoryHistoryEntries({
+      boutique: currentBoutique,
+      magasin: currentMagasin
+    }, {
+      stockBoutique: nextBoutique,
+      stockMagasin: nextMagasin
+    }, {
+      stockName: entry.stockName
+    });
+
     pendingUpdates.push({
       name: entry.stockName,
       ref: match.ref,
@@ -211,7 +261,8 @@ async function main() {
         stockMagasin: nextMagasin,
         stockTotal: nextTotal,
         stock: nextTotal
-      }
+      },
+      historyEntries
     });
   });
 
@@ -246,6 +297,24 @@ async function main() {
   const batch = db.batch();
   pendingUpdates.forEach(item => {
     batch.update(item.ref, item.payload);
+    const historyEntries = Array.isArray(item.historyEntries) ? item.historyEntries : [];
+    historyEntries.forEach(entry => {
+      const historyRef = item.ref.collection('history').doc();
+      batch.set(historyRef, {
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+        type: 'ajustement_stock',
+        reason: entry.reason,
+        change: entry.change,
+        newStock: item.payload.stockTotal,
+        location: entry.location,
+        adjustedBy: INVENTORY_HISTORY_SOURCE,
+        adjustedByUid: null,
+        locationStockBefore: entry.before,
+        locationStockAfter: entry.after,
+        inventorySource: entry.meta && entry.meta.inventorySource,
+        inventoryStockName: entry.meta && entry.meta.stockName
+      });
+    });
   });
   await batch.commit();
   console.log(`Mises à jour appliquées: ${pendingUpdates.length}`);
