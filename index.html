@@ -21511,7 +21511,25 @@ function updateBalanceDisplay() {
  * @param {Array<{ produit: string, quantite: number }>} items
  * @returns {Promise}
  */
-function updateStockAfterSaleFirestore(items) {
+function buildSaleHistoryReason(item, options = {}) {
+  const qty = Number(item.quantite) || 0;
+  const name = item.produit || 'Article';
+  const prefix = options.reasonPrefix || 'Vente';
+  const client = options.clientName ? ` · Client: ${options.clientName}` : '';
+  const saleLabel = options.saleLabel ? ` ${options.saleLabel}` : '';
+  return `${prefix}${saleLabel} – ${qty}u ${name}${client}`.trim();
+}
+
+function updateStockAfterSaleFirestore(items, options = {}) {
+  const metadata = {
+    saleId: options.saleId || null,
+    clientName: options.clientName || '',
+    adjustedBy: options.adjustedBy || '',
+    adjustedByUid: options.adjustedByUid || null,
+    reasonPrefix: options.reasonPrefix || 'Vente',
+    saleLabel: options.saleLabel || ''
+  };
+
   const promises = items.map(item => {
     return dbFirestore
       .collection("stock")
@@ -21520,17 +21538,27 @@ function updateStockAfterSaleFirestore(items) {
       .get()
       .then(querySnapshot => {
         if (querySnapshot.empty) {
+          console.warn('Article introuvable pour la vente:', item.produit);
           return null;
         }
         const docRef = querySnapshot.docs[0].ref;
         const data = querySnapshot.docs[0].data();
         const locationUsed = resolveStockDestination({
           item,
-          sale: item,
+          sale: options.sale || item,
           fallbackLocation: DEFAULT_STOCK_LOCATION
         });
-        const updatedState = applyStockDelta(data, -item.quantite, { location: locationUsed });
+        const qty = Number(item.quantite) || 0;
+        const updatedState = applyStockDelta(data, -qty, {
+          location: locationUsed,
+          enforceNonNegative: true
+        });
         const stockPayload = getStockWritePayload(updatedState);
+        const reason = buildSaleHistoryReason(item, {
+          reasonPrefix: metadata.reasonPrefix,
+          clientName: metadata.clientName,
+          saleLabel: metadata.saleLabel
+        });
 
         return docRef.update(stockPayload)
           .then(() => {
@@ -21538,16 +21566,19 @@ function updateStockAfterSaleFirestore(items) {
               .collection("history")
               .add({
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                change: -item.quantite,
+                change: -qty,
                 newStock: stockPayload.stockTotal,
                 type: 'vente',
-                location: locationUsed
+                location: locationUsed,
+                reason,
+                refId: metadata.saleId,
+                adjustedBy: metadata.adjustedBy || null,
+                adjustedByUid: metadata.adjustedByUid || null
               });
           });
       });
   });
 
-  // Après toutes les mises à jour, on peut rafraîchir l'UI
   return Promise.all(promises).then(() => updateStockSummary());
 }
 
@@ -27439,7 +27470,15 @@ async function finaliserVente(clientNom, clientNumero, clientType, vendeur, phot
 
         // Étape 2 : Mettre à jour le stock
         if (!isDelivery) {
-            await updateStockAfterSaleFirestore(saleItemsPayload);
+            await updateStockAfterSaleFirestore(saleItemsPayload, {
+                saleId: newSaleId,
+                clientName: clientNom,
+                adjustedBy: user.displayName || user.email || user.uid || 'Utilisateur',
+                adjustedByUid: user.uid || null,
+                reasonPrefix: 'Vente',
+                saleLabel: newSaleId ? `#${newSaleId.slice(0, 6).toUpperCase()}` : '',
+                sale: vente
+            });
         }
 
         // Étape 3 : Enregistrer le mouvement de trésorerie pour la vente
@@ -32574,7 +32613,16 @@ async function finaliserLivraisonReussie() {
   if (!currentLivraisonData || !currentLivraisonId) return;
 
   if (!currentLivraisonData.convertedToSale) {
-    await updateStockAfterSaleFirestore(currentLivraisonData.items || []);
+    const user = firebase.auth().currentUser;
+    await updateStockAfterSaleFirestore(currentLivraisonData.items || [], {
+      saleId: currentLivraisonId,
+      clientName: currentLivraisonData.clientNom || '',
+      adjustedBy: user ? (user.displayName || user.email || user.uid) : 'Utilisateur',
+      adjustedByUid: user ? user.uid : null,
+      reasonPrefix: 'Livraison',
+      saleLabel: currentLivraisonId ? `#${currentLivraisonId.slice(0, 6).toUpperCase()}` : '',
+      sale: currentLivraisonData
+    });
   }
 
   await updateSaleFirestore(currentLivraisonId, {
