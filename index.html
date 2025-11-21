@@ -26098,16 +26098,6 @@ async function executeInternalStockTransfer(options = {}) {
 }
 
 function ouvrirModalTransfertStock() {
-  const isEmployee = (typeof window !== 'undefined' && window.userRole === 'employe') ||
-    (typeof document !== 'undefined' && document.body.classList.contains('role-employe'));
-  if (isEmployee) {
-    if (typeof showToast === 'function') {
-      showToast("Transfert non autorisé pour votre profil.", "error");
-    } else {
-      alert("Transfert non autorisé pour votre profil.");
-    }
-    return;
-  }
   if (!currentArticleId) {
     if (typeof showToast === 'function') {
       showToast("Sélectionnez un article avant le transfert.", "warning");
@@ -29802,7 +29792,7 @@ async function majCartesTresorerie(options = {}) {
           navMenu.classList.add('hidden-by-role');
           navMenu.style.setProperty('display', 'none', 'important');
         }
-        const allowedEmployeeNavigation = new Set(['accueil', 'stock', 'historique', 'cloture-vendeur', 'salaires']);
+        const allowedEmployeeNavigation = new Set(['accueil', 'stock', 'historique', 'cloture-vendeur', 'salaires', 'transfert-stock']);
         const disallowedForEmployee = new Set([
           'menu',
           'clients',
