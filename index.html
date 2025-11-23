@@ -9549,12 +9549,12 @@ async function generateSupplierCreditPDF() {
       <div class="salary-metric-card">
         <p>Telephones vendus aujourd'hui</p>
         <strong id="salaryPhonesToday">0</strong>
-        <span id="salaryCommissionToday">Commission: 0 FCFA</span>
+        <span id="salaryCommissionToday">Plan du jour: 0 FCFA</span>
       </div>
       <div class="salary-metric-card">
         <p>Total telephones (mois)</p>
         <strong id="salaryPhonesMonth">0</strong>
-        <span id="salaryCommissionMonth">Commission: 0 FCFA</span>
+        <span id="salaryCommissionMonth">Plan cumule: 0 FCFA</span>
       </div>
     </div>
 
@@ -9562,7 +9562,7 @@ async function generateSupplierCreditPDF() {
       <div class="salary-panel-heading">
         <div>
           <h3>Ventes par employe</h3>
-          <small id="salaryEmployeeSubtitle">Telephones du mois en cours</small>
+          <small id="salaryEmployeeSubtitle">Telephones et plan en cours</small>
         </div>
       </div>
       <div class="table-wrapper">
@@ -9570,9 +9570,11 @@ async function generateSupplierCreditPDF() {
           <thead>
             <tr>
               <th>Employe</th>
+              <th>Plan</th>
               <th>Telephones (jour)</th>
               <th>Telephones (mois)</th>
-              <th>Commission (mois)</th>
+              <th>CA (mois)</th>
+              <th>Montant plan (mois)</th>
             </tr>
           </thead>
           <tbody id="salaryEmployeePhoneBody"></tbody>
@@ -23288,12 +23290,34 @@ const salaryPhoneStatsState = {
     phonesToday: 0,
     phonesMonth: 0,
     commissionToday: 0,
-    commissionMonth: 0
+    commissionMonth: 0,
+    planToday: 0,
+    planMonth: 0
   },
   employees: [],
   daily: [],
   error: ''
 };
+
+const SALARY_PLAN_TYPES = {
+  COMMISSION_TIERS: { id: 'commission_tiers', label: 'Commission par palier' },
+  PHONE_CA_BONUS: { id: 'phone_ca_bonus', label: 'Prime téléphones & CA journalier' }
+};
+
+const DEFAULT_SALARY_PLAN = SALARY_PLAN_TYPES.COMMISSION_TIERS.id;
+
+const salaryPlanState = {
+  map: new Map(),
+  loaded: false,
+  loading: false
+};
+
+function getPlanLabel(planType) {
+  if (planType === SALARY_PLAN_TYPES.PHONE_CA_BONUS.id) {
+    return SALARY_PLAN_TYPES.PHONE_CA_BONUS.label;
+  }
+  return SALARY_PLAN_TYPES.COMMISSION_TIERS.label;
+}
 
 const SALARY_PRIVILEGED_ROLES = new Set(['admin', 'patron', 'manager', 'gerant', 'superviseur']);
 
@@ -23344,6 +23368,137 @@ function getSalaryUserContext() {
     canViewAll,
     userUid: currentUser && currentUser.uid ? currentUser.uid : null
   };
+}
+
+function toSalaryNumber(value) {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value.replace(/[^0-9.,-]/g, '').replace(/,/g, '.'));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (value && typeof value.toNumber === 'function') {
+    return toSalaryNumber(value.toNumber());
+  }
+  return 0;
+}
+
+function normalizeClientType(value) {
+  const text = (value || '').toString().toLowerCase();
+  if (!text) return 'detail';
+  const grosKeywords = ['gros', 'grossiste', 'revendeur', 'reseller', 'wholesale'];
+  if (grosKeywords.some(k => text.includes(k))) {
+    return 'gros';
+  }
+  return 'detail';
+}
+
+function extractSaleTotal(data) {
+  if (!data) return 0;
+  const candidates = [
+    data.overallTotal,
+    data.total,
+    data.totalAmount,
+    data.paymentsNetEncaisse,
+    data.paymentsTotalEncaisse
+  ];
+  const candidate = candidates.find(v => toSalaryNumber(v) > 0);
+  if (candidate !== undefined) {
+    return toSalaryNumber(candidate);
+  }
+  if (Array.isArray(data.items)) {
+    return data.items.reduce((sum, item) => sum + toSalaryNumber(item.total || item.prixVente), 0);
+  }
+  return 0;
+}
+
+function computePlanCommissionTier(amount, planType) {
+  const tiersDetail = [
+    { max: 5000, value: 50 },
+    { max: 20000, value: 200 },
+    { max: 200000, value: 1000 },
+    { max: Infinity, value: 1500 }
+  ];
+  const tiersGros = [
+    { max: 5000, value: 20 },
+    { max: 20000, value: 50 },
+    { max: 200000, value: 300 },
+    { max: Infinity, value: 500 }
+  ];
+  const tiers = planType === 'gros' ? tiersGros : tiersDetail;
+  for (const tier of tiers) {
+    if (amount < tier.max) {
+      return tier.value;
+    }
+  }
+  return 0;
+}
+
+function computePlanA(detailAmounts = [], grosAmounts = [], phoneCount = 0) {
+  const detailCommission = detailAmounts.reduce((sum, amount) => sum + computePlanCommissionTier(amount, 'detail'), 0);
+  const grosCommission = grosAmounts.reduce((sum, amount) => sum + computePlanCommissionTier(amount, 'gros'), 0);
+  const bonus = phoneCount >= 500 ? 20000 : (phoneCount >= 100 ? 3000 : 0);
+  return {
+    total: detailCommission + grosCommission + bonus,
+    detail: detailCommission,
+    gros: grosCommission,
+    bonusPhones: bonus,
+    phones: phoneCount
+  };
+}
+
+function computePlanB(phoneCount = 0, daysMap = new Map()) {
+  const phoneBlocks = Math.floor(phoneCount / 100);
+  const phoneBonus = phoneBlocks * 7500;
+  const daysEligible = Array.from(daysMap.values()).filter(day => (day.ca || 0) >= 1000000).length;
+  const dayBonus = daysEligible * 1000;
+  return {
+    total: phoneBonus + dayBonus,
+    phoneBonus,
+    dayBonus,
+    daysEligible,
+    phones: phoneCount
+  };
+}
+
+async function ensureSalaryPlansLoaded() {
+  if (salaryPlanState.loaded || salaryPlanState.loading) {
+    return;
+  }
+  if (!dbFirestore || !dbFirestore.collection) {
+    return;
+  }
+  salaryPlanState.loading = true;
+  try {
+    const snap = await dbFirestore.collection('salaryPlans').get();
+    salaryPlanState.map.clear();
+    snap.forEach(doc => {
+      const data = doc.data() || {};
+      const planType = (data.planType || data.plan || '').toString() || DEFAULT_SALARY_PLAN;
+      salaryPlanState.map.set(doc.id, {
+        planType
+      });
+    });
+    salaryPlanState.loaded = true;
+  } catch (error) {
+    console.error('Erreur chargement des plans salariaux:', error);
+  } finally {
+    salaryPlanState.loading = false;
+  }
+}
+
+async function saveSalaryPlanForEmployee(uid, planType, meta = {}) {
+  if (!uid || !planType || !dbFirestore || !dbFirestore.collection) {
+    throw new Error('Impossible de sauvegarder le plan (parametres invalides).');
+  }
+  const payload = {
+    planType,
+    employeeName: meta.name || null,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  await dbFirestore.collection('salaryPlans').doc(uid).set(payload, { merge: true });
+  salaryPlanState.map.set(uid, { planType });
 }
 function ensureSalaryListeners() {
   const addBtn = document.getElementById('salaryAddBtn');
@@ -23471,6 +23626,7 @@ function renderSalaryPhoneStats() {
   const dailySubtitle = document.getElementById('salaryDailySubtitle');
   const employeeSubtitle = document.getElementById('salaryEmployeeSubtitle');
   const monthPicker = document.getElementById('salaryMonthPicker');
+  const scope = getSalaryUserContext();
 
   if (subtitleEl) {
     subtitleEl.textContent = salaryPhoneStatsState.subtitle || 'Mois en cours';
@@ -23507,10 +23663,10 @@ function renderSalaryPhoneStats() {
     phonesMonthEl.textContent = (salaryPhoneStatsState.totals.phonesMonth || 0).toLocaleString('fr-FR');
   }
   if (commissionTodayEl) {
-    commissionTodayEl.textContent = 'Commission: ' + fmt(salaryPhoneStatsState.totals.commissionToday || 0) + ' FCFA';
+    commissionTodayEl.textContent = 'Plan du jour: ' + fmt(salaryPhoneStatsState.totals.planToday || 0) + ' FCFA';
   }
   if (commissionMonthEl) {
-    commissionMonthEl.textContent = 'Commission: ' + fmt(salaryPhoneStatsState.totals.commissionMonth || 0) + ' FCFA';
+    commissionMonthEl.textContent = 'Plan cumule: ' + fmt(salaryPhoneStatsState.totals.planMonth || 0) + ' FCFA';
   }
 
   if (employeeBody && employeeEmpty) {
@@ -23519,13 +23675,54 @@ function renderSalaryPhoneStats() {
       employeeEmpty.style.display = 'none';
       salaryPhoneStatsState.employees.forEach(entry => {
         const row = document.createElement('tr');
+        const planLabel = entry.planType ? getPlanLabel(entry.planType) : getPlanLabel(DEFAULT_SALARY_PLAN);
+        const planControl = (scope.canViewAll && entry.uid)
+          ? `<select class="salary-plan-select" data-uid="${entry.uid}" data-name="${entry.name}">
+                <option value="${SALARY_PLAN_TYPES.COMMISSION_TIERS.id}" ${entry.planType === SALARY_PLAN_TYPES.COMMISSION_TIERS.id ? 'selected' : ''}>${SALARY_PLAN_TYPES.COMMISSION_TIERS.label}</option>
+                <option value="${SALARY_PLAN_TYPES.PHONE_CA_BONUS.id}" ${entry.planType === SALARY_PLAN_TYPES.PHONE_CA_BONUS.id ? 'selected' : ''}>${SALARY_PLAN_TYPES.PHONE_CA_BONUS.label}</option>
+             </select>`
+          : `<span>${planLabel}</span>`;
         row.innerHTML =
           '<td>' + entry.name + '</td>' +
-          '<td>' + (entry.phonesToday || 0) + '</td>' +
-          '<td>' + (entry.phonesMonth || 0) + '</td>' +
-          '<td>' + fmt((entry.phonesMonth || 0) * COMMISSION_PAR_TELEPHONE) + ' FCFA</td>';
+          '<td>' + planControl + '</td>' +
+          '<td>' + (entry.phonesToday || 0).toLocaleString('fr-FR') + '</td>' +
+          '<td>' + (entry.phonesMonth || 0).toLocaleString('fr-FR') + '</td>' +
+          '<td>' + fmt(entry.caMonth || 0) + ' FCFA</td>' +
+          '<td>' + fmt(entry.planMonth || 0) + ' FCFA</td>';
         employeeBody.appendChild(row);
       });
+
+      if (scope.canViewAll) {
+        const selects = employeeBody.querySelectorAll('.salary-plan-select');
+        selects.forEach(select => {
+          if (select.dataset.listenerAttached) {
+            return;
+          }
+          select.dataset.listenerAttached = 'true';
+          select.addEventListener('change', async (event) => {
+            const uid = event.target.dataset.uid;
+            const name = event.target.dataset.name;
+            const newPlan = event.target.value;
+            const previous = event.target.dataset.prev || event.target.defaultValue;
+            event.target.disabled = true;
+            try {
+              await saveSalaryPlanForEmployee(uid, newPlan, { name });
+              if (typeof showToast === 'function') {
+                showToast('Plan mis a jour pour ' + (name || 'employe'));
+              }
+              loadSalaryPhoneStats({ force: true });
+            } catch (error) {
+              console.error('Erreur mise a jour plan:', error);
+              event.target.value = previous;
+              if (typeof showToast === 'function') {
+                showToast('Echec mise a jour du plan', 'error');
+              }
+            } finally {
+              event.target.disabled = false;
+            }
+          });
+        });
+      }
     } else {
       employeeEmpty.style.display = 'block';
     }
@@ -23547,7 +23744,8 @@ function renderSalaryPhoneStats() {
           '</div>' +
           '<div class="daily-phone-metrics">' +
             '<span>' + entry.phones.toLocaleString('fr-FR') + ' telephone(s)</span>' +
-            '<span>' + fmt(entry.commission) + ' FCFA</span>' +
+            '<span>' + fmt(entry.ca || 0) + ' FCFA CA</span>' +
+            '<span>' + fmt(entry.plan || 0) + ' FCFA plan</span>' +
           '</div>';
         dailyList.appendChild(container);
       });
@@ -23597,6 +23795,8 @@ async function loadSalaryPhoneStats(options = {}) {
     const startOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth(), 1, 0, 0, 0, 0);
     const endOfMonth = new Date(targetMonth.getFullYear(), targetMonth.getMonth() + 1, 0, 23, 59, 59, 999);
 
+    await ensureSalaryPlansLoaded();
+
     let query = dbFirestore
       .collection('ventes')
       .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfMonth))
@@ -23609,11 +23809,11 @@ async function loadSalaryPhoneStats(options = {}) {
     const ventesSnapshot = await query.get();
 
     const employeesMap = new Map();
-    const dailyMap = new Map();
     let totalMonthPhones = 0;
     let totalTodayPhones = 0;
     const now = new Date();
     const referenceDay = isSameMonth(targetMonth, now) ? now : null;
+    const referenceDayKey = referenceDay ? referenceDay.toISOString().split('T')[0] : null;
 
     ventesSnapshot.forEach(doc => {
       const data = doc.data() || {};
@@ -23628,56 +23828,124 @@ async function loadSalaryPhoneStats(options = {}) {
       }
 
       const phonesCount = countPhonesFromItems(data.items);
-      if (!phonesCount) {
-        return;
+      const saleTotal = extractSaleTotal(data);
+      const clientType = normalizeClientType(data.clientType || data.clientCategory || data.typeClient || data.customerType);
+      const employeeUid = data.enregistreParUid || data.ownerUid || data.uid || null;
+      const employeeKey = employeeUid || data.enregistreParNom || doc.id;
+      const entry = employeesMap.get(employeeKey) || {
+        key: employeeKey,
+        uid: employeeUid,
+        name: formatEmployeeName(data),
+        phonesToday: 0,
+        phonesMonth: 0,
+        caToday: 0,
+        caMonth: 0,
+        planSales: { detail: [], gros: [] },
+        planSalesToday: { detail: [], gros: [] },
+        days: new Map(),
+        todayKey: referenceDayKey
+      };
+
+      entry.uid = entry.uid || employeeUid;
+      entry.name = formatEmployeeName(data);
+
+      if (phonesCount) {
+        totalMonthPhones += phonesCount;
+        entry.phonesMonth += phonesCount;
+        if (referenceDay && isSameDay(saleDate, referenceDay)) {
+          totalTodayPhones += phonesCount;
+          entry.phonesToday += phonesCount;
+        }
       }
 
-      totalMonthPhones += phonesCount;
+      const amountBucket = clientType === 'gros' ? entry.planSales.gros : entry.planSales.detail;
+      amountBucket.push(saleTotal);
       if (referenceDay && isSameDay(saleDate, referenceDay)) {
-        totalTodayPhones += phonesCount;
+        const bucketToday = clientType === 'gros' ? entry.planSalesToday.gros : entry.planSalesToday.detail;
+        bucketToday.push(saleTotal);
+        entry.todayKey = saleDate.toISOString().split('T')[0];
+      }
+
+      entry.caMonth += saleTotal;
+      if (referenceDay && isSameDay(saleDate, referenceDay)) {
+        entry.caToday += saleTotal;
       }
 
       const dayKey = saleDate.toISOString().split('T')[0];
-      const dayEntry = dailyMap.get(dayKey) || { date: saleDate, phones: 0 };
-      dayEntry.phones += phonesCount;
-      dayEntry.date = saleDate;
-      dailyMap.set(dayKey, dayEntry);
+      const dayStats = entry.days.get(dayKey) || { date: saleDate, phones: 0, ca: 0, detail: [], gros: [] };
+      dayStats.phones += phonesCount;
+      dayStats.ca += saleTotal;
+      (clientType === 'gros' ? dayStats.gros : dayStats.detail).push(saleTotal);
+      dayStats.date = saleDate;
+      entry.days.set(dayKey, dayStats);
 
-      const employeeKey = data.enregistreParUid || data.enregistreParNom || doc.id;
-      const entry = employeesMap.get(employeeKey) || {
-        name: formatEmployeeName(data),
-        phonesToday: 0,
-        phonesMonth: 0
-      };
-      entry.name = formatEmployeeName(data);
-      entry.phonesMonth += phonesCount;
-      if (referenceDay && isSameDay(saleDate, referenceDay)) {
-        entry.phonesToday += phonesCount;
-      }
       employeesMap.set(employeeKey, entry);
     });
 
-    salaryPhoneStatsState.employees = Array.from(employeesMap.values())
-      .sort((a, b) => {
-        if (b.phonesMonth !== a.phonesMonth) {
-          return b.phonesMonth - a.phonesMonth;
-        }
-        return a.name.localeCompare(b.name, 'fr');
-      });
+    const employeesList = Array.from(employeesMap.values()).map(entry => {
+      const monthPlanA = computePlanA(entry.planSales.detail, entry.planSales.gros, entry.phonesMonth);
+      const monthPlanB = computePlanB(entry.phonesMonth, entry.days);
+      const todayMap = entry.todayKey && entry.days.has(entry.todayKey)
+        ? new Map([[entry.todayKey, entry.days.get(entry.todayKey)]])
+        : new Map();
+      const todayPlanA = computePlanA(entry.planSalesToday.detail, entry.planSalesToday.gros, entry.phonesToday);
+      const todayPlanB = computePlanB(entry.phonesToday, todayMap);
+      const plansMonth = {
+        [SALARY_PLAN_TYPES.COMMISSION_TIERS.id]: monthPlanA,
+        [SALARY_PLAN_TYPES.PHONE_CA_BONUS.id]: monthPlanB
+      };
+      const plansToday = {
+        [SALARY_PLAN_TYPES.COMMISSION_TIERS.id]: todayPlanA,
+        [SALARY_PLAN_TYPES.PHONE_CA_BONUS.id]: todayPlanB
+      };
+      const assignedPlan = (entry.uid && salaryPlanState.map.get(entry.uid)?.planType) || DEFAULT_SALARY_PLAN;
+      return {
+        ...entry,
+        planType: assignedPlan,
+        planMonth: plansMonth[assignedPlan]?.total || 0,
+        planToday: plansToday[assignedPlan]?.total || 0,
+        planResultsMonth: plansMonth,
+        planResultsToday: plansToday
+      };
+    }).sort((a, b) => {
+      if (b.phonesMonth !== a.phonesMonth) {
+        return b.phonesMonth - a.phonesMonth;
+      }
+      return a.name.localeCompare(b.name, 'fr');
+    });
 
-    salaryPhoneStatsState.daily = Array.from(dailyMap.values())
-      .sort((a, b) => b.date - a.date)
-      .map(entry => ({
-        date: entry.date,
-        phones: entry.phones,
-        commission: entry.phones * COMMISSION_PAR_TELEPHONE
-      }));
+    const dailyAggregates = new Map();
+    employeesList.forEach(entry => {
+      const planType = entry.planType || DEFAULT_SALARY_PLAN;
+      entry.days.forEach((dayStats, dayKey) => {
+        let planValue = 0;
+        if (planType === SALARY_PLAN_TYPES.PHONE_CA_BONUS.id) {
+          planValue = computePlanB(dayStats.phones || 0, new Map([[dayKey, dayStats]])).total;
+        } else {
+          planValue = computePlanA(dayStats.detail || [], dayStats.gros || [], dayStats.phones || 0).total;
+        }
+        const agg = dailyAggregates.get(dayKey) || { date: dayStats.date || new Date(dayKey), phones: 0, ca: 0, plan: 0 };
+        agg.phones += dayStats.phones || 0;
+        agg.ca += dayStats.ca || 0;
+        agg.plan += planValue;
+        agg.date = dayStats.date || agg.date;
+        dailyAggregates.set(dayKey, agg);
+      });
+    });
+
+    const planMonthTotal = employeesList.reduce((sum, entry) => sum + (entry.planMonth || 0), 0);
+    const planTodayTotal = employeesList.reduce((sum, entry) => sum + (entry.planToday || 0), 0);
+
+    salaryPhoneStatsState.employees = employeesList;
+    salaryPhoneStatsState.daily = Array.from(dailyAggregates.values()).sort((a, b) => b.date - a.date);
 
     salaryPhoneStatsState.totals = {
       phonesToday: totalTodayPhones,
       phonesMonth: totalMonthPhones,
-      commissionToday: totalTodayPhones * COMMISSION_PAR_TELEPHONE,
-      commissionMonth: totalMonthPhones * COMMISSION_PAR_TELEPHONE
+      commissionToday: planTodayTotal,
+      commissionMonth: planMonthTotal,
+      planToday: planTodayTotal,
+      planMonth: planMonthTotal
     };
 
     salaryPhoneStatsState.lastQueryKey = cacheKey;
