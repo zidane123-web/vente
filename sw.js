@@ -43,11 +43,33 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        // si trouvé en cache, on renvoie ; sinon on va au réseau
-        return cachedResponse || fetch(event.request);
-      })
-  );
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  if (event.request.cache === 'only-if-cached' && event.request.mode !== 'same-origin') {
+    return;
+  }
+
+  event.respondWith((async () => {
+    const cachedResponse = await caches.match(event.request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+    try {
+      const networkResponse = await fetch(event.request);
+      const requestUrl = new URL(event.request.url);
+      if (networkResponse && networkResponse.ok && requestUrl.origin === self.location.origin) {
+        const cache = await caches.open(CACHE_NAME);
+        cache.put(event.request, networkResponse.clone());
+      }
+      return networkResponse;
+    } catch (error) {
+      console.warn('[SW] Fetch failed, returning cache when possible', event.request.url, error);
+      const fallbackCached = await caches.match(event.request);
+      if (fallbackCached) {
+        return fallbackCached;
+      }
+      return new Response('', { status: 503, statusText: 'Service Unavailable' });
+    }
+  })());
 });

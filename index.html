@@ -19044,15 +19044,18 @@ let clientCardAttentionTimeout = null;
 let cartStateReadyForPricing = false;
 
     function normalizeClientType(value, fallback = '') {
-      if (typeof value !== 'string') return fallback;
-      const normalized = value.trim().toLowerCase();
-      if (normalized === 'revendeur') return 'revendeur';
-      if (normalized === 'ordinaire' || normalized === 'client' || normalized === 'standard') return 'ordinaire';
+      if (value === null || value === undefined) return fallback;
+      const normalized = String(value).trim().toLowerCase();
+      const revendeurKeywords = ['revendeur', 'gros', 'grossiste', 'reseller', 'wholesale'];
+      if (revendeurKeywords.some(keyword => normalized.includes(keyword))) return 'revendeur';
+      const ordinaireKeywords = ['ordinaire', 'client', 'standard', 'detail', 'détail', 'retail'];
+      if (ordinaireKeywords.some(keyword => normalized.includes(keyword))) return 'ordinaire';
       return fallback;
     }
 
     function describeClientType(type, options = {}) {
-      const fallbackLabel = options && options.fallback ? options.fallback : 'Type client non défini';
+      const hasFallback = options && Object.prototype.hasOwnProperty.call(options, 'fallback');
+      const fallbackLabel = hasFallback ? options.fallback : 'Type client non défini';
       const normalized = normalizeClientType(type || '', '');
       if (normalized === 'revendeur') {
         return (options && options.revendeurLabel) || 'Revendeur';
@@ -23475,14 +23478,9 @@ function toSalaryNumber(value) {
   return 0;
 }
 
-function normalizeClientType(value) {
-  const text = (value || '').toString().toLowerCase();
-  if (!text) return 'detail';
-  const grosKeywords = ['gros', 'grossiste', 'revendeur', 'reseller', 'wholesale'];
-  if (grosKeywords.some(k => text.includes(k))) {
-    return 'gros';
-  }
-  return 'detail';
+function mapClientTypeToSalesBucket(value) {
+  const normalized = normalizeClientType(value, 'ordinaire');
+  return normalized === 'revendeur' ? 'gros' : 'detail';
 }
 
 function extractSaleTotal(data) {
@@ -23920,7 +23918,7 @@ async function loadSalaryPhoneStats(options = {}) {
 
       const phonesCount = countPhonesFromItems(data.items);
       const saleTotal = extractSaleTotal(data);
-      const clientType = normalizeClientType(data.clientType || data.clientCategory || data.typeClient || data.customerType);
+      const clientType = mapClientTypeToSalesBucket(data.clientType || data.clientCategory || data.typeClient || data.customerType);
       const employeeUid = data.enregistreParUid || data.ownerUid || data.uid || null;
       const employeeKey = employeeUid || data.enregistreParNom || doc.id;
       const entry = employeesMap.get(employeeKey) || {
