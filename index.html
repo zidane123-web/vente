@@ -24616,6 +24616,7 @@ let currentArticleResellerPrice = null;
 let isArticlePriceUpdateRunning = false;
 let currentItems = [];              // contenu du panier
 let cachedStock  = [];              // stock en mémoire (déjà chargé)
+let stockSortMode = 'name';         // 'name' | 'stars'
 const STOCK_LOCATION_VALUES = ['boutique', 'magasin'];
 const DEFAULT_STOCK_LOCATION = STOCK_LOCATION_VALUES[0];
 const FIXED_SALE_PICKUP_LOCATION = DEFAULT_STOCK_LOCATION;
@@ -25758,7 +25759,7 @@ function formatAideCommandeCurrency(value) {
 }
 
 // Classement des produits par étoiles (stock)
-let stockSortMode = typeof stockSortMode === 'string' ? stockSortMode : 'name';
+stockSortMode = typeof stockSortMode === 'string' ? stockSortMode : 'name';
 function aideCommandeNormalizeName(value) {
   if (typeof value !== 'string') {
     value = value ? String(value) : '';
@@ -25830,7 +25831,7 @@ let livreursCache = [];
 let livreursCacheLoaded = false;
 let livreursLoadingPromise = null;
 let livreurSearchMode = 'nom';
-let selectedLivreurId = null;
+var selectedLivreurId = null;
 let currentLivraisonId = null;
 let currentLivraisonData = null;
 let livraisonModalContext = null;
