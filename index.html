@@ -3749,7 +3749,7 @@ body.drawer-open {
       </section>
 
       <div class="ako-banner-star">
-        <button type="button" class="btn-black" id="btnAccueilStarsStock" onclick="ouvrirStockStarsDepuisAccueil()">
+        <button type="button" class="btn-black" id="btnAccueilStarsStock" onclick="ouvrirStockStarsDepuisAccueil()" style="display:none;">
           <i data-lucide="star"></i>
           <span>Voir produits stars</span>
         </button>
@@ -30237,6 +30237,7 @@ async function majCartesTresorerie(options = {}) {
       const stockSummary = document.querySelector('#screen-stock .summary');
       const quickPurchaseButton = document.getElementById("quick-enregistrer-achat");
       const quickTopProductsButton = document.getElementById("quick-top-produits");
+      const bannerStarsButton = document.getElementById("btnAccueilStarsStock");
       const adminStatsCard = document.getElementById("accueilAdminStats");
 
       if (navMenu) {
@@ -30287,6 +30288,9 @@ async function majCartesTresorerie(options = {}) {
       }
       if (quickTopProductsButton) {
         quickTopProductsButton.style.display = 'none';
+      }
+      if (bannerStarsButton) {
+        bannerStarsButton.style.display = 'none';
       }
       if (adminStatsCard) {
         adminStatsCard.style.display = 'none';
@@ -30427,6 +30431,9 @@ async function majCartesTresorerie(options = {}) {
         }
         if (quickTopProductsButton) {
           quickTopProductsButton.style.removeProperty('display');
+        }
+        if (bannerStarsButton) {
+          bannerStarsButton.style.removeProperty('display');
         }
         if (adminStatsCard) {
           adminStatsCard.style.removeProperty('display');
