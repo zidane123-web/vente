@@ -2370,6 +2370,33 @@ body.role-employe #screen-accueil .ako-quick-grid {
     .product-stars .stock-star.filled {
       color: #f4b400;
     }
+    .btn-black {
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 12px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    }
+    .btn-black:hover {
+      background: #000;
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.16);
+    }
+    .btn-black:active {
+      transform: translateY(0);
+      box-shadow: var(--shadow);
+    }
+    .ako-banner-star {
+      margin: 8px 0 16px;
+      display: flex;
+      justify-content: flex-start;
+    }
     .price-item {
       background: var(--white);
       border: 1px solid #ccc;
@@ -3720,6 +3747,13 @@ body.drawer-open {
           <p class="ako-date" id="accueil-date" aria-live="polite">--</p>
         </div>
       </section>
+
+      <div class="ako-banner-star">
+        <button type="button" class="btn-black" id="btnAccueilStarsStock" onclick="ouvrirStockStarsDepuisAccueil()">
+          <i data-lucide="star"></i>
+          <span>Voir produits stars</span>
+        </button>
+      </div>
 
       <section id="accueilAdminStats" class="ako-card ako-card-stats" style="display:none;" aria-label="Indicateurs administrateur">
         <div class="performance-metrics">
@@ -20068,6 +20102,18 @@ function ouvrirApprovisionnementDepuisAccueil() {
   }, 80);
 }
 
+function ouvrirStockStarsDepuisAccueil() {
+  stockSortMode = 'stars';
+  window.location.hash = 'stock';
+  setTimeout(() => {
+    showStockCategory('telephones');
+    filterStockCategory();
+    if (typeof refreshLucideIcons === 'function') {
+      refreshLucideIcons();
+    }
+  }, 120);
+}
+
 function ouvrirTopProduitsDepuisAccueil() {
   const role = typeof window !== 'undefined' ? window.userRole : null;
   if (role !== 'admin') {
@@ -25711,6 +25757,8 @@ function formatAideCommandeCurrency(value) {
   return numeric.toLocaleString('fr-FR') + ' FCFA';
 }
 
+// Classement des produits par étoiles (stock)
+let stockSortMode = typeof stockSortMode === 'string' ? stockSortMode : 'name';
 function aideCommandeNormalizeName(value) {
   if (typeof value !== 'string') {
     value = value ? String(value) : '';
@@ -25727,6 +25775,25 @@ function aideCommandeRenderStars(value) {
   const filled = '★'.repeat(rating);
   const empty = '☆'.repeat(5 - rating);
   return filled + empty;
+}
+
+function compareStockByStars(a, b) {
+  const starsA = Number(a && a.demandStars) || 0;
+  const starsB = Number(b && b.demandStars) || 0;
+  if (starsB !== starsA) {
+    return starsB - starsA;
+  }
+  const scoreA = Number(a && a.demandScore) || 0;
+  const scoreB = Number(b && b.demandScore) || 0;
+  if (scoreB !== scoreA) {
+    return scoreB - scoreA;
+  }
+  const stockA = Number((a && (a.stockTotal !== undefined ? a.stockTotal : a.stock)) || 0);
+  const stockB = Number((b && (b.stockTotal !== undefined ? b.stockTotal : b.stock)) || 0);
+  if (stockB !== stockA) {
+    return stockB - stockA;
+  }
+  return (a && a.name ? a.name : '').localeCompare((b && b.name ? b.name : ''), 'fr', { sensitivity: 'base' });
 }
 
 function aideCommandeDemandStatusLabel(status) {
@@ -28760,12 +28827,16 @@ function confirmerAjoutFournisseur(fournisseurName) {
       p.category === category &&
       p.name.toLowerCase().includes(searchTerm));
 
-    if(filtered.length === 0){
+    const sorted = (stockSortMode === 'stars')
+      ? filtered.slice().sort(compareStockByStars)
+      : filtered.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }));
+
+    if(sorted.length === 0){
       cont.innerHTML = "<p>Aucun produit trouvé.</p>";
       return;
     }
 
-    filtered.forEach(prod=>{
+    sorted.forEach(prod=>{
       const card = document.createElement("div");
       card.className = "product-card";
       const starsInfo = renderStockStars(prod.demandStars);
@@ -28819,23 +28890,26 @@ function confirmerAjoutFournisseur(fournisseurName) {
         const filtered = stocks
             .filter(p =>
                 p.category === currentStockCategory &&
-                p.name.toLowerCase().includes(searchTerm))
-            .sort((a, b) => {
-                const ordre = { tecno: 1, infinix: 2, itel: 3, redmi: 4 };
-                const rA = ordre[a.name.split(" ")[0].toLowerCase()] || 5;
-                const rB = ordre[b.name.split(" ")[0].toLowerCase()] || 5;
-                return rA !== rB ? rA - rB : a.name.localeCompare(b.name);
+                p.name.toLowerCase().includes(searchTerm));
+
+        const sorted = (stockSortMode === 'stars')
+          ? filtered.slice().sort(compareStockByStars)
+          : filtered.slice().sort((a, b) => {
+              const ordre = { tecno: 1, infinix: 2, itel: 3, redmi: 4 };
+              const rA = ordre[a.name.split(" ")[0].toLowerCase()] || 5;
+              const rB = ordre[b.name.split(" ")[0].toLowerCase()] || 5;
+              return rA !== rB ? rA - rB : a.name.localeCompare(b.name);
             });
 
         /* -- construction DOM -- */
         const cont = document.getElementById("category-container");
         cont.innerHTML = "";
-        if (filtered.length === 0) {
+        if (sorted.length === 0) {
             cont.innerHTML = "<p>Aucun produit trouvé.</p>";
             return;
         }
 
-        filtered.forEach(prod => {
+        sorted.forEach(prod => {
             const card = document.createElement("div");
             card.className = "product-card";
             const formatPriceLabel = (value) => {
@@ -28867,6 +28941,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
                 <div class="product-icon">${prod.icon}</div>
                 <div class="product-details">
                   <h3>${prod.name}</h3>
+                  <div class="product-stars" aria-label="Popularite ${starsInfo.rating}/5">${starsInfo.stars}</div>
                   <p>🔹 Stock : ${formatQty(totalQty)} unités</p>
                   <p class="mini-stock-line">• Boutique : ${formatQty(boutiqueQty)} | Magasin : ${formatQty(magasinQty)}</p>
                   <p class="price-label">🪙 Prix CUMP : ${retailPriceLabel}</p>
