@@ -2362,12 +2362,12 @@ body.role-employe #screen-accueil .ako-quick-grid {
       align-items: center;
       margin: 2px 0 6px;
     }
-    .product-stars .stock-star {
-      width: 18px;
-      height: 18px;
+    .product-stars .stock-star-icon {
+      font-size: 18px;
+      line-height: 1;
       color: #cfd8dc;
     }
-    .product-stars .stock-star.filled {
+    .product-stars .stock-star-icon.filled {
       color: #f4b400;
     }
     .btn-black {
@@ -28801,7 +28801,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
       const rating = Math.max(1, Math.min(5, Number(value) || 1));
       const stars = Array.from({ length: 5 }, (_, idx) => {
         const filled = idx < rating ? ' filled' : '';
-        return `<i data-lucide="star" class="stock-star${filled}" aria-hidden="true"></i>`;
+        return `<span class="stock-star-icon${filled}" aria-hidden="true">★</span>`;
       }).join('');
       return { rating, stars };
     }
@@ -28950,19 +28950,6 @@ function confirmerAjoutFournisseur(fournisseurName) {
                   <p class="price-label">🤝 Prix Revendeur : ${resellerPriceLabel}</p>
                 </div>
               `;
-            const details = card.querySelector('.product-details');
-            if (details) {
-              const starsEl = document.createElement('div');
-              starsEl.className = 'product-stars';
-              starsEl.setAttribute('aria-label', `Popularite ${starsInfo.rating}/5`);
-              starsEl.innerHTML = starsInfo.stars;
-              const firstParagraph = details.querySelector('p');
-              if (firstParagraph) {
-                details.insertBefore(starsEl, firstParagraph);
-              } else {
-                details.appendChild(starsEl);
-              }
-            }
 
             // =========================================================
             // === LA LIGNE MAGIQUE À AJOUTER EST ICI ===
