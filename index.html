@@ -18448,6 +18448,11 @@ async function annulerCommandeFournisseur(approId, event) {
     </div>
 
     <div class="aide-commande-section">
+      <h2>Produits stars du stock</h2>
+      <div id="aideCommandeStarsList" class="aide-commande-empty">Analyse en cours...</div>
+    </div>
+
+    <div class="aide-commande-section">
       <h2>Classement des articles vendus</h2>
       <div id="aideCommandeTopList" class="aide-commande-empty">Analyse en cours...</div>
     </div>
@@ -24793,6 +24798,7 @@ let aideCommandeState = {
   timeframe: String(AIDE_COMMANDE_DEFAULT_WINDOW_DAYS),
   lastLoadedTimeframe: null,
   articles: [],
+  starProducts: [],
   lowStock: [],
   suppliers: [],
   metrics: null,
@@ -24848,7 +24854,8 @@ function initializeAideCommandePage(forceReload = false) {
   }
   const topList = document.getElementById('aideCommandeTopList');
   const alertsList = document.getElementById('aideCommandeAlertsList');
-  if (!topList || !alertsList) {
+  const starsList = document.getElementById('aideCommandeStarsList');
+  if (!topList || !alertsList || !starsList) {
     return;
   }
 
@@ -24881,7 +24888,8 @@ function initializeAideCommandePage(forceReload = false) {
 async function loadAideCommandeData(force = false) {
   const topList = document.getElementById('aideCommandeTopList');
   const alertsList = document.getElementById('aideCommandeAlertsList');
-  if (!topList || !alertsList) {
+  const starsList = document.getElementById('aideCommandeStarsList');
+  if (!topList || !alertsList || !starsList) {
     return;
   }
 
@@ -24891,6 +24899,7 @@ async function loadAideCommandeData(force = false) {
       aideCommandeState.articles.length > 0) {
     renderAideCommandeSummary(aideCommandeState.metrics, aideCommandeState.range);
     populateAideCommandeSupplierFilter(aideCommandeState.suppliers || []);
+    renderAideCommandeStarsList();
     renderAideCommandeTopList();
     renderAideCommandeAlerts();
     return;
@@ -24911,17 +24920,21 @@ async function loadAideCommandeData(force = false) {
   topList.textContent = 'Analyse en cours...';
   alertsList.className = 'aide-commande-empty';
   alertsList.textContent = 'Analyse en cours...';
+  starsList.className = 'aide-commande-empty';
+  starsList.textContent = 'Analyse en cours...';
 
   aideCommandeLoadingPromise = fetchAideCommandeData(aideCommandeState.timeframe)
     .then(result => {
       aideCommandeState.lastLoadedTimeframe = aideCommandeState.timeframe;
       aideCommandeState.articles = result.articles;
+      aideCommandeState.starProducts = result.starProducts || [];
       aideCommandeState.lowStock = result.lowStock;
       aideCommandeState.suppliers = result.suppliers;
       aideCommandeState.metrics = result.metrics;
       aideCommandeState.range = result.range;
       renderAideCommandeSummary(result.metrics, result.range);
       populateAideCommandeSupplierFilter(result.suppliers);
+      renderAideCommandeStarsList();
       renderAideCommandeTopList();
       renderAideCommandeAlerts();
       return result;
@@ -24933,6 +24946,8 @@ async function loadAideCommandeData(force = false) {
       topList.textContent = message;
       alertsList.className = 'aide-commande-empty';
       alertsList.textContent = message;
+      starsList.className = 'aide-commande-empty';
+      starsList.textContent = message;
       return null;
     })
     .finally(() => {
@@ -25143,6 +25158,13 @@ async function fetchAideCommandeData(timeframe) {
 
   assignAideCommandeStars(combined);
 
+  const combinedByStockId = new Map();
+  combined.forEach(entry => {
+    if (entry.stockId) {
+      combinedByStockId.set(entry.stockId, entry);
+    }
+  });
+
   const articles = combined.sort((a, b) => {
     if (b.demandScore !== a.demandScore) {
       return b.demandScore - a.demandScore;
@@ -25176,6 +25198,45 @@ async function fetchAideCommandeData(timeframe) {
       return a.produit.localeCompare(b.produit, 'fr', { sensitivity: 'base' });
     });
 
+  const starProducts = stocks
+    .map(stockItem => {
+      const productName = (stockItem.name || '').trim();
+      if (!productName) {
+        return null;
+      }
+      const fallbackEntry = combinedByStockId.get(stockItem.id);
+      const normalizedStock = normalizeStockLocations(stockItem);
+      const demandStars = toSafeNumber(stockItem.demandStars, fallbackEntry ? fallbackEntry.demandStars : 0);
+      const demandScore = toSafeNumber(stockItem.demandScore, fallbackEntry ? fallbackEntry.demandScore : 0);
+      const demandStatus = (stockItem.demandStatus || (fallbackEntry ? fallbackEntry.demandStatus : 'normal')).toString();
+      const lastSaleDate = stockItem.demandBreakdown && stockItem.demandBreakdown.lastSaleAt
+        ? convertTimestamp(stockItem.demandBreakdown.lastSaleAt)
+        : (fallbackEntry ? fallbackEntry.lastSaleDate : null);
+      return {
+        produit: productName,
+        category: stockItem.category || (fallbackEntry ? fallbackEntry.category : 'autre'),
+        demandStars,
+        demandScore,
+        demandStatus,
+        stockTotal: toSafeNumber(normalizedStock.stockTotal),
+        lastSaleDate,
+        stockId: stockItem.id || null
+      };
+    })
+    .filter(item => item && item.demandStars > 0)
+    .sort((a, b) => {
+      if (b.demandStars !== a.demandStars) {
+        return b.demandStars - a.demandStars;
+      }
+      if (b.demandScore !== a.demandScore) {
+        return b.demandScore - a.demandScore;
+      }
+      if (b.stockTotal !== a.stockTotal) {
+        return b.stockTotal - a.stockTotal;
+      }
+      return a.produit.localeCompare(b.produit, 'fr', { sensitivity: 'base' });
+    });
+
   const suppliers = Array.from(new Set(
     lowStock
       .map(article => (article.lastPurchase && article.lastPurchase.fournisseur) ? article.lastPurchase.fournisseur : null)
@@ -25190,6 +25251,7 @@ async function fetchAideCommandeData(timeframe) {
 
   return {
     articles,
+    starProducts,
     lowStock,
     suppliers,
     metrics,
@@ -25388,6 +25450,52 @@ function renderAideCommandeSummary(metrics, range) {
       rangeEl.textContent = 'Analyse de la periode selectionnee.';
     }
   }
+}
+
+function renderAideCommandeStarsList() {
+  const container = document.getElementById('aideCommandeStarsList');
+  if (!container) {
+    return;
+  }
+  const stars = Array.isArray(aideCommandeState.starProducts) ? aideCommandeState.starProducts : [];
+  if (!stars.length) {
+    container.className = 'aide-commande-empty';
+    container.textContent = 'Aucun produit star detecte dans le stock.';
+    return;
+  }
+
+  container.className = '';
+  const rows = stars.map(item => {
+    const category = item.category ? '<small>' + aideCommandeEscapeHtml(item.category) + '</small>' : '';
+    const starsText = aideCommandeRenderStars(item.demandStars);
+    const status = aideCommandeDemandStatusLabel(item.demandStatus);
+    const scoreText = Number(item.demandScore || 0).toLocaleString('fr-FR');
+    const stockText = Number(item.stockTotal || 0).toLocaleString('fr-FR');
+    const lastSale = item.lastSaleDate ? formatAideCommandeDate(item.lastSaleDate) : 'Jamais';
+    return (
+      '<tr>' +
+        '<td class="aide-commande-article"><strong>' + aideCommandeEscapeHtml(item.produit) + '</strong>' + category + '</td>' +
+        '<td><span class="aide-commande-stars" title="' + item.demandStars + ' sur 5">' + starsText + '</span><br><small>' + status + '</small></td>' +
+        '<td><strong>' + scoreText + '</strong></td>' +
+        '<td><strong>' + stockText + '</strong></td>' +
+        '<td>' + lastSale + '</td>' +
+      '</tr>'
+    );
+  }).join('');
+
+  container.innerHTML =
+    '<table class="aide-commande-table">' +
+      '<thead>' +
+        '<tr>' +
+          '<th>Article</th>' +
+          '<th>Popularite</th>' +
+          '<th>Score stock</th>' +
+          '<th>Stock total</th>' +
+          '<th>Derniere vente</th>' +
+        '</tr>' +
+      '</thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>';
 }
 
 function renderAideCommandeTopList() {
