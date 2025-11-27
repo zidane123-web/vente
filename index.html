@@ -3750,6 +3750,12 @@ body.drawer-open {
             </span>
             <span>Enregistrer achat</span>
           </button>
+          <button type="button" class="ako-quick-item" id="quick-top-produits" data-role="manager" onclick="ouvrirTopProduitsDepuisAccueil()" style="display:none;">
+            <span class="ako-quick-avatar">
+              <i data-lucide="sparkles"></i>
+            </span>
+            <span>Top produits</span>
+          </button>
         </div>
       </section>
 
@@ -20048,6 +20054,26 @@ function ouvrirApprovisionnementDepuisAccueil() {
   }, 80);
 }
 
+function ouvrirTopProduitsDepuisAccueil() {
+  const role = typeof window !== 'undefined' ? window.userRole : null;
+  if (role !== 'admin') {
+    if (typeof showToast === 'function') {
+      showToast("Acces reserve aux administrateurs.", "error");
+    }
+    return;
+  }
+  window.location.hash = 'aide-commande';
+  setTimeout(() => {
+    if (typeof initializeAideCommandePage === 'function') {
+      initializeAideCommandePage(true);
+    }
+    const starsSection = document.getElementById('aideCommandeStarsList');
+    if (starsSection && typeof starsSection.scrollIntoView === 'function') {
+      starsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 120);
+}
+
 function peutGererLivraison(sale) {
   if (!sale) return false;
   const auth = typeof firebase !== 'undefined' && typeof firebase.auth === 'function' ? firebase.auth() : null;
@@ -30109,6 +30135,7 @@ async function majCartesTresorerie(options = {}) {
       const exportInventoryBtn = document.getElementById("exportInventoryBtn");
       const stockSummary = document.querySelector('#screen-stock .summary');
       const quickPurchaseButton = document.getElementById("quick-enregistrer-achat");
+      const quickTopProductsButton = document.getElementById("quick-top-produits");
       const adminStatsCard = document.getElementById("accueilAdminStats");
 
       if (navMenu) {
@@ -30156,6 +30183,9 @@ async function majCartesTresorerie(options = {}) {
       }
       if (quickPurchaseButton) {
         quickPurchaseButton.style.display = 'none';
+      }
+      if (quickTopProductsButton) {
+        quickTopProductsButton.style.display = 'none';
       }
       if (adminStatsCard) {
         adminStatsCard.style.display = 'none';
@@ -30293,6 +30323,9 @@ async function majCartesTresorerie(options = {}) {
         }
         if (quickPurchaseButton) {
           quickPurchaseButton.style.removeProperty('display');
+        }
+        if (quickTopProductsButton) {
+          quickTopProductsButton.style.removeProperty('display');
         }
         if (adminStatsCard) {
           adminStatsCard.style.removeProperty('display');
