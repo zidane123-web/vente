@@ -2356,6 +2356,20 @@ body.role-employe #screen-accueil .ako-quick-grid {
       margin: 0 0 5px;
       font-size: 18px;
     }
+    .product-stars {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      margin: 2px 0 6px;
+    }
+    .product-stars .stock-star {
+      width: 18px;
+      height: 18px;
+      color: #cfd8dc;
+    }
+    .product-stars .stock-star.filled {
+      color: #f4b400;
+    }
     .price-item {
       background: var(--white);
       border: 1px solid #ccc;
@@ -28715,6 +28729,14 @@ function confirmerAjoutFournisseur(fournisseurName) {
     // Assurez-vous de vider la liste de suggestions après l'interaction
     document.getElementById("suggestionListFournisseur").innerHTML = "";
 }
+    function renderStockStars(value) {
+      const rating = Math.max(1, Math.min(5, Number(value) || 1));
+      const stars = Array.from({ length: 5 }, (_, idx) => {
+        const filled = idx < rating ? ' filled' : '';
+        return `<i data-lucide="star" class="stock-star${filled}" aria-hidden="true"></i>`;
+      }).join('');
+      return { rating, stars };
+    }
     // Gestion des onglets dans la section Stock
     function filterStockItems(category){
   const inputId     = category === 'telephones'
@@ -28746,6 +28768,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
     filtered.forEach(prod=>{
       const card = document.createElement("div");
       card.className = "product-card";
+      const starsInfo = renderStockStars(prod.demandStars);
       card.innerHTML = `
         <button class="history-btn"
                 onclick="voirHistoriqueStock('${prod.id}', event)"
@@ -28756,6 +28779,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
         <div class="product-icon">${prod.icon}</div>
         <div class="product-details">
           <h3>${prod.name}</h3>
+          <div class="product-stars" aria-label="Popularite ${starsInfo.rating}/5">${starsInfo.stars}</div>
           <p>🔹 Stock : ${prod.stock} unités</p>
           <p class="price-label">💰 Prix : ${prod.price.toLocaleString()} FCFA</p>
         </div>
@@ -28833,6 +28857,7 @@ function confirmerAjoutFournisseur(fournisseurName) {
             const totalQty = Number(
               prod.stockTotal !== undefined ? prod.stockTotal : prod.stock
             ) || boutiqueQty + magasinQty;
+            const starsInfo = renderStockStars(prod.demandStars);
             card.innerHTML = `
                 <button class="history-btn"
                         onclick="voirHistoriqueStock('${prod.id}', event)"
@@ -28849,6 +28874,19 @@ function confirmerAjoutFournisseur(fournisseurName) {
                   <p class="price-label">🤝 Prix Revendeur : ${resellerPriceLabel}</p>
                 </div>
               `;
+            const details = card.querySelector('.product-details');
+            if (details) {
+              const starsEl = document.createElement('div');
+              starsEl.className = 'product-stars';
+              starsEl.setAttribute('aria-label', `Popularite ${starsInfo.rating}/5`);
+              starsEl.innerHTML = starsInfo.stars;
+              const firstParagraph = details.querySelector('p');
+              if (firstParagraph) {
+                details.insertBefore(starsEl, firstParagraph);
+              } else {
+                details.appendChild(starsEl);
+              }
+            }
 
             // =========================================================
             // === LA LIGNE MAGIQUE À AJOUTER EST ICI ===
